@@ -50,3 +50,6 @@ temp/
 # Google credentials
 credentials.json
 token.json
+
+# Vercel
+.vercel
