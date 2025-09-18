@@ -3,7 +3,8 @@ const multer = require('multer');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-require('dotenv').config();
+
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const { processReceiptWithAI } = require('./services/aiService');
 const { uploadToGoogleDrive } = require('./services/googleDriveService');
@@ -58,7 +59,13 @@ app.post('/api/upload-receipt', upload.single('receipt'), async (req, res) => {
     const expenseData = await processReceiptWithAI(filePath);
 
     console.log('Uploading to Google Drive...');
-    const driveFileId = await uploadToGoogleDrive(filePath, req.file.originalname);
+    let driveFileId = null;
+    try {
+      driveFileId = await uploadToGoogleDrive(filePath, req.file.originalname);
+    } catch (driveError) {
+      console.warn('⚠️  Google Drive upload failed, continuing without it:', driveError.message);
+      driveFileId = 'drive_upload_failed';
+    }
 
     console.log('Saving expense to database...');
     const expenseId = await saveExpense({

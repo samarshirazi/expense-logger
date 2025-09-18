@@ -64,14 +64,19 @@ const ReceiptUpload = ({ onExpenseAdded }) => {
     setSuccess(null);
   };
 
+  const rootProps = getRootProps({
+    onClick: () => {
+      clearMessages();
+    }
+  });
+
   return (
     <div className="upload-section">
       <h2>Upload Receipt</h2>
 
       <div
-        {...getRootProps()}
+        {...rootProps}
         className={`upload-zone ${isDragActive ? 'active' : ''} ${isDragReject ? 'reject' : ''}`}
-        onClick={clearMessages}
       >
         <input {...getInputProps()} />
 
