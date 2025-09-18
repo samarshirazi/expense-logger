@@ -8,12 +8,84 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: t
 const { processReceiptWithAI } = require('./services/aiService');
 const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('./services/googleDriveService');
 const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable } = require('./services/supabaseService');
+const { signUp, signIn, signOut, requireAuth } = require('./services/authService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+// Authentication endpoints
+app.post('/api/auth/signup', async (req, res) => {
+  try {
+    const { email, password, fullName } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const result = await signUp(email, password, { fullName });
+
+    res.json({
+      success: true,
+      user: result.user,
+      session: result.session,
+      message: 'User created successfully'
+    });
+
+  } catch (error) {
+    console.error('Signup error:', error);
+    res.status(400).json({
+      error: 'Signup failed',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/auth/signin', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const result = await signIn(email, password);
+
+    res.json({
+      success: true,
+      user: result.user,
+      session: result.session,
+      message: 'Signed in successfully'
+    });
+
+  } catch (error) {
+    console.error('Signin error:', error);
+    res.status(401).json({
+      error: 'Login failed',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/auth/signout', async (req, res) => {
+  try {
+    await signOut();
+
+    res.json({
+      success: true,
+      message: 'Signed out successfully'
+    });
+
+  } catch (error) {
+    console.error('Signout error:', error);
+    res.status(500).json({
+      error: 'Signout failed',
+      details: error.message
+    });
+  }
+});
 
 // Use memory storage for Vercel compatibility
 const storage = multer.memoryStorage();
@@ -34,7 +106,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
-app.post('/api/upload-receipt', upload.single('receipt'), async (req, res) => {
+app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -62,7 +134,7 @@ app.post('/api/upload-receipt', upload.single('receipt'), async (req, res) => {
       originalFilename: originalFilename,
       driveFileId: driveFileId,
       uploadDate: new Date().toISOString()
-    });
+    }, req.user.id);
 
     res.json({
       success: true,
@@ -82,9 +154,9 @@ app.post('/api/upload-receipt', upload.single('receipt'), async (req, res) => {
   }
 });
 
-app.get('/api/expenses', async (_, res) => {
+app.get('/api/expenses', requireAuth, async (req, res) => {
   try {
-    const expenses = await getExpenses();
+    const expenses = await getExpenses(req.user.id);
     res.json(expenses);
   } catch (error) {
     console.error('Error fetching expenses:', error);
@@ -92,7 +164,7 @@ app.get('/api/expenses', async (_, res) => {
   }
 });
 
-app.delete('/api/expenses/:id', async (req, res) => {
+app.delete('/api/expenses/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -102,14 +174,14 @@ app.delete('/api/expenses/:id', async (req, res) => {
 
     // Get expense data first to retrieve Google Drive file ID
     console.log('Fetching expense details for deletion...');
-    const expense = await getExpenseById(id);
+    const expense = await getExpenseById(id, req.user.id);
 
     if (!expense) {
       return res.status(404).json({ error: 'Expense not found' });
     }
 
     console.log('Deleting expense from database...');
-    await deleteExpense(id);
+    await deleteExpense(id, req.user.id);
 
     // Delete from Google Drive if file exists
     if (expense.driveFileId) {

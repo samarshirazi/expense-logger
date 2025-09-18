@@ -45,6 +45,47 @@ async function createExpensesTable() {
 
     if (!selectError) {
       console.log('✅ Expenses table already exists');
+
+      // Check if user_id column exists and add it if it doesn't
+      try {
+        await supabase
+          .from('expenses')
+          .select('user_id')
+          .limit(1);
+        console.log('✅ User_id column already exists');
+      } catch (columnError) {
+        console.log('📝 Adding user_id column to expenses table...');
+        const addColumnSQL = `
+          ALTER TABLE expenses
+          ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+
+          -- Create index for user_id
+          CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
+
+          -- Update RLS policies for multiuser support
+          DROP POLICY IF EXISTS "Allow all operations on expenses" ON expenses;
+
+          -- Users can only see their own expenses
+          CREATE POLICY "Users can view own expenses" ON expenses
+          FOR SELECT USING (auth.uid() = user_id);
+
+          -- Users can insert their own expenses
+          CREATE POLICY "Users can insert own expenses" ON expenses
+          FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+          -- Users can update their own expenses
+          CREATE POLICY "Users can update own expenses" ON expenses
+          FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+          -- Users can delete their own expenses
+          CREATE POLICY "Users can delete own expenses" ON expenses
+          FOR DELETE USING (auth.uid() = user_id);
+        `;
+
+        console.log('Please run this SQL in your Supabase dashboard to add multiuser support:');
+        console.log(addColumnSQL);
+      }
+
       return true;
     }
 
@@ -58,6 +99,7 @@ async function createExpensesTable() {
       const createTableSQL = `
         CREATE TABLE IF NOT EXISTS expenses (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
           merchant_name TEXT NOT NULL,
           date DATE,
           total_amount DECIMAL(10,2) NOT NULL,
@@ -78,14 +120,28 @@ async function createExpensesTable() {
         CREATE INDEX IF NOT EXISTS idx_expenses_merchant ON expenses(merchant_name);
         CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
         CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
+        CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
         CREATE INDEX IF NOT EXISTS idx_expenses_created_at ON expenses(created_at);
 
-        -- Enable Row Level Security (optional)
+        -- Enable Row Level Security
         ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 
-        -- Create a policy that allows all operations (you can customize this)
-        CREATE POLICY "Allow all operations on expenses" ON expenses
-        FOR ALL USING (true) WITH CHECK (true);
+        -- Create RLS policies for multiuser support
+        -- Users can only see their own expenses
+        CREATE POLICY "Users can view own expenses" ON expenses
+        FOR SELECT USING (auth.uid() = user_id);
+
+        -- Users can insert their own expenses
+        CREATE POLICY "Users can insert own expenses" ON expenses
+        FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+        -- Users can update their own expenses
+        CREATE POLICY "Users can update own expenses" ON expenses
+        FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+        -- Users can delete their own expenses
+        CREATE POLICY "Users can delete own expenses" ON expenses
+        FOR DELETE USING (auth.uid() = user_id);
       `;
 
       // Note: You'll need to run this SQL manually in Supabase dashboard
@@ -104,11 +160,12 @@ async function createExpensesTable() {
   }
 }
 
-async function saveExpense(expenseData) {
+async function saveExpense(expenseData, userId) {
   try {
     const supabase = initSupabase();
 
     const expenseRecord = {
+      user_id: userId,
       merchant_name: expenseData.merchantName,
       date: expenseData.date,
       total_amount: expenseData.totalAmount,
@@ -142,13 +199,14 @@ async function saveExpense(expenseData) {
   }
 }
 
-async function getExpenses(limit = 50, offset = 0) {
+async function getExpenses(userId, limit = 50, offset = 0) {
   try {
     const supabase = initSupabase();
 
     const { data, error } = await supabase
       .from('expenses')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -183,7 +241,7 @@ async function getExpenses(limit = 50, offset = 0) {
   }
 }
 
-async function getExpenseById(id) {
+async function getExpenseById(id, userId) {
   try {
     const supabase = initSupabase();
 
@@ -191,6 +249,7 @@ async function getExpenseById(id) {
       .from('expenses')
       .select('*')
       .eq('id', id)
+      .eq('user_id', userId)
       .single();
 
     if (error) {
@@ -225,14 +284,15 @@ async function getExpenseById(id) {
   }
 }
 
-async function deleteExpense(id) {
+async function deleteExpense(id, userId) {
   try {
     const supabase = initSupabase();
 
     const { error } = await supabase
       .from('expenses')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (error) {
       throw error;
