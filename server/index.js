@@ -214,6 +214,21 @@ app.get('/health', (_, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Centralized error handler to ensure consistent JSON responses
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('Unhandled server error:', err);
+
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ error: err.message });
+  }
+
+  const message = err?.message || 'Unexpected server error';
+  const status = err?.status || err?.statusCode || 500;
+
+  res.status(status).json({ error: message });
+});
+
 async function startServer() {
   try {
     console.log('🚀 Starting Expense Receipt Logger server...');

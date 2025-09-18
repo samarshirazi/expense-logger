@@ -11,6 +11,58 @@ const api = axios.create({
   timeout: 60000,
 });
 
+const normalizeErrorMessage = (value) => {
+  if (!value) {
+    return '';
+  }
+
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(normalizeErrorMessage).filter(Boolean).join(', ');
+  }
+
+  if (typeof value === 'object') {
+    if (value.message) {
+      return normalizeErrorMessage(value.message);
+    }
+
+    if (value.error) {
+      return normalizeErrorMessage(value.error);
+    }
+
+    try {
+      return JSON.stringify(value);
+    } catch (jsonError) {
+      console.warn('Failed to stringify error payload:', jsonError);
+    }
+  }
+
+  return '';
+};
+
+const extractApiError = (error, fallbackMessage) => {
+  if (error.response) {
+    const data = error.response.data;
+    const serverMessage = normalizeErrorMessage(data?.error ?? data?.message ?? data);
+    const serverDetails = normalizeErrorMessage(data?.details);
+    const combined = [serverMessage, serverDetails].filter(Boolean).join(': ');
+    return combined || fallbackMessage;
+  }
+
+  if (error.request) {
+    return 'Network error - please check your connection';
+  }
+
+  return error.message || fallbackMessage;
+};
+
 // Add auth token to requests
 api.interceptors.request.use(
   (config) => {
@@ -54,19 +106,7 @@ export const uploadReceipt = async (file, onProgress) => {
 
     return response.data;
   } catch (error) {
-    if (error.response) {
-      const serverMessage = error.response.data?.error;
-      const serverDetails = error.response.data?.details;
-      const combinedMessage = [serverMessage, serverDetails]
-        .filter(Boolean)
-        .join(': ');
-
-      throw new Error(combinedMessage || 'Upload failed');
-    } else if (error.request) {
-      throw new Error('Network error - please check your connection');
-    } else {
-      throw new Error('Upload failed');
-    }
+    throw new Error(extractApiError(error, 'Upload failed'));
   }
 };
 
@@ -87,19 +127,7 @@ export const deleteExpense = async (id) => {
     const response = await api.delete(`/expenses/${id}`);
     return response.data;
   } catch (error) {
-    if (error.response) {
-      const serverMessage = error.response.data?.error;
-      const serverDetails = error.response.data?.details;
-      const combinedMessage = [serverMessage, serverDetails]
-        .filter(Boolean)
-        .join(': ');
-
-      throw new Error(combinedMessage || 'Delete failed');
-    } else if (error.request) {
-      throw new Error('Network error - please check your connection');
-    } else {
-      throw new Error('Delete failed');
-    }
+    throw new Error(extractApiError(error, 'Delete failed'));
   }
 };
 
@@ -125,19 +153,7 @@ export const signUp = async (email, password, fullName) => {
     });
     return response.data;
   } catch (error) {
-    if (error.response) {
-      const serverMessage = error.response.data?.error;
-      const serverDetails = error.response.data?.details;
-      const combinedMessage = [serverMessage, serverDetails]
-        .filter(Boolean)
-        .join(': ');
-
-      throw new Error(combinedMessage || 'Signup failed');
-    } else if (error.request) {
-      throw new Error('Network error - please check your connection');
-    } else {
-      throw new Error('Signup failed');
-    }
+    throw new Error(extractApiError(error, 'Signup failed'));
   }
 };
 
@@ -149,19 +165,7 @@ export const signIn = async (email, password) => {
     });
     return response.data;
   } catch (error) {
-    if (error.response) {
-      const serverMessage = error.response.data?.error;
-      const serverDetails = error.response.data?.details;
-      const combinedMessage = [serverMessage, serverDetails]
-        .filter(Boolean)
-        .join(': ');
-
-      throw new Error(combinedMessage || 'Login failed');
-    } else if (error.request) {
-      throw new Error('Network error - please check your connection');
-    } else {
-      throw new Error('Login failed');
-    }
+    throw new Error(extractApiError(error, 'Login failed'));
   }
 };
 
