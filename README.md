@@ -92,10 +92,16 @@ OPENAI_API_KEY=your_openai_api_key_here
 # DEEPSEEK_API_KEY=your_deepseek_api_key_here
 # Optional: specify a DeepSeek model
 # DEEPSEEK_MODEL=deepseek-chat
+# For large images, install sharp (in /server) and tune optimization settings below
 
 # Offline testing stub (no external API call)
 # AI_PROVIDER=stub
 # USE_STUB_AI=true
+
+# Optional image optimization (requires sharp)
+# AI_IMAGE_MAX_DIMENSION=1024
+# AI_IMAGE_JPEG_QUALITY=75
+# AI_MAX_BASE64_LENGTH=1200000
 
 # Force provider (auto-detects if left unset)
 # AI_PROVIDER=deepseek

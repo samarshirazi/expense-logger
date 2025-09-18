@@ -27,7 +27,7 @@ Edit the `.env` file and add:
 # Get from https://platform.openai.com/api-keys
 OPENAI_API_KEY=sk-your-actual-openai-key
 
-# Or use DeepSeek instead
+# Or use DeepSeek instead (ensure large images are optimized)
 # Get from https://platform.deepseek.com/
 # DEEPSEEK_API_KEY=ds-your-deepseek-key
 # AI_PROVIDER=deepseek
@@ -35,6 +35,11 @@ OPENAI_API_KEY=sk-your-actual-openai-key
 # Need to work offline? Enable the stub provider (returns sample data)
 # AI_PROVIDER=stub
 # USE_STUB_AI=true
+
+# Optional: automatically downscale/compress uploaded images (requires `npm install sharp` in /server)
+# AI_IMAGE_MAX_DIMENSION=1024
+# AI_IMAGE_JPEG_QUALITY=75
+# AI_MAX_BASE64_LENGTH=1200000
 
 # Get from Google Cloud Console
 GOOGLE_CLIENT_ID=your-google-client-id

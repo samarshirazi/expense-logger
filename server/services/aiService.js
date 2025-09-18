@@ -3,6 +3,15 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
+let sharp = null;
+try {
+  // sharp is optional; we'll use it when available to shrink large images
+  // eslint-disable-next-line global-require
+  sharp = require('sharp');
+} catch (error) {
+  console.warn('⚠️  sharp module not found. Large images will not be optimized automatically.');
+}
+
 let openai = null;
 
 const AI_PROVIDERS = {
@@ -71,36 +80,62 @@ function determineMimeType(imagePath) {
   throw new Error('Unsupported file format');
 }
 
-function loadImageAsBase64(imagePath) {
-  const imageBuffer = fs.readFileSync(imagePath);
+async function loadImageAsBase64(imagePath) {
+  let mimeType = determineMimeType(imagePath);
+
+  let imageBuffer = fs.readFileSync(imagePath);
+
+  const maxDimension = parseInt(process.env.AI_IMAGE_MAX_DIMENSION || '1024', 10);
+  const shouldOptimize =
+    sharp &&
+    mimeType !== 'application/pdf' &&
+    Number.isFinite(maxDimension) &&
+    maxDimension > 0;
+
+  if (shouldOptimize) {
+    try {
+      imageBuffer = await sharp(imageBuffer)
+        .rotate()
+        .resize({
+          width: maxDimension,
+          height: maxDimension,
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: parseInt(process.env.AI_IMAGE_JPEG_QUALITY || '75', 10) || 75 })
+        .toBuffer();
+      mimeType = 'image/jpeg';
+    } catch (error) {
+      console.warn('⚠️  Failed to optimize image with sharp:', error.message);
+    }
+  }
+
   const base64Image = imageBuffer.toString('base64');
-  const mimeType = determineMimeType(imagePath);
+
+  const maxPayloadSize = parseInt(process.env.AI_MAX_BASE64_LENGTH || '1200000', 10);
+  if (Number.isFinite(maxPayloadSize) && base64Image.length > maxPayloadSize) {
+    throw new Error(
+      `Prepared image is still too large (${base64Image.length} bytes). Please use a smaller/optimized image.`
+    );
+  }
 
   return { base64Image, mimeType };
 }
 
 function buildExtractionInstruction() {
-  return `Please analyze this receipt image and extract the following information in JSON format:
+  return `Extract this receipt into JSON with keys:
 {
-  "merchantName": "Name of the store/restaurant",
-  "date": "Date in YYYY-MM-DD format",
-  "totalAmount": "Total amount as a number",
-  "currency": "Currency code (e.g., USD, EUR)",
-  "category": "Expense category (e.g., Food, Transportation, Office Supplies, etc.)",
-  "items": [
-    {
-      "description": "Item description",
-      "quantity": "Quantity as number",
-      "unitPrice": "Unit price as number",
-      "totalPrice": "Total price for this item as number"
-    }
-  ],
-  "paymentMethod": "Cash, Credit Card, Debit Card, etc.",
-  "taxAmount": "Tax amount as number if visible",
-  "tipAmount": "Tip amount as number if visible"
+  "merchantName": string,
+  "date": "YYYY-MM-DD" or null,
+  "totalAmount": number,
+  "currency": currency code (default USD),
+  "category": string (default Other),
+  "items": [ {"description": string, "quantity": number|null, "unitPrice": number|null, "totalPrice": number|null} ],
+  "paymentMethod": string|null,
+  "taxAmount": number|null,
+  "tipAmount": number|null
 }
-
-If any information is not clearly visible or available, use null for that field. Ensure all monetary amounts are numbers, not strings.`;
+Use null when data is missing. All money values must be numbers.`;
 }
 
 async function callOpenAI(base64Image, mimeType) {
@@ -155,17 +190,11 @@ function callDeepSeek(base64Image, mimeType) {
   const messages = [
     {
       role: 'system',
-      content: 'You are a meticulous assistant that extracts structured expense data from receipts.',
+      content: 'You extract structured expense data from receipts.',
     },
     {
       role: 'user',
-      content: `${buildExtractionInstruction()}
-
-The receipt file is provided below. Decode the base64 payload before analyzing it.
-
-MIME type: ${mimeType}
-Base64 data:
-${base64Image}`,
+      content: buildExtractionInstruction(),
     },
   ];
 
@@ -174,6 +203,13 @@ ${base64Image}`,
     messages,
     temperature: 0,
     max_tokens: 1000,
+    images: [
+      {
+        type: 'input_image',
+        data: base64Image,
+        mime_type: mimeType,
+      },
+    ],
   });
 
   return new Promise((resolve, reject) => {
@@ -286,7 +322,7 @@ async function processReceiptWithAI(imagePath) {
       };
     }
 
-    const { base64Image, mimeType } = loadImageAsBase64(imagePath);
+    const { base64Image, mimeType } = await loadImageAsBase64(imagePath);
 
     const extractedText = provider === AI_PROVIDERS.DEEPSEEK
       ? await callDeepSeek(base64Image, mimeType)
@@ -355,7 +391,35 @@ function validateExpenseData(data) {
   });
 
   if (typeof data.totalAmount !== 'number' || !Number.isFinite(data.totalAmount) || data.totalAmount <= 0) {
-    throw new Error('Total amount must be a positive number');
+    if (Array.isArray(data.items) && data.items.length > 0) {
+      const fallbackTotal = data.items.reduce((sum, item) => {
+        if (!item || typeof item !== 'object') {
+          return sum;
+        }
+
+        const totalPrice = normalizeNumber(item.totalPrice);
+        if (totalPrice !== null && totalPrice > 0) {
+          return sum + totalPrice;
+        }
+
+        const unitPrice = normalizeNumber(item.unitPrice);
+        const quantity = normalizeNumber(item.quantity);
+        if (unitPrice !== null && quantity !== null && unitPrice > 0 && quantity > 0) {
+          return sum + unitPrice * quantity;
+        }
+
+        return sum;
+      }, 0);
+
+      if (fallbackTotal > 0) {
+        console.warn('AI response had invalid totalAmount; using computed sum of items instead.');
+        data.totalAmount = parseFloat(fallbackTotal.toFixed(2));
+      }
+    }
+
+    if (typeof data.totalAmount !== 'number' || !Number.isFinite(data.totalAmount) || data.totalAmount <= 0) {
+      throw new Error('Total amount must be a positive number');
+    }
   }
 
   if (Array.isArray(data.items)) {
