@@ -11,10 +11,18 @@
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
     "vercel-build": "cd server && npm install && cd ../client && npm install && npm run build"
   },
-  "keywords": ["expense", "receipt", "ai", "google-drive"],
+  "keywords": [
+    "expense",
+    "receipt",
+    "ai",
+    "google-drive"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "sharp": "^0.34.4"
   }
 }

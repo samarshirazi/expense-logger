@@ -307,7 +307,7 @@ async function deleteExpense(id, userId) {
   }
 }
 
-async function getExpensesByCategory(category) {
+async function getExpensesByCategory(category, userId) {
   try {
     const supabase = initSupabase();
 
@@ -315,6 +315,7 @@ async function getExpensesByCategory(category) {
       .from('expenses')
       .select('*')
       .eq('category', category)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) {
