@@ -109,7 +109,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 # DEEPSEEK_API_BASE=https://api.deepseek.com
 
 # Force provider (auto-detects if left unset)
-# AI_PROVIDER=deepseek
+# AI_PROVIDER=openai
 
 # Google Drive API Configuration
 GOOGLE_CLIENT_ID=your_google_client_id
