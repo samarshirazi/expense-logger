@@ -1,17 +1,30 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { uploadReceipt } from '../services/apiService';
+import CameraCapture from './CameraCapture';
+import './CameraCapture.css';
 
 const ReceiptUpload = ({ onExpenseAdded }) => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  const onDrop = useCallback(async (acceptedFiles) => {
-    const file = acceptedFiles[0];
-    if (!file) return;
+  // Detect mobile device
+  React.useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+      const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+      setIsMobile(isMobileDevice && hasCamera);
+    };
 
+    checkMobile();
+  }, []);
+
+  const handleFileUpload = useCallback(async (file) => {
     setUploading(true);
     setError(null);
     setSuccess(null);
@@ -42,6 +55,26 @@ const ReceiptUpload = ({ onExpenseAdded }) => {
       setProgress(0);
     }
   }, [onExpenseAdded]);
+
+  const onDrop = useCallback(async (acceptedFiles) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
+    await handleFileUpload(file);
+  }, [handleFileUpload]);
+
+  const handleCameraCapture = useCallback(async (file) => {
+    setShowCamera(false);
+    await handleFileUpload(file);
+  }, [handleFileUpload]);
+
+  const handleCameraCancel = useCallback(() => {
+    setShowCamera(false);
+  }, []);
+
+  const openCamera = useCallback(() => {
+    clearMessages();
+    setShowCamera(true);
+  }, []);
 
   const {
     getRootProps,
@@ -74,6 +107,16 @@ const ReceiptUpload = ({ onExpenseAdded }) => {
     <div className="upload-section">
       <h2>Upload Receipt</h2>
 
+      {/* Camera button for mobile devices */}
+      {isMobile && !uploading && (
+        <div className="camera-section">
+          <button className="camera-btn" onClick={openCamera}>
+            📷 Take Photo
+          </button>
+          <span className="camera-divider">or</span>
+        </div>
+      )}
+
       <div
         {...rootProps}
         className={`upload-zone ${isDragActive ? 'active' : ''} ${isDragReject ? 'reject' : ''}`}
@@ -99,6 +142,8 @@ const ReceiptUpload = ({ onExpenseAdded }) => {
             <div className="upload-text">
               {isDragActive ? (
                 'Drop the receipt here...'
+              ) : isMobile ? (
+                'Tap to select a file from your device'
               ) : (
                 'Drag & drop a receipt here, or click to select'
               )}
@@ -145,6 +190,15 @@ const ReceiptUpload = ({ onExpenseAdded }) => {
           </button>
         </div>
       )}
+
+      {/* Camera capture modal */}
+      {showCamera && (
+        <CameraCapture
+          onCapture={handleCameraCapture}
+          onCancel={handleCameraCancel}
+        />
+      )}
+
     </div>
   );
 };

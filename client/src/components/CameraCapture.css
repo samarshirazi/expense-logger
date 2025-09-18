@@ -1,0 +1,202 @@
+/* Camera Capture Styles */
+.camera-capture {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.camera-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+}
+
+.camera-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-error {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  text-align: center;
+  padding: 2rem;
+}
+
+.camera-error button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.camera-container {
+  flex: 1;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.capture-guide {
+  text-align: center;
+  color: white;
+}
+
+.guide-frame {
+  width: 300px;
+  height: 200px;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
+}
+
+.capture-guide p {
+  margin: 0;
+  font-size: 1rem;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.camera-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.camera-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 25px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.camera-button.primary {
+  background: #28a745;
+  color: white;
+  font-size: 1.2rem;
+  padding: 1rem 2rem;
+}
+
+.camera-button.secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.camera-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Upload section camera styles */
+.camera-section {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.camera-btn {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.camera-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
+}
+
+.camera-btn:active {
+  transform: translateY(0);
+}
+
+.camera-divider {
+  display: block;
+  margin: 0.5rem 0;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .guide-frame {
+    width: 250px;
+    height: 150px;
+  }
+
+  .camera-controls {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .camera-button {
+    width: 100%;
+    max-width: 200px;
+    margin: 0 auto;
+  }
+
+  .camera-btn {
+    width: 100%;
+    max-width: 200px;
+    font-size: 1.2rem;
+    padding: 1rem 2rem;
+  }
+}
