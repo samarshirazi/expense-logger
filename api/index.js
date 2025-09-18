@@ -7,8 +7,8 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: true });
 
 const { processReceiptWithAI } = require('../server/services/aiService');
-const { uploadToGoogleDrive } = require('../server/services/googleDriveService');
-const { saveExpense, getExpenses, deleteExpense, testConnection, createExpensesTable } = require('../server/services/supabaseService');
+const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('../server/services/googleDriveService');
+const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable } = require('../server/services/supabaseService');
 
 const app = express();
 
@@ -100,12 +100,33 @@ app.delete('/api/expenses/:id', async (req, res) => {
       return res.status(400).json({ error: 'Expense ID is required' });
     }
 
+    // Get expense data first to retrieve Google Drive file ID
+    console.log('Fetching expense details for deletion...');
+    const expense = await getExpenseById(id);
+
+    if (!expense) {
+      return res.status(404).json({ error: 'Expense not found' });
+    }
+
+    console.log('Deleting expense from database...');
     await deleteExpense(id);
+
+    // Delete from Google Drive if file exists
+    if (expense.driveFileId) {
+      console.log('Deleting file from Google Drive...');
+      try {
+        await deleteFromGoogleDrive(expense.driveFileId);
+      } catch (driveError) {
+        console.warn('⚠️  Google Drive deletion failed, but continuing:', driveError.message);
+        // Don't fail the entire operation if Google Drive deletion fails
+      }
+    }
 
     res.json({
       success: true,
-      message: 'Expense deleted successfully',
-      id: id
+      message: 'Expense and receipt deleted successfully',
+      id: id,
+      driveFileDeleted: !!expense.driveFileId
     });
 
   } catch (error) {

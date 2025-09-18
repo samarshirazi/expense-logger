@@ -134,6 +134,37 @@ function getMimeTypeFromFilename(filename) {
   }
 }
 
+async function deleteFromGoogleDrive(fileId) {
+  try {
+    if (!fileId || fileId === 'drive_upload_failed') {
+      console.log('No Google Drive file to delete (no file ID or upload failed)');
+      return true; // Not an error condition
+    }
+
+    const drive = initializeDriveClient();
+
+    // First check if file exists
+    try {
+      await drive.files.get({ fileId: fileId });
+    } catch (error) {
+      if (error.code === 404) {
+        console.log('Google Drive file not found (already deleted?):', fileId);
+        return true; // File doesn't exist, consider it successfully deleted
+      }
+      throw error;
+    }
+
+    // Delete the file
+    await drive.files.delete({ fileId: fileId });
+    console.log('✅ File deleted from Google Drive:', fileId);
+    return true;
+
+  } catch (error) {
+    console.error('❌ Google Drive deletion error:', error.message);
+    throw new Error(`Failed to delete from Google Drive: ${error.message}`);
+  }
+}
+
 async function testGoogleDriveConnection() {
   try {
     const drive = initializeDriveClient();
@@ -149,5 +180,6 @@ async function testGoogleDriveConnection() {
 module.exports = {
   uploadToGoogleDrive,
   getFileLink,
+  deleteFromGoogleDrive,
   testGoogleDriveConnection
 };
