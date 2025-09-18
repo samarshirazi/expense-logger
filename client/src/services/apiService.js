@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Use relative path for production (works with Vercel), localhost for development
+const API_BASE_URL = process.env.NODE_ENV === 'production'
+  ? '/api'
+  : 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -54,7 +57,10 @@ export const getExpenses = async (limit = 50, offset = 0) => {
 
 export const checkServerHealth = async () => {
   try {
-    const response = await axios.get('/health');
+    const healthUrl = process.env.NODE_ENV === 'production'
+      ? '/api/health'
+      : 'http://localhost:5000/health';
+    const response = await axios.get(healthUrl);
     return response.data;
   } catch (error) {
     throw new Error('Server is not responding');
