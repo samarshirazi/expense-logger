@@ -123,19 +123,23 @@ async function loadImageAsBase64(imagePath) {
 }
 
 function buildExtractionInstruction() {
-  return `Extract this receipt into JSON with keys:
+  return `Extract this receipt and respond with a single JSON object ONLY (no markdown, no prose).
+Required keys and value types:
 {
   "merchantName": string,
   "date": "YYYY-MM-DD" or null,
   "totalAmount": number,
-  "currency": currency code (default USD),
-  "category": string (default Other),
+  "currency": currency code (default "USD"),
+  "category": string (default "Other"),
   "items": [ {"description": string, "quantity": number|null, "unitPrice": number|null, "totalPrice": number|null} ],
   "paymentMethod": string|null,
   "taxAmount": number|null,
   "tipAmount": number|null
 }
-Use null when data is missing. All money values must be numbers.`;
+Rules:
+- Use null when a value is missing or unreadable.
+- All monetary fields must be numbers (not strings).
+- Return ONLY the JSON object.`;
 }
 
 async function callOpenAI(base64Image, mimeType) {
@@ -190,11 +194,26 @@ function callDeepSeek(base64Image, mimeType) {
   const messages = [
     {
       role: 'system',
-      content: 'You extract structured expense data from receipts.',
+      content: [
+        {
+          type: 'text',
+          text: 'You extract structured expense data from receipts.',
+        },
+      ],
     },
     {
       role: 'user',
-      content: buildExtractionInstruction(),
+      content: [
+        {
+          type: 'text',
+          text: buildExtractionInstruction(),
+        },
+        {
+          type: 'input_image',
+          image_base64: base64Image,
+          mime_type: mimeType,
+        },
+      ],
     },
   ];
 
@@ -203,13 +222,6 @@ function callDeepSeek(base64Image, mimeType) {
     messages,
     temperature: 0,
     max_tokens: 1000,
-    images: [
-      {
-        type: 'input_image',
-        data: base64Image,
-        mime_type: mimeType,
-      },
-    ],
   });
 
   return new Promise((resolve, reject) => {
@@ -283,17 +295,19 @@ async function processReceiptWithAI(imagePath) {
   try {
     const provider = resolveProvider();
 
+    console.log(`[AI] Using provider: ${provider}`);
+
     if (!provider) {
       throw new Error('No AI provider configured. Set DEEPSEEK_API_KEY, OPENAI_API_KEY, or use AI_PROVIDER=stub for local testing.');
     }
 
-    if (provider === AI_PROVIDERS.STUB) {
-      console.warn('⚠️  Using stub AI provider. Returned data is static and for testing only.');
+  if (provider === AI_PROVIDERS.STUB) {
+    console.warn('⚠️  Using stub AI provider. Returned data is static and for testing only.');
 
-      return {
-        merchantName: 'Sample Coffee Shop',
-        date: new Date().toISOString().slice(0, 10),
-        totalAmount: 11.5,
+    return {
+      merchantName: 'Sample Coffee Shop',
+      date: new Date().toISOString().slice(0, 10),
+      totalAmount: 11.5,
         currency: 'USD',
         category: 'Food',
         items: [
@@ -328,9 +342,17 @@ async function processReceiptWithAI(imagePath) {
       ? await callDeepSeek(base64Image, mimeType)
       : await callOpenAI(base64Image, mimeType);
 
+    if (process.env.AI_DEBUG_LOG === 'true') {
+      console.log('[AI][debug] Raw response:', extractedText);
+    }
+
     const expenseData = extractExpenseData(extractedText);
 
     validateExpenseData(expenseData);
+
+    if (process.env.AI_DEBUG_LOG === 'true') {
+      console.log('[AI][debug] Validated expense data:', expenseData);
+    }
 
     return expenseData;
 

@@ -4,7 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: true });
 
 const { processReceiptWithAI } = require('./services/aiService');
 const { uploadToGoogleDrive } = require('./services/googleDriveService');

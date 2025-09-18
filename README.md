@@ -103,6 +103,9 @@ OPENAI_API_KEY=your_openai_api_key_here
 # AI_IMAGE_JPEG_QUALITY=75
 # AI_MAX_BASE64_LENGTH=1200000
 
+# Optional debug logging for AI responses
+# AI_DEBUG_LOG=true
+
 # Force provider (auto-detects if left unset)
 # AI_PROVIDER=deepseek
 
