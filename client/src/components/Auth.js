@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { signUp, signIn } from '../services/apiService';
+import authService from '../services/authService';
 
 function Auth({ onAuthSuccess }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -25,17 +25,20 @@ function Auth({ onAuthSuccess }) {
     setError('');
 
     try {
-      let result;
-
       if (isLogin) {
-        result = await signIn(formData.email, formData.password);
+        await authService.signIn(formData.email, formData.password);
       } else {
-        result = await signUp(formData.email, formData.password, formData.fullName);
+        const result = await authService.signUp(formData.email, formData.password, formData.fullName);
+
+        if (result.needsConfirmation) {
+          setError('Please check your email to confirm your account before signing in.');
+          setLoading(false);
+          return;
+        }
       }
 
-      if (result.success) {
-        onAuthSuccess();
-      }
+      // AuthService will automatically trigger the subscriber in App.js
+      onAuthSuccess();
     } catch (error) {
       console.error('Auth error:', error);
       setError(error.message || 'Authentication failed');
