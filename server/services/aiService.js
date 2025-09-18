@@ -1,12 +1,17 @@
 const OpenAI = require('openai');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 
 let openai = null;
 
+const AI_PROVIDERS = {
+  DEEPSEEK: 'deepseek',
+  OPENAI: 'openai',
+};
+
 function initOpenAI() {
   if (!process.env.OPENAI_API_KEY) {
-    console.warn('⚠️  OPENAI_API_KEY not found. AI features will be disabled.');
     return null;
   }
 
@@ -19,89 +24,235 @@ function initOpenAI() {
   return openai;
 }
 
-async function processReceiptWithAI(imagePath) {
-  try {
-    const openaiClient = initOpenAI();
+function resolveProvider() {
+  const explicit = (process.env.AI_PROVIDER || '').toLowerCase();
 
-    if (!openaiClient) {
-      throw new Error('OpenAI API key not configured. Please add OPENAI_API_KEY to your .env file.');
+  if (explicit === AI_PROVIDERS.DEEPSEEK && process.env.DEEPSEEK_API_KEY) {
+    return AI_PROVIDERS.DEEPSEEK;
+  }
+
+  if (explicit === AI_PROVIDERS.OPENAI && process.env.OPENAI_API_KEY) {
+    return AI_PROVIDERS.OPENAI;
+  }
+
+  if (process.env.DEEPSEEK_API_KEY) {
+    return AI_PROVIDERS.DEEPSEEK;
+  }
+
+  if (process.env.OPENAI_API_KEY) {
+    return AI_PROVIDERS.OPENAI;
+  }
+
+  return null;
+}
+
+function determineMimeType(imagePath) {
+  const fileExtension = path.extname(imagePath).toLowerCase();
+
+  if (fileExtension === '.png') {
+    return 'image/png';
+  }
+  if (fileExtension === '.jpg' || fileExtension === '.jpeg') {
+    return 'image/jpeg';
+  }
+  if (fileExtension === '.pdf') {
+    return 'application/pdf';
+  }
+
+  throw new Error('Unsupported file format');
+}
+
+function loadImageAsBase64(imagePath) {
+  const imageBuffer = fs.readFileSync(imagePath);
+  const base64Image = imageBuffer.toString('base64');
+  const mimeType = determineMimeType(imagePath);
+
+  return { base64Image, mimeType };
+}
+
+function buildExtractionInstruction() {
+  return `Please analyze this receipt image and extract the following information in JSON format:
+{
+  "merchantName": "Name of the store/restaurant",
+  "date": "Date in YYYY-MM-DD format",
+  "totalAmount": "Total amount as a number",
+  "currency": "Currency code (e.g., USD, EUR)",
+  "category": "Expense category (e.g., Food, Transportation, Office Supplies, etc.)",
+  "items": [
+    {
+      "description": "Item description",
+      "quantity": "Quantity as number",
+      "unitPrice": "Unit price as number",
+      "totalPrice": "Total price for this item as number"
     }
+  ],
+  "paymentMethod": "Cash, Credit Card, Debit Card, etc.",
+  "taxAmount": "Tax amount as number if visible",
+  "tipAmount": "Tip amount as number if visible"
+}
 
-    const imageBuffer = fs.readFileSync(imagePath);
-    const base64Image = imageBuffer.toString('base64');
-    const fileExtension = path.extname(imagePath).toLowerCase();
+If any information is not clearly visible or available, use null for that field. Ensure all monetary amounts are numbers, not strings.`;
+}
 
-    let mimeType;
-    if (fileExtension === '.png') {
-      mimeType = 'image/png';
-    } else if (fileExtension === '.jpg' || fileExtension === '.jpeg') {
-      mimeType = 'image/jpeg';
-    } else if (fileExtension === '.pdf') {
-      mimeType = 'application/pdf';
-    } else {
-      throw new Error('Unsupported file format');
-    }
+async function callOpenAI(base64Image, mimeType) {
+  const openaiClient = initOpenAI();
 
-    const response = await openaiClient.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Please analyze this receipt image and extract the following information in JSON format:
-              {
-                "merchantName": "Name of the store/restaurant",
-                "date": "Date in YYYY-MM-DD format",
-                "totalAmount": "Total amount as a number",
-                "currency": "Currency code (e.g., USD, EUR)",
-                "category": "Expense category (e.g., Food, Transportation, Office Supplies, etc.)",
-                "items": [
-                  {
-                    "description": "Item description",
-                    "quantity": "Quantity as number",
-                    "unitPrice": "Unit price as number",
-                    "totalPrice": "Total price for this item as number"
-                  }
-                ],
-                "paymentMethod": "Cash, Credit Card, Debit Card, etc.",
-                "taxAmount": "Tax amount as number if visible",
-                "tipAmount": "Tip amount as number if visible"
-              }
+  if (!openaiClient) {
+    throw new Error('OpenAI API key not configured. Please add OPENAI_API_KEY to your .env file.');
+  }
 
-              If any information is not clearly visible or available, use null for that field. Ensure all monetary amounts are numbers, not strings.`
+  const model = process.env.OPENAI_VISION_MODEL || 'gpt-4o';
+
+  const response = await openaiClient.chat.completions.create({
+    model: model,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: buildExtractionInstruction(),
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:${mimeType};base64,${base64Image}`,
             },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${mimeType};base64,${base64Image}`
-              }
+          },
+        ],
+      },
+    ],
+    max_tokens: 1000,
+  });
+
+  const extractedText = response.choices?.[0]?.message?.content;
+
+  if (!extractedText) {
+    throw new Error('OpenAI response did not contain any content');
+  }
+
+  return extractedText;
+}
+
+function callDeepSeek(base64Image, mimeType) {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('DeepSeek API key not configured. Please add DEEPSEEK_API_KEY to your .env file.');
+  }
+
+  const model = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
+
+  const messages = [
+    {
+      role: 'system',
+      content: 'You are a meticulous assistant that extracts structured expense data from receipts.',
+    },
+    {
+      role: 'user',
+      content: `${buildExtractionInstruction()}
+
+The receipt file is provided below. Decode the base64 payload before analyzing it.
+
+MIME type: ${mimeType}
+Base64 data:
+${base64Image}`,
+    },
+  ];
+
+  const payload = JSON.stringify({
+    model,
+    messages,
+    temperature: 0,
+    max_tokens: 1000,
+  });
+
+  return new Promise((resolve, reject) => {
+    const request = https.request(
+      {
+        hostname: 'api.deepseek.com',
+        path: '/v1/chat/completions',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Length': Buffer.byteLength(payload),
+        },
+      },
+      (response) => {
+        let data = '';
+
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+
+        response.on('end', () => {
+          if (response.statusCode < 200 || response.statusCode >= 300) {
+            reject(new Error(`DeepSeek API error (${response.statusCode}): ${data}`));
+            return;
+          }
+
+          try {
+            const parsed = JSON.parse(data);
+            const extractedText = parsed.choices?.[0]?.message?.content;
+
+            if (!extractedText) {
+              reject(new Error('DeepSeek response did not contain any content'));
+              return;
             }
-          ]
-        }
-      ],
-      max_tokens: 1000
+
+            resolve(extractedText);
+          } catch (parseError) {
+            reject(new Error(`Failed to parse DeepSeek response: ${parseError.message}`));
+          }
+        });
+      }
+    );
+
+    request.on('error', (error) => {
+      reject(new Error(`DeepSeek request failed: ${error.message}`));
     });
 
-    const extractedText = response.choices[0].message.content;
+    request.write(payload);
+    request.end();
+  });
+}
 
-    try {
-      const jsonMatch = extractedText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const expenseData = JSON.parse(jsonMatch[0]);
+function extractExpenseData(extractedText) {
+  try {
+    const jsonMatch = extractedText.match(/\{[\s\S]*\}/);
 
-        validateExpenseData(expenseData);
-
-        return expenseData;
-      } else {
-        throw new Error('No JSON found in AI response');
-      }
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
-      console.log('Raw AI response:', extractedText);
-      throw new Error('Failed to parse expense data from receipt');
+    if (!jsonMatch) {
+      throw new Error('No JSON found in AI response');
     }
+
+    return JSON.parse(jsonMatch[0]);
+  } catch (error) {
+    console.error('Failed to parse AI response:', error);
+    console.log('Raw AI response:', extractedText);
+    throw new Error('Failed to parse expense data from receipt');
+  }
+}
+
+async function processReceiptWithAI(imagePath) {
+  try {
+    const provider = resolveProvider();
+
+    if (!provider) {
+      throw new Error('No AI provider configured. Please set DEEPSEEK_API_KEY or OPENAI_API_KEY in your environment.');
+    }
+
+    const { base64Image, mimeType } = loadImageAsBase64(imagePath);
+
+    const extractedText = provider === AI_PROVIDERS.DEEPSEEK
+      ? await callDeepSeek(base64Image, mimeType)
+      : await callOpenAI(base64Image, mimeType);
+
+    const expenseData = extractExpenseData(extractedText);
+
+    validateExpenseData(expenseData);
+
+    return expenseData;
 
   } catch (error) {
     console.error('AI processing error:', error);

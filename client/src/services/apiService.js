@@ -25,7 +25,13 @@ export const uploadReceipt = async (file, onProgress) => {
     return response.data;
   } catch (error) {
     if (error.response) {
-      throw new Error(error.response.data.error || 'Upload failed');
+      const serverMessage = error.response.data?.error;
+      const serverDetails = error.response.data?.details;
+      const combinedMessage = [serverMessage, serverDetails]
+        .filter(Boolean)
+        .join(': ');
+
+      throw new Error(combinedMessage || 'Upload failed');
     } else if (error.request) {
       throw new Error('Network error - please check your connection');
     } else {

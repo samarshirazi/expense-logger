@@ -23,8 +23,14 @@ This creates your `expenses` table with proper structure.
 Edit the `.env` file and add:
 
 ```env
+# OpenAI (default)
 # Get from https://platform.openai.com/api-keys
 OPENAI_API_KEY=sk-your-actual-openai-key
+
+# Or use DeepSeek instead
+# Get from https://platform.deepseek.com/
+# DEEPSEEK_API_KEY=ds-your-deepseek-key
+# AI_PROVIDER=deepseek
 
 # Get from Google Cloud Console
 GOOGLE_CLIENT_ID=your-google-client-id

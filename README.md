@@ -82,8 +82,19 @@ npm run install-all
 Create a `.env` file in the root directory:
 
 ```env
-# OpenAI API Configuration
+# AI Provider Configuration (choose one)
+# OpenAI
 OPENAI_API_KEY=your_openai_api_key_here
+# Optional: override default OpenAI model
+# OPENAI_VISION_MODEL=gpt-4o
+
+# DeepSeek (optional alternative provider)
+# DEEPSEEK_API_KEY=your_deepseek_api_key_here
+# Optional: specify a DeepSeek model
+# DEEPSEEK_MODEL=deepseek-chat
+
+# Force provider (auto-detects if left unset)
+# AI_PROVIDER=deepseek
 
 # Google Drive API Configuration
 GOOGLE_CLIENT_ID=your_google_client_id
