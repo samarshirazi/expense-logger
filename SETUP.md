@@ -32,6 +32,10 @@ OPENAI_API_KEY=sk-your-actual-openai-key
 # DEEPSEEK_API_KEY=ds-your-deepseek-key
 # AI_PROVIDER=deepseek
 
+# Need to work offline? Enable the stub provider (returns sample data)
+# AI_PROVIDER=stub
+# USE_STUB_AI=true
+
 # Get from Google Cloud Console
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret

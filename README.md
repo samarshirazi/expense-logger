@@ -93,6 +93,10 @@ OPENAI_API_KEY=your_openai_api_key_here
 # Optional: specify a DeepSeek model
 # DEEPSEEK_MODEL=deepseek-chat
 
+# Offline testing stub (no external API call)
+# AI_PROVIDER=stub
+# USE_STUB_AI=true
+
 # Force provider (auto-detects if left unset)
 # AI_PROVIDER=deepseek
 

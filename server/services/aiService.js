@@ -8,6 +8,7 @@ let openai = null;
 const AI_PROVIDERS = {
   DEEPSEEK: 'deepseek',
   OPENAI: 'openai',
+  STUB: 'stub',
 };
 
 function initOpenAI() {
@@ -35,12 +36,20 @@ function resolveProvider() {
     return AI_PROVIDERS.OPENAI;
   }
 
+  if (explicit === AI_PROVIDERS.STUB || process.env.USE_STUB_AI === 'true') {
+    return AI_PROVIDERS.STUB;
+  }
+
   if (process.env.DEEPSEEK_API_KEY) {
     return AI_PROVIDERS.DEEPSEEK;
   }
 
   if (process.env.OPENAI_API_KEY) {
     return AI_PROVIDERS.OPENAI;
+  }
+
+  if (explicit === AI_PROVIDERS.STUB) {
+    return AI_PROVIDERS.STUB;
   }
 
   return null;
@@ -239,7 +248,42 @@ async function processReceiptWithAI(imagePath) {
     const provider = resolveProvider();
 
     if (!provider) {
-      throw new Error('No AI provider configured. Please set DEEPSEEK_API_KEY or OPENAI_API_KEY in your environment.');
+      throw new Error('No AI provider configured. Set DEEPSEEK_API_KEY, OPENAI_API_KEY, or use AI_PROVIDER=stub for local testing.');
+    }
+
+    if (provider === AI_PROVIDERS.STUB) {
+      console.warn('⚠️  Using stub AI provider. Returned data is static and for testing only.');
+
+      return {
+        merchantName: 'Sample Coffee Shop',
+        date: new Date().toISOString().slice(0, 10),
+        totalAmount: 11.5,
+        currency: 'USD',
+        category: 'Food',
+        items: [
+          {
+            description: 'Latte',
+            quantity: 1,
+            unitPrice: 4.5,
+            totalPrice: 4.5,
+          },
+          {
+            description: 'Blueberry Muffin',
+            quantity: 1,
+            unitPrice: 3.5,
+            totalPrice: 3.5,
+          },
+          {
+            description: 'Sparkling Water',
+            quantity: 1,
+            unitPrice: 2.0,
+            totalPrice: 2.0,
+          },
+        ],
+        paymentMethod: 'Credit Card',
+        taxAmount: 0.8,
+        tipAmount: 0.7,
+      };
     }
 
     const { base64Image, mimeType } = loadImageAsBase64(imagePath);
