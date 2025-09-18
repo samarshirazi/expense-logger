@@ -9,6 +9,8 @@
   z-index: 1000;
   display: flex;
   flex-direction: column;
+  /* Force portrait orientation on mobile */
+  orientation: portrait;
 }
 
 .camera-header {
@@ -72,6 +74,9 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Fix mobile orientation and aspect ratio */
+  transform: rotateZ(0deg);
+  -webkit-transform: rotateZ(0deg);
 }
 
 .camera-overlay {
@@ -177,20 +182,65 @@
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
+  .camera-capture {
+    /* Ensure proper mobile layout */
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile */
+  }
+
+  .camera-header {
+    padding: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .camera-header h3 {
+    font-size: 1rem;
+  }
+
+  .camera-container {
+    /* Ensure container takes available space */
+    flex: 1;
+    min-height: 0;
+  }
+
+  .camera-video {
+    /* Optimize for mobile viewing */
+    object-fit: cover;
+    max-height: calc(100vh - 200px); /* Leave space for header and controls */
+  }
+
   .guide-frame {
-    width: 250px;
-    height: 150px;
+    width: 80%;
+    max-width: 250px;
+    height: 120px;
   }
 
   .camera-controls {
-    flex-direction: column;
-    gap: 0.5rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.9);
+    flex-shrink: 0;
   }
 
   .camera-button {
-    width: 100%;
-    max-width: 200px;
-    margin: 0 auto;
+    flex: 1;
+    min-width: 80px;
+    max-width: 120px;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .camera-button.primary {
+    /* Make capture button more prominent */
+    flex: 2;
+    max-width: 140px;
+    font-size: 1rem;
+    padding: 1rem 0.75rem;
+    background: #28a745;
+    font-weight: bold;
   }
 
   .camera-btn {
@@ -198,5 +248,33 @@
     max-width: 200px;
     font-size: 1.2rem;
     padding: 1rem 2rem;
+  }
+}
+
+/* Portrait orientation specific styles */
+@media (orientation: portrait) and (max-width: 768px) {
+  .camera-video {
+    height: 100%;
+    width: 100%;
+  }
+}
+
+/* Landscape orientation specific styles for mobile */
+@media (orientation: landscape) and (max-height: 600px) {
+  .camera-header {
+    padding: 0.5rem;
+  }
+
+  .camera-header h3 {
+    font-size: 0.9rem;
+  }
+
+  .camera-controls {
+    padding: 0.75rem;
+  }
+
+  .guide-frame {
+    width: 200px;
+    height: 100px;
   }
 }
