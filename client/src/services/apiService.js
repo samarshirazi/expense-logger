@@ -55,6 +55,27 @@ export const getExpenses = async (limit = 50, offset = 0) => {
   }
 };
 
+export const deleteExpense = async (id) => {
+  try {
+    const response = await api.delete(`/expenses/${id}`);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      const serverMessage = error.response.data?.error;
+      const serverDetails = error.response.data?.details;
+      const combinedMessage = [serverMessage, serverDetails]
+        .filter(Boolean)
+        .join(': ');
+
+      throw new Error(combinedMessage || 'Delete failed');
+    } else if (error.request) {
+      throw new Error('Network error - please check your connection');
+    } else {
+      throw new Error('Delete failed');
+    }
+  }
+};
+
 export const checkServerHealth = async () => {
   try {
     const healthUrl = process.env.NODE_ENV === 'production'

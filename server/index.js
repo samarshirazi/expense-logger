@@ -7,7 +7,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: t
 
 const { processReceiptWithAI } = require('./services/aiService');
 const { uploadToGoogleDrive } = require('./services/googleDriveService');
-const { saveExpense, getExpenses, testConnection, createExpensesTable } = require('./services/supabaseService');
+const { saveExpense, getExpenses, deleteExpense, testConnection, createExpensesTable } = require('./services/supabaseService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -89,6 +89,31 @@ app.get('/api/expenses', async (_, res) => {
   } catch (error) {
     console.error('Error fetching expenses:', error);
     res.status(500).json({ error: 'Failed to fetch expenses' });
+  }
+});
+
+app.delete('/api/expenses/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Expense ID is required' });
+    }
+
+    await deleteExpense(id);
+
+    res.json({
+      success: true,
+      message: 'Expense deleted successfully',
+      id: id
+    });
+
+  } catch (error) {
+    console.error('Error deleting expense:', error);
+    res.status(500).json({
+      error: 'Failed to delete expense',
+      details: error.message
+    });
   }
 });
 
