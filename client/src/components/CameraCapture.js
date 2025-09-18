@@ -119,7 +119,7 @@ const CameraCapture = ({ onCapture, onCancel }) => {
           <div className="camera-overlay">
             <div className="capture-guide">
               <div className="guide-frame"></div>
-              <p>Position receipt within the frame</p>
+              <p>Position your receipt to fill the frame for best results</p>
             </div>
           </div>
         )}
