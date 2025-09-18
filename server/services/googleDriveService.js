@@ -54,14 +54,59 @@ async function createReceiptFolder() {
   }
 }
 
-async function uploadToGoogleDrive(fileBuffer, originalFilename, mimeType) {
+async function createUserFolder(userEmail, parentFolderId) {
+  const drive = initializeDriveClient();
+
+  try {
+    // Sanitize email for folder name (remove @ and special chars)
+    const sanitizedEmail = userEmail.replace(/[@\.]/g, '_');
+    const folderName = `User_${sanitizedEmail}`;
+
+    // Check if user folder already exists
+    const response = await drive.files.list({
+      q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and '${parentFolderId}' in parents`,
+      fields: 'files(id, name)'
+    });
+
+    if (response.data.files.length > 0) {
+      return response.data.files[0].id;
+    }
+
+    // Create user-specific folder
+    const folderMetadata = {
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: [parentFolderId]
+    };
+
+    const folder = await drive.files.create({
+      resource: folderMetadata,
+      fields: 'id'
+    });
+
+    console.log(`Created user folder for ${userEmail}:`, folder.data.id);
+    return folder.data.id;
+
+  } catch (error) {
+    console.error('Error creating user folder:', error);
+    throw error;
+  }
+}
+
+async function uploadToGoogleDrive(fileBuffer, originalFilename, mimeType, userEmail) {
   try {
     const drive = initializeDriveClient();
-    const folderId = await createReceiptFolder();
+    const mainFolderId = await createReceiptFolder();
+
+    // Create user-specific folder if userEmail is provided
+    let targetFolderId = mainFolderId;
+    if (userEmail) {
+      targetFolderId = await createUserFolder(userEmail, mainFolderId);
+    }
 
     const fileMetadata = {
       name: `${Date.now()}-${originalFilename}`,
-      parents: [folderId]
+      parents: [targetFolderId]
     };
 
     // Create a readable stream from buffer
