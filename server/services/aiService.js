@@ -305,16 +305,51 @@ async function processReceiptWithAI(imagePath) {
 }
 
 function validateExpenseData(data) {
-  const requiredFields = ['merchantName', 'totalAmount'];
-
-  for (const field of requiredFields) {
-    if (data[field] === undefined || data[field] === null || data[field] === '') {
-      throw new Error(`Missing required field: ${field}`);
-    }
+  if (!data.merchantName || data.merchantName === '') {
+    console.warn('AI response missing merchantName; defaulting to "Unknown Merchant"');
+    data.merchantName = 'Unknown Merchant';
   }
 
-  if (typeof data.totalAmount !== 'number' || data.totalAmount <= 0) {
+  if (data.totalAmount === undefined || data.totalAmount === null || data.totalAmount === '') {
+    throw new Error('Missing required field: totalAmount');
+  }
+
+  // Coerce numeric fields that might arrive as strings
+  const numericFields = ['totalAmount', 'taxAmount', 'tipAmount'];
+  numericFields.forEach((field) => {
+    if (data[field] !== undefined && data[field] !== null && data[field] !== '') {
+      if (typeof data[field] === 'string') {
+        const parsed = parseFloat(data[field]);
+        data[field] = Number.isFinite(parsed) ? parsed : data[field];
+      }
+    }
+  });
+
+  if (typeof data.totalAmount !== 'number' || !Number.isFinite(data.totalAmount) || data.totalAmount <= 0) {
     throw new Error('Total amount must be a positive number');
+  }
+
+  if (Array.isArray(data.items)) {
+    data.items = data.items.map((item) => {
+      if (!item || typeof item !== 'object') {
+        return item;
+      }
+
+      const coercedItem = { ...item };
+
+      ['quantity', 'unitPrice', 'totalPrice'].forEach((field) => {
+        if (coercedItem[field] !== undefined && coercedItem[field] !== null && coercedItem[field] !== '') {
+          if (typeof coercedItem[field] === 'string') {
+            const parsed = parseFloat(coercedItem[field]);
+            if (Number.isFinite(parsed)) {
+              coercedItem[field] = parsed;
+            }
+          }
+        }
+      });
+
+      return coercedItem;
+    });
   }
 
   if (data.date && !isValidDate(data.date)) {
