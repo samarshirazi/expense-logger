@@ -2,7 +2,6 @@ const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
 
 require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: true });
 
@@ -16,24 +15,12 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Use memory storage for Vercel compatibility
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|pdf/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
@@ -53,15 +40,17 @@ app.post('/api/upload-receipt', upload.single('receipt'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const filePath = req.file.path;
+    const fileBuffer = req.file.buffer;
+    const originalFilename = req.file.originalname;
+    const mimeType = req.file.mimetype;
 
     console.log('Processing receipt with AI...');
-    const expenseData = await processReceiptWithAI(filePath);
+    const expenseData = await processReceiptWithAI(fileBuffer, originalFilename, mimeType);
 
     console.log('Uploading to Google Drive...');
     let driveFileId = null;
     try {
-      driveFileId = await uploadToGoogleDrive(filePath, req.file.originalname);
+      driveFileId = await uploadToGoogleDrive(fileBuffer, originalFilename, mimeType);
     } catch (driveError) {
       console.warn('⚠️  Google Drive upload failed, continuing without it:', driveError.message);
       driveFileId = 'drive_upload_failed';
@@ -70,12 +59,10 @@ app.post('/api/upload-receipt', upload.single('receipt'), async (req, res) => {
     console.log('Saving expense to database...');
     const expenseId = await saveExpense({
       ...expenseData,
-      originalFilename: req.file.originalname,
+      originalFilename: originalFilename,
       driveFileId: driveFileId,
       uploadDate: new Date().toISOString()
     });
-
-    fs.unlinkSync(filePath);
 
     res.json({
       success: true,
@@ -88,10 +75,6 @@ app.post('/api/upload-receipt', upload.single('receipt'), async (req, res) => {
   } catch (error) {
     console.error('Error processing receipt:', error);
 
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-
     res.status(500).json({
       error: 'Failed to process receipt',
       details: error.message
@@ -99,7 +82,7 @@ app.post('/api/upload-receipt', upload.single('receipt'), async (req, res) => {
   }
 });
 
-app.get('/api/expenses', async (req, res) => {
+app.get('/api/expenses', async (_, res) => {
   try {
     const expenses = await getExpenses();
     res.json(expenses);
@@ -109,7 +92,7 @@ app.get('/api/expenses', async (req, res) => {
   }
 });
 
-app.get('/health', (req, res) => {
+app.get('/health', (_, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 

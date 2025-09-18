@@ -1,5 +1,4 @@
 const OpenAI = require('openai');
-const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
@@ -64,8 +63,8 @@ function resolveProvider() {
   return null;
 }
 
-function determineMimeType(imagePath) {
-  const fileExtension = path.extname(imagePath).toLowerCase();
+function determineMimeTypeFromExtension(filename) {
+  const fileExtension = path.extname(filename).toLowerCase();
 
   if (fileExtension === '.png') {
     return 'image/png';
@@ -80,11 +79,7 @@ function determineMimeType(imagePath) {
   throw new Error('Unsupported file format');
 }
 
-async function loadImageAsBase64(imagePath) {
-  let mimeType = determineMimeType(imagePath);
-
-  let imageBuffer = fs.readFileSync(imagePath);
-
+async function prepareImageFromBuffer(imageBuffer, mimeType) {
   const maxDimension = parseInt(process.env.AI_IMAGE_MAX_DIMENSION || '1024', 10);
   const shouldOptimize =
     sharp &&
@@ -92,9 +87,12 @@ async function loadImageAsBase64(imagePath) {
     Number.isFinite(maxDimension) &&
     maxDimension > 0;
 
+  let processedBuffer = imageBuffer;
+  let finalMimeType = mimeType;
+
   if (shouldOptimize) {
     try {
-      imageBuffer = await sharp(imageBuffer)
+      processedBuffer = await sharp(imageBuffer)
         .rotate()
         .resize({
           width: maxDimension,
@@ -104,13 +102,13 @@ async function loadImageAsBase64(imagePath) {
         })
         .jpeg({ quality: parseInt(process.env.AI_IMAGE_JPEG_QUALITY || '75', 10) || 75 })
         .toBuffer();
-      mimeType = 'image/jpeg';
+      finalMimeType = 'image/jpeg';
     } catch (error) {
       console.warn('⚠️  Failed to optimize image with sharp:', error.message);
     }
   }
 
-  const base64Image = imageBuffer.toString('base64');
+  const base64Image = processedBuffer.toString('base64');
 
   const maxPayloadSize = parseInt(process.env.AI_MAX_BASE64_LENGTH || '1200000', 10);
   if (Number.isFinite(maxPayloadSize) && base64Image.length > maxPayloadSize) {
@@ -119,7 +117,7 @@ async function loadImageAsBase64(imagePath) {
     );
   }
 
-  return { base64Image, mimeType };
+  return { base64Image, mimeType: finalMimeType };
 }
 
 function buildExtractionInstruction() {
@@ -287,7 +285,7 @@ function extractExpenseData(extractedText) {
   }
 }
 
-async function processReceiptWithAI(imagePath) {
+async function processReceiptWithAI(fileBuffer, originalFilename, providedMimeType) {
   try {
     const provider = resolveProvider();
 
@@ -297,13 +295,13 @@ async function processReceiptWithAI(imagePath) {
       throw new Error('No AI provider configured. Set DEEPSEEK_API_KEY, OPENAI_API_KEY, or use AI_PROVIDER=stub for local testing.');
     }
 
-  if (provider === AI_PROVIDERS.STUB) {
-    console.warn('⚠️  Using stub AI provider. Returned data is static and for testing only.');
+    if (provider === AI_PROVIDERS.STUB) {
+      console.warn('⚠️  Using stub AI provider. Returned data is static and for testing only.');
 
-    return {
-      merchantName: 'Sample Coffee Shop',
-      date: new Date().toISOString().slice(0, 10),
-      totalAmount: 11.5,
+      return {
+        merchantName: 'Sample Coffee Shop',
+        date: new Date().toISOString().slice(0, 10),
+        totalAmount: 11.5,
         currency: 'USD',
         category: 'Food',
         items: [
@@ -332,11 +330,14 @@ async function processReceiptWithAI(imagePath) {
       };
     }
 
-    const { base64Image, mimeType } = await loadImageAsBase64(imagePath);
+    // Use provided mime type or determine from filename
+    const mimeType = providedMimeType || determineMimeTypeFromExtension(originalFilename);
+
+    const { base64Image, mimeType: finalMimeType } = await prepareImageFromBuffer(fileBuffer, mimeType);
 
     const extractedText = provider === AI_PROVIDERS.DEEPSEEK
-      ? await callDeepSeek(base64Image, mimeType)
-      : await callOpenAI(base64Image, mimeType);
+      ? await callDeepSeek(base64Image, finalMimeType)
+      : await callOpenAI(base64Image, finalMimeType);
 
     if (process.env.AI_DEBUG_LOG === 'true') {
       console.log('[AI][debug] Raw response:', extractedText);

@@ -1,5 +1,4 @@
 const { google } = require('googleapis');
-const fs = require('fs');
 const path = require('path');
 
 let driveClient = null;
@@ -55,7 +54,7 @@ async function createReceiptFolder() {
   }
 }
 
-async function uploadToGoogleDrive(filePath, originalFilename) {
+async function uploadToGoogleDrive(fileBuffer, originalFilename, mimeType) {
   try {
     const drive = initializeDriveClient();
     const folderId = await createReceiptFolder();
@@ -65,9 +64,15 @@ async function uploadToGoogleDrive(filePath, originalFilename) {
       parents: [folderId]
     };
 
+    // Create a readable stream from buffer
+    const { Readable } = require('stream');
+    const bufferStream = new Readable();
+    bufferStream.push(fileBuffer);
+    bufferStream.push(null);
+
     const media = {
-      mimeType: getMimeType(filePath),
-      body: fs.createReadStream(filePath)
+      mimeType: mimeType || getMimeTypeFromFilename(originalFilename),
+      body: bufferStream
     };
 
     const response = await drive.files.create({
@@ -114,8 +119,8 @@ async function getFileLink(fileId) {
   }
 }
 
-function getMimeType(filePath) {
-  const ext = path.extname(filePath).toLowerCase();
+function getMimeTypeFromFilename(filename) {
+  const ext = path.extname(filename).toLowerCase();
   switch (ext) {
     case '.jpg':
     case '.jpeg':
