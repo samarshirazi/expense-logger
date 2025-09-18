@@ -213,9 +213,23 @@ async function saveExpense(expenseData, userId, userToken = null) {
   }
 }
 
-async function getExpenses(userId, limit = 50, offset = 0) {
+async function getExpenses(userId, limit = 50, offset = 0, userToken = null) {
   try {
-    const supabase = initSupabase();
+    // Create Supabase client with user's access token for RLS
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${userToken}`
+          }
+        }
+      });
+    } else {
+      supabase = initSupabase();
+    }
 
     const { data, error } = await supabase
       .from('expenses')
@@ -255,9 +269,23 @@ async function getExpenses(userId, limit = 50, offset = 0) {
   }
 }
 
-async function getExpenseById(id, userId) {
+async function getExpenseById(id, userId, userToken = null) {
   try {
-    const supabase = initSupabase();
+    // Create Supabase client with user's access token for RLS
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${userToken}`
+          }
+        }
+      });
+    } else {
+      supabase = initSupabase();
+    }
 
     const { data, error } = await supabase
       .from('expenses')
@@ -298,9 +326,23 @@ async function getExpenseById(id, userId) {
   }
 }
 
-async function deleteExpense(id, userId) {
+async function deleteExpense(id, userId, userToken = null) {
   try {
-    const supabase = initSupabase();
+    // Create Supabase client with user's access token for RLS
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${userToken}`
+          }
+        }
+      });
+    } else {
+      supabase = initSupabase();
+    }
 
     const { error } = await supabase
       .from('expenses')
