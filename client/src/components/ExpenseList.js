@@ -23,13 +23,17 @@ const ExpenseList = ({ expenses, loading, onExpenseSelect, onRefresh }) => {
 
   const handleDeleteClick = (e, expenseId) => {
     e.stopPropagation(); // Prevent triggering onExpenseSelect
+    console.log('Delete button clicked for expense:', expenseId);
     setConfirmDeleteId(expenseId);
   };
 
   const handleConfirmDelete = async (expenseId) => {
     try {
+      console.log('Confirming delete for expense:', expenseId);
       setDeletingId(expenseId);
+      console.log('Calling deleteExpense API...');
       await deleteExpense(expenseId);
+      console.log('Delete successful, refreshing list...');
       setConfirmDeleteId(null);
       setDeletingId(null);
       onRefresh(); // Refresh the expense list
@@ -98,15 +102,37 @@ const ExpenseList = ({ expenses, loading, onExpenseSelect, onRefresh }) => {
                       className="delete-btn"
                       onClick={(e) => handleDeleteClick(e, expense.id)}
                       disabled={deletingId === expense.id}
+                      title="Delete expense"
                       style={{
                         background: '#dc3545',
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
-                        padding: '0.5rem',
-                        cursor: 'pointer',
-                        fontSize: '0.8rem',
-                        opacity: deletingId === expense.id ? 0.6 : 1
+                        padding: '0.6rem 0.8rem',
+                        cursor: deletingId === expense.id ? 'not-allowed' : 'pointer',
+                        fontSize: '1rem',
+                        opacity: deletingId === expense.id ? 0.6 : 1,
+                        minWidth: '40px',
+                        height: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        zIndex: 10,
+                        position: 'relative'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (deletingId !== expense.id) {
+                          e.target.style.background = '#c82333';
+                          e.target.style.transform = 'scale(1.05)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (deletingId !== expense.id) {
+                          e.target.style.background = '#dc3545';
+                          e.target.style.transform = 'scale(1)';
+                        }
                       }}
                     >
                       {deletingId === expense.id ? '⏳' : '🗑️'}
