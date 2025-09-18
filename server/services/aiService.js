@@ -305,22 +305,51 @@ async function processReceiptWithAI(imagePath) {
 }
 
 function validateExpenseData(data) {
+  const normalizeNumber = (value) => {
+    if (value === undefined || value === null || value === '') {
+      return null;
+    }
+
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
+    }
+
+    if (typeof value === 'string') {
+      const cleaned = value
+        .replace(/[^0-9,.-]/g, '')
+        .replace(/,(?=\d{3}(?:\D|$))/g, '')
+        .replace(/,/g, '.');
+
+      const parsed = parseFloat(cleaned);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  };
+
   if (!data.merchantName || data.merchantName === '') {
     console.warn('AI response missing merchantName; defaulting to "Unknown Merchant"');
     data.merchantName = 'Unknown Merchant';
   }
 
   if (data.totalAmount === undefined || data.totalAmount === null || data.totalAmount === '') {
-    throw new Error('Missing required field: totalAmount');
+    const fallbackKeys = ['total', 'total_amount', 'amount', 'grandTotal', 'totalWithTax'];
+
+    for (const key of fallbackKeys) {
+      if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+        data.totalAmount = data[key];
+        break;
+      }
+    }
   }
 
   // Coerce numeric fields that might arrive as strings
   const numericFields = ['totalAmount', 'taxAmount', 'tipAmount'];
   numericFields.forEach((field) => {
     if (data[field] !== undefined && data[field] !== null && data[field] !== '') {
-      if (typeof data[field] === 'string') {
-        const parsed = parseFloat(data[field]);
-        data[field] = Number.isFinite(parsed) ? parsed : data[field];
+      const coerced = normalizeNumber(data[field]);
+      if (coerced !== null) {
+        data[field] = coerced;
       }
     }
   });
@@ -339,11 +368,9 @@ function validateExpenseData(data) {
 
       ['quantity', 'unitPrice', 'totalPrice'].forEach((field) => {
         if (coercedItem[field] !== undefined && coercedItem[field] !== null && coercedItem[field] !== '') {
-          if (typeof coercedItem[field] === 'string') {
-            const parsed = parseFloat(coercedItem[field]);
-            if (Number.isFinite(parsed)) {
-              coercedItem[field] = parsed;
-            }
+          const coerced = normalizeNumber(coercedItem[field]);
+          if (coerced !== null) {
+            coercedItem[field] = coerced;
           }
         }
       });
