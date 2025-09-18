@@ -105,6 +105,8 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 # Optional debug logging for AI responses
 # AI_DEBUG_LOG=true
+# DeepSeek custom endpoint (if provided)
+# DEEPSEEK_API_BASE=https://api.deepseek.com
 
 # Force provider (auto-detects if left unset)
 # AI_PROVIDER=deepseek

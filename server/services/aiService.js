@@ -190,36 +190,32 @@ function callDeepSeek(base64Image, mimeType) {
   }
 
   const model = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
-
-  const messages = [
-    {
-      role: 'system',
-      content: [
-        {
-          type: 'text',
-          text: 'You extract structured expense data from receipts.',
-        },
-      ],
-    },
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'text',
-          text: buildExtractionInstruction(),
-        },
-        {
-          type: 'input_image',
-          image_base64: base64Image,
-          mime_type: mimeType,
-        },
-      ],
-    },
-  ];
+  const baseUrl = process.env.DEEPSEEK_API_BASE || 'https://api.deepseek.com';
+  const url = new URL('/v1/chat/completions', baseUrl);
 
   const payload = JSON.stringify({
     model,
-    messages,
+    messages: [
+      {
+        role: 'system',
+        content: 'You extract structured expense data from receipts.',
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: buildExtractionInstruction(),
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:${mimeType};base64,${base64Image}`,
+            },
+          },
+        ],
+      },
+    ],
     temperature: 0,
     max_tokens: 1000,
   });
@@ -227,8 +223,8 @@ function callDeepSeek(base64Image, mimeType) {
   return new Promise((resolve, reject) => {
     const request = https.request(
       {
-        hostname: 'api.deepseek.com',
-        path: '/v1/chat/completions',
+        hostname: url.hostname,
+        path: `${url.pathname}${url.search}`,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
