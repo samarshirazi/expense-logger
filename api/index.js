@@ -129,12 +129,16 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
     }
 
     console.log('Saving expense to database...');
+    // Get the access token from the Authorization header
+    const authHeader = req.headers.authorization;
+    const userToken = authHeader ? authHeader.substring(7) : null; // Remove "Bearer " prefix
+
     const expenseId = await saveExpense({
       ...expenseData,
       originalFilename: originalFilename,
       driveFileId: driveFileId,
       uploadDate: new Date().toISOString()
-    }, req.user.id);
+    }, req.user.id, userToken);
 
     res.json({
       success: true,

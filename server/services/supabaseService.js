@@ -160,9 +160,23 @@ async function createExpensesTable() {
   }
 }
 
-async function saveExpense(expenseData, userId) {
+async function saveExpense(expenseData, userId, userToken = null) {
   try {
-    const supabase = initSupabase();
+    // Create Supabase client with user's access token for RLS
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${userToken}`
+          }
+        }
+      });
+    } else {
+      supabase = initSupabase();
+    }
 
     const expenseRecord = {
       user_id: userId,
