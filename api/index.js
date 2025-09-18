@@ -122,7 +122,8 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
     console.log('Uploading to Google Drive...');
     let driveFileId = null;
     try {
-      driveFileId = await uploadToGoogleDrive(fileBuffer, originalFilename, mimeType);
+      // Upload to user-specific Google Drive folder
+      driveFileId = await uploadToGoogleDrive(fileBuffer, originalFilename, mimeType, req.user.email);
     } catch (driveError) {
       console.warn('⚠️  Google Drive upload failed, continuing without it:', driveError.message);
       driveFileId = 'drive_upload_failed';
