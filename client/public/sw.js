@@ -1,5 +1,5 @@
 // Service Worker for Expense Logger PWA
-const CACHE_NAME = 'expense-logger-v1';
+const CACHE_NAME = 'expense-logger-v3';
 const urlsToCache = [
   '/',
   '/static/js/bundle.js',
@@ -25,6 +25,13 @@ self.addEventListener('install', (event) => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
+  // Skip caching for API requests - always go to network for fresh data
+  if (event.request.url.includes('/api/')) {
+    // Don't intercept API requests at all - let them go directly to the network
+    return;
+  }
+
+  // For non-API requests, use cache-first strategy
   event.respondWith(
     caches.match(event.request)
       .then((response) => {

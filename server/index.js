@@ -134,7 +134,7 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
       originalFilename: originalFilename,
       driveFileId: driveFileId,
       uploadDate: new Date().toISOString()
-    }, req.user.id);
+    }, req.user.id, req.token);
 
     res.json({
       success: true,
@@ -156,7 +156,7 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
 
 app.get('/api/expenses', requireAuth, async (req, res) => {
   try {
-    const expenses = await getExpenses(req.user.id);
+    const expenses = await getExpenses(req.user.id, 50, 0, req.token);
     res.json(expenses);
   } catch (error) {
     console.error('Error fetching expenses:', error);
@@ -174,14 +174,14 @@ app.delete('/api/expenses/:id', requireAuth, async (req, res) => {
 
     // Get expense data first to retrieve Google Drive file ID
     console.log('Fetching expense details for deletion...');
-    const expense = await getExpenseById(id, req.user.id);
+    const expense = await getExpenseById(id, req.user.id, req.token);
 
     if (!expense) {
       return res.status(404).json({ error: 'Expense not found' });
     }
 
     console.log('Deleting expense from database...');
-    await deleteExpense(id, req.user.id);
+    await deleteExpense(id, req.user.id, req.token);
 
     // Delete from Google Drive if file exists
     if (expense.driveFileId) {
