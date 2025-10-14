@@ -97,7 +97,7 @@ app.post('/api/notifications/subscribe', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid subscription data' });
     }
 
-    const result = await saveSubscription(req.user.id, subscription);
+    const result = await saveSubscription(req.user.id, subscription, req.token);
 
     res.json({
       success: true,
@@ -125,7 +125,7 @@ app.post('/api/notifications/test', requireAuth, async (req, res) => {
       }
     };
 
-    const result = await sendPushToUser(req.user.id, payload);
+    const result = await sendPushToUser(req.user.id, payload, req.token);
 
     res.json({
       success: true,
@@ -204,7 +204,7 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
           expenseId: expenseId
         }
       };
-      await sendPushToUser(req.user.id, notificationPayload);
+      await sendPushToUser(req.user.id, notificationPayload, req.token);
     } catch (notifError) {
       console.warn('⚠️  Failed to send push notification:', notifError.message);
       // Don't fail the request if notification fails

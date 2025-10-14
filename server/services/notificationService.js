@@ -23,9 +23,26 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 /**
  * Save push subscription to database
  */
-async function saveSubscription(userId, subscription) {
+async function saveSubscription(userId, subscription, userToken = null) {
   try {
-    const supabase = initSupabase();
+    const { createClient } = require('@supabase/supabase-js');
+
+    // Create Supabase client with user's access token for RLS
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${userToken}`
+          }
+        }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
     const { data, error } = await supabase
       .from('push_subscriptions')
       .upsert({
@@ -54,9 +71,26 @@ async function saveSubscription(userId, subscription) {
 /**
  * Get all subscriptions for a user
  */
-async function getUserSubscriptions(userId) {
+async function getUserSubscriptions(userId, userToken = null) {
   try {
-    const supabase = initSupabase();
+    const { createClient } = require('@supabase/supabase-js');
+
+    // Create Supabase client with user's access token for RLS
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${userToken}`
+          }
+        }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
     const { data, error } = await supabase
       .from('push_subscriptions')
       .select('*')
@@ -124,9 +158,9 @@ async function sendPushNotification(subscription, payload) {
 /**
  * Send push notification to all user's devices
  */
-async function sendPushToUser(userId, payload) {
+async function sendPushToUser(userId, payload, userToken = null) {
   try {
-    const subscriptions = await getUserSubscriptions(userId);
+    const subscriptions = await getUserSubscriptions(userId, userToken);
 
     if (subscriptions.length === 0) {
       console.log('No push subscriptions found for user:', userId);

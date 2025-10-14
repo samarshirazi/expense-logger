@@ -144,13 +144,25 @@ class AuthService {
     try {
       const { error } = await supabase.auth.signOut();
 
-      if (error) throw error;
+      // Ignore session missing errors - just clear local session
+      if (error && !error.message.includes('session missing')) {
+        throw error;
+      }
 
       this.clearSession();
+      this.notifyListeners();
 
     } catch (error) {
       console.error('Signout error:', error);
-      throw new Error(error.message || 'Logout failed');
+
+      // Even if signout fails, clear local session
+      this.clearSession();
+      this.notifyListeners();
+
+      // Don't throw error to UI if it's just a session issue
+      if (!error.message.includes('session missing')) {
+        throw new Error(error.message || 'Logout failed');
+      }
     }
   }
 
