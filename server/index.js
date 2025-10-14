@@ -9,6 +9,7 @@ const { processReceiptWithAI } = require('./services/aiService');
 const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('./services/googleDriveService');
 const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable } = require('./services/supabaseService');
 const { signUp, signIn, signOut, requireAuth } = require('./services/authService');
+const { saveSubscription, sendPushToUser, createPushSubscriptionsTable } = require('./services/notificationService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -87,6 +88,60 @@ app.post('/api/auth/signout', async (req, res) => {
   }
 });
 
+// Notification endpoints
+app.post('/api/notifications/subscribe', requireAuth, async (req, res) => {
+  try {
+    const { subscription } = req.body;
+
+    if (!subscription || !subscription.endpoint) {
+      return res.status(400).json({ error: 'Invalid subscription data' });
+    }
+
+    const result = await saveSubscription(req.user.id, subscription);
+
+    res.json({
+      success: true,
+      subscription: result,
+      message: 'Subscription saved successfully'
+    });
+
+  } catch (error) {
+    console.error('Subscribe error:', error);
+    res.status(500).json({
+      error: 'Failed to save subscription',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/notifications/test', requireAuth, async (req, res) => {
+  try {
+    const payload = {
+      title: 'Test Notification',
+      body: 'This is a test notification from Expense Logger!',
+      icon: '/icon-192.svg',
+      data: {
+        url: '/'
+      }
+    };
+
+    const result = await sendPushToUser(req.user.id, payload);
+
+    res.json({
+      success: true,
+      result: result,
+      message: 'Test notification sent'
+    });
+
+  } catch (error) {
+    console.error('Test notification error:', error);
+    res.status(500).json({
+      error: 'Failed to send test notification',
+      details: error.message
+    });
+  }
+});
+
 // Use memory storage for Vercel compatibility
 const storage = multer.memoryStorage();
 
@@ -135,6 +190,25 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
       driveFileId: driveFileId,
       uploadDate: new Date().toISOString()
     }, req.user.id, req.token);
+
+    // Send push notification for successful receipt processing
+    try {
+      const notificationPayload = {
+        title: 'Receipt Processed!',
+        body: `${expenseData.merchantName || 'Expense'} - $${expenseData.totalAmount || '0.00'}`,
+        icon: '/icon-192.svg',
+        badge: '/icon-192.svg',
+        tag: `expense-${expenseId}`,
+        data: {
+          url: '/',
+          expenseId: expenseId
+        }
+      };
+      await sendPushToUser(req.user.id, notificationPayload);
+    } catch (notifError) {
+      console.warn('⚠️  Failed to send push notification:', notifError.message);
+      // Don't fail the request if notification fails
+    }
 
     res.json({
       success: true,
@@ -242,6 +316,9 @@ async function startServer() {
 
     // Create expenses table if it doesn't exist
     await createExpensesTable();
+
+    // Create push subscriptions table if it doesn't exist
+    await createPushSubscriptionsTable();
 
     app.listen(PORT, () => {
       console.log(`✅ Server running on port ${PORT}`);

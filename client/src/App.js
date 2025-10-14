@@ -3,6 +3,7 @@ import ReceiptUpload from './components/ReceiptUpload';
 import ExpenseList from './components/ExpenseList';
 import ExpenseDetails from './components/ExpenseDetails';
 import Auth from './components/Auth';
+import NotificationPrompt from './components/NotificationPrompt';
 import { getExpenses } from './services/apiService';
 import authService from './services/authService';
 
@@ -12,6 +13,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
 
   useEffect(() => {
     // Initialize auth state
@@ -66,6 +68,12 @@ function App() {
   const handleAuthSuccess = () => {
     // Auth service will automatically trigger the subscriber
     // which will update the user state and load expenses
+
+    // Show notification prompt after successful login
+    // Check if user hasn't already granted or denied permission
+    if (Notification.permission === 'default') {
+      setTimeout(() => setShowNotificationPrompt(true), 2000);
+    }
   };
 
   const handleSignOut = async () => {
@@ -117,6 +125,13 @@ function App() {
       </header>
 
       <main>
+        {showNotificationPrompt && (
+          <NotificationPrompt
+            user={user}
+            onComplete={() => setShowNotificationPrompt(false)}
+          />
+        )}
+
         <ReceiptUpload onExpenseAdded={handleExpenseAdded} />
 
         {selectedExpense && (

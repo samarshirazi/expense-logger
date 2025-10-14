@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import { registerServiceWorker } from './services/notificationService';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -10,15 +11,15 @@ root.render(
   </React.StrictMode>
 );
 
-// Unregister any existing service workers for debugging
+// Register service worker for push notifications and PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-      for(let registration of registrations) {
-        registration.unregister().then(function(boolean) {
-          console.log('Service worker unregistered:', boolean);
-        });
-      }
-    });
+    registerServiceWorker()
+      .then(registration => {
+        console.log('Service Worker registered successfully:', registration);
+      })
+      .catch(error => {
+        console.error('Service Worker registration failed:', error);
+      });
   });
 }

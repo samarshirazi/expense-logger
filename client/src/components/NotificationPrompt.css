@@ -1,0 +1,118 @@
+.notification-prompt {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notification-prompt-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.notification-prompt-icon {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+}
+
+.notification-prompt-text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.notification-prompt-text h3 {
+  margin: 0 0 5px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.notification-prompt-text p {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.notification-prompt-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-enable-notifications,
+.btn-dismiss-notifications {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-enable-notifications {
+  background-color: white;
+  color: #667eea;
+}
+
+.btn-enable-notifications:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-enable-notifications:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-dismiss-notifications {
+  background-color: transparent;
+  color: white;
+  border: 2px solid white;
+}
+
+.btn-dismiss-notifications:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.notification-prompt-error {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: rgba(255, 0, 0, 0.2);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+  .notification-prompt-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .notification-prompt-actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn-enable-notifications,
+  .btn-dismiss-notifications {
+    flex: 1;
+    min-width: 120px;
+  }
+}
