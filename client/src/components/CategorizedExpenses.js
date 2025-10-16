@@ -254,49 +254,41 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                   >
                     {categorizedExpenses[category.id]?.length === 0 ? (
                       <div className="empty-category">
-                        No {category.name.toLowerCase()} expenses
+                        No {category.name.toLowerCase()} items
                       </div>
                     ) : (
-                      <div className="category-sticky-note">
-                        <div className="sticky-note-header">
-                          <span className="sticky-note-icon">{category.icon}</span>
-                          <span className="sticky-note-title">{category.name} Expenses</span>
-                        </div>
-                        <div className="sticky-note-items">
-                          {categorizedExpenses[category.id]?.map((item, index) => (
-                            <Draggable
-                              key={item.uniqueId}
-                              draggableId={item.uniqueId}
-                              index={index}
-                              isDragDisabled={loading}
+                      categorizedExpenses[category.id]?.map((item, index) => (
+                        <Draggable
+                          key={item.uniqueId}
+                          draggableId={item.uniqueId}
+                          index={index}
+                          isDragDisabled={loading}
+                        >
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={`product-card ${
+                                snapshot.isDragging ? 'dragging' : ''
+                              }`}
                             >
-                              {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  className={`stacked-expense-item ${
-                                    snapshot.isDragging ? 'dragging' : ''
-                                  }`}
-                                >
-                                  <div className="stacked-item-left">
-                                    <div className="stacked-item-merchant">
-                                      {item.description || item.merchantName}
-                                      {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
-                                    </div>
-                                    <div className="stacked-item-date">
-                                      {item.merchantName} • {formatDate(item.date)}
-                                    </div>
-                                  </div>
-                                  <div className="stacked-item-amount">
-                                    {formatCurrency(item.totalPrice || 0, item.currency)}
-                                  </div>
+                              <div className="product-card-left">
+                                <div className="product-card-name">
+                                  {item.description || item.merchantName}
+                                  {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
                                 </div>
-                              )}
-                            </Draggable>
-                          ))}
-                        </div>
-                      </div>
+                                <div className="product-card-meta">
+                                  {item.merchantName} • {formatDate(item.date)}
+                                </div>
+                              </div>
+                              <div className="product-card-amount">
+                                {formatCurrency(item.totalPrice || 0, item.currency)}
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))
                     )}
                     {provided.placeholder}
                   </div>

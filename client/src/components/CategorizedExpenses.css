@@ -111,139 +111,65 @@
   font-size: 14px;
 }
 
-/* Sticky note container */
-.category-sticky-note {
-  background: #fef9e7;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
-  border: 1px solid #f9e79f;
-  position: relative;
-}
-
-.category-sticky-note::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 20px;
-  width: 40px;
-  height: 20px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 0 0 50% 50%;
-  filter: blur(3px);
-}
-
-.sticky-note-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 2px dashed #f39c12;
-}
-
-.sticky-note-icon {
-  font-size: 20px;
-}
-
-.sticky-note-title {
-  font-weight: 700;
-  font-size: 16px;
-  color: #7d6608;
-}
-
-.sticky-note-items {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Individual stacked expense items */
-.stacked-expense-item {
+/* Individual product cards */
+.product-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 12px;
+  padding: 14px 16px;
   background: white;
-  border-radius: 6px;
-  border-left: 3px solid #f39c12;
-  cursor: move;
-  transition: all 0.2s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: grab;
+  transition: all 0.2s ease;
+  border: 2px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-.stacked-expense-item:hover {
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-  transform: translateX(4px);
-  border-left-color: #e67e22;
+.product-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+  border-color: #dee2e6;
 }
 
-.stacked-expense-item.dragging {
-  opacity: 0.9;
-  transform: rotate(2deg) scale(1.02);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-  background: #fff9e6;
-  border-left-color: #e67e22;
+.product-card.dragging {
+  opacity: 0.85;
+  cursor: grabbing;
+  transform: rotate(3deg) scale(1.03);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  border-color: #667eea;
+  background: #f8f9fa;
 }
 
-.stacked-item-left {
+.product-card-left {
   flex: 1;
   min-width: 0;
+  padding-right: 12px;
 }
 
-.stacked-item-merchant {
+.product-card-name {
   font-weight: 600;
   color: #2c3e50;
-  font-size: 14px;
-  margin-bottom: 4px;
+  font-size: 15px;
+  margin-bottom: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.stacked-item-date {
-  font-size: 11px;
-  color: #7f8c8d;
-}
-
-.stacked-item-amount {
-  font-size: 16px;
-  font-weight: 700;
-  color: #27ae60;
-  white-space: nowrap;
-  margin-left: 12px;
-}
-
-/* Product list within stacked items */
-.stacked-item-products {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed #e9ecef;
-}
-
-.product-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 0;
+.product-card-meta {
   font-size: 12px;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.product-name {
-  color: #555;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.product-price {
+.product-card-amount {
+  font-size: 18px;
+  font-weight: 700;
   color: #27ae60;
-  font-weight: 600;
   white-space: nowrap;
-  font-size: 11px;
 }
 
 /* Legacy styles for backwards compatibility */
@@ -401,51 +327,30 @@
     background: #2c3e50;
   }
 
-  /* Sticky note dark mode */
-  .category-sticky-note {
-    background: #3d3d2b;
-    border-color: #5a5a42;
-  }
-
-  .sticky-note-header {
-    border-bottom-color: #d68910;
-  }
-
-  .sticky-note-title {
-    color: #f9e79f;
-  }
-
-  .stacked-expense-item {
-    background: #2c3e50;
-    border-left-color: #f39c12;
-  }
-
-  .stacked-expense-item:hover {
+  /* Product card dark mode */
+  .product-card {
     background: #34495e;
+    border-color: #2c3e50;
   }
 
-  .stacked-expense-item.dragging {
-    background: #3d3d2b;
+  .product-card:hover {
+    border-color: #415973;
   }
 
-  .stacked-item-merchant {
+  .product-card.dragging {
+    background: #415973;
+    border-color: #667eea;
+  }
+
+  .product-card-name {
     color: #ecf0f1;
   }
 
-  .stacked-item-date {
+  .product-card-meta {
     color: #95a5a6;
   }
 
-  /* Product display dark mode */
-  .stacked-item-products {
-    border-top-color: #34495e;
-  }
-
-  .product-name {
-    color: #bdc3c7;
-  }
-
-  .product-price {
+  .product-card-amount {
     color: #2ecc71;
   }
 
