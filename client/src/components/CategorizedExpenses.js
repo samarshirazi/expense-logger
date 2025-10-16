@@ -16,6 +16,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   const [categorizedExpenses, setCategorizedExpenses] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false); // Prevent useEffect from overwriting optimistic updates
   const [dateRange, setDateRange] = useState(() => {
     // Default to this month
     const today = new Date();
@@ -40,6 +41,14 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
   // Organize individual items by their category
   useEffect(() => {
+    // Don't recalculate if we're in the middle of an optimistic update
+    if (isUpdating) {
+      console.log('⏸️ Skipping recalculation - optimistic update in progress');
+      return;
+    }
+
+    console.log('📊 Recalculating categories from expenses');
+
     const organized = {
       Food: [],
       Transport: [],
@@ -94,7 +103,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     });
 
     setCategorizedExpenses(organized);
-  }, [filteredExpenses]);
+  }, [filteredExpenses, isUpdating]);
 
   const handleDragEnd = async (result) => {
     console.log('🔄 Drag ended:', result);
@@ -142,6 +151,9 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
     console.log('✅ Found item:', movedItem);
 
+    // Set updating flag to prevent useEffect from overwriting our optimistic update
+    setIsUpdating(true);
+
     // Save previous state for potential revert
     const previousState = JSON.parse(JSON.stringify(categorizedExpenses));
 
@@ -170,9 +182,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     // Update UI immediately
     setCategorizedExpenses(newCategorized);
 
-    // Now update server in background
-    setLoading(true);
-
     try {
       console.log('📡 Sending to server...');
 
@@ -191,6 +200,12 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
       console.log('✅ Server update successful!');
 
+      // Refresh data from server to get persisted changes
+      if (onRefresh) {
+        console.log('🔄 Refreshing from server to get updated data...');
+        await onRefresh();
+      }
+
       // Notify parent component if it's a whole expense
       if (onCategoryUpdate && movedItem.itemIndex === -1) {
         onCategoryUpdate(movedItem.expenseId, destinationCategory);
@@ -204,15 +219,18 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       console.log('🔄 Reverting to previous state...');
       setCategorizedExpenses(previousState);
 
-      // Also refresh from server to ensure consistency
+      // Refresh from server to ensure consistency
       if (onRefresh) {
         setTimeout(() => {
-          console.log('🔄 Refreshing from server...');
+          console.log('🔄 Refreshing from server after error...');
           onRefresh();
         }, 500);
       }
     } finally {
-      setLoading(false);
+      // Re-enable useEffect recalculation after a short delay
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 100);
     }
   };
 
