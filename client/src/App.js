@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import Sidebar from './components/Sidebar';
+import Dashboard from './components/Dashboard';
 import ReceiptUpload from './components/ReceiptUpload';
+import ManualEntry from './components/ManualEntry';
 import ExpenseList from './components/ExpenseList';
 import ExpenseDetails from './components/ExpenseDetails';
+import CategorizedExpenses from './components/CategorizedExpenses';
+import SpendingSummary from './components/SpendingSummary';
 import Auth from './components/Auth';
 import NotificationPrompt from './components/NotificationPrompt';
 import { getExpenses } from './services/apiService';
 import authService from './services/authService';
+import './AppLayout.css';
 
 function App() {
   const [expenses, setExpenses] = useState([]);
@@ -14,6 +20,8 @@ function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'expenses', 'categories', 'upload', 'manual'
+  const [showSummary, setShowSummary] = useState(false);
 
   useEffect(() => {
     // Initialize auth state
@@ -58,11 +66,28 @@ function App() {
 
   const handleExpenseAdded = (newExpense) => {
     setExpenses(prev => [newExpense, ...prev]);
-    setSelectedExpense(newExpense);
+    // Only show the expense details if in upload or manual entry view
+    if (activeView === 'upload' || activeView === 'manual') {
+      setSelectedExpense(newExpense);
+    }
   };
 
   const handleExpenseSelect = (expense) => {
     setSelectedExpense(expense);
+  };
+
+  const handleCategoryUpdate = (expenseId, newCategory) => {
+    // Update the expense in the local state
+    setExpenses(prev => prev.map(expense =>
+      expense.id === expenseId
+        ? { ...expense, category: newCategory }
+        : expense
+    ));
+
+    // Update selected expense if it's the one being updated
+    if (selectedExpense && selectedExpense.id === expenseId) {
+      setSelectedExpense({ ...selectedExpense, category: newCategory });
+    }
   };
 
   const handleAuthSuccess = () => {
@@ -84,6 +109,13 @@ function App() {
       console.error('Sign out error:', error);
     }
   };
+
+  // Close expense details when navigating away from upload/manual views
+  useEffect(() => {
+    if (activeView !== 'upload' && activeView !== 'manual') {
+      setSelectedExpense(null);
+    }
+  }, [activeView]);
 
   if (authLoading) {
     return (
@@ -108,23 +140,15 @@ function App() {
   }
 
   return (
-    <div className="container">
-      <header className="header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1>🧾 Expense Receipt Logger</h1>
-            <p>Upload receipts, extract data with AI, and store in Google Drive</p>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <p>Welcome, {authService.getUserDisplayName()}!</p>
-            <button onClick={handleSignOut} className="sign-out-button">
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="app-layout">
+      <Sidebar
+        activeView={activeView}
+        onViewChange={setActiveView}
+        onSignOut={handleSignOut}
+        userName={authService.getUserDisplayName()}
+      />
 
-      <main>
+      <main className="main-content">
         {showNotificationPrompt && (
           <NotificationPrompt
             user={user}
@@ -132,21 +156,71 @@ function App() {
           />
         )}
 
-        <ReceiptUpload onExpenseAdded={handleExpenseAdded} />
-
-        {selectedExpense && (
+        {selectedExpense && (activeView === 'upload' || activeView === 'manual') && (
           <ExpenseDetails
             expense={selectedExpense}
             onClose={() => setSelectedExpense(null)}
           />
         )}
 
-        <ExpenseList
-          expenses={expenses}
-          loading={loading}
-          onExpenseSelect={handleExpenseSelect}
-          onRefresh={loadExpenses}
-        />
+        {activeView === 'dashboard' && (
+          <Dashboard expenses={expenses} />
+        )}
+
+        {activeView === 'expenses' && (
+          <div className="view-container">
+            <div className="view-header">
+              <h1>All Expenses</h1>
+              <button
+                className="summary-button"
+                onClick={() => setShowSummary(true)}
+              >
+                💰 View Summary
+              </button>
+            </div>
+            <ExpenseList
+              expenses={expenses}
+              loading={loading}
+              onExpenseSelect={handleExpenseSelect}
+              onRefresh={loadExpenses}
+            />
+          </div>
+        )}
+
+        {activeView === 'categories' && (
+          <div className="view-container">
+            <CategorizedExpenses
+              expenses={expenses}
+              onExpenseSelect={handleExpenseSelect}
+              onCategoryUpdate={handleCategoryUpdate}
+              onRefresh={loadExpenses}
+            />
+          </div>
+        )}
+
+        {activeView === 'upload' && (
+          <div className="view-container">
+            <div className="view-header">
+              <h1>Upload Receipt</h1>
+              <p>Upload a photo of your receipt to extract data with AI</p>
+            </div>
+            <ReceiptUpload onExpenseAdded={handleExpenseAdded} />
+          </div>
+        )}
+
+        {activeView === 'manual' && (
+          <div className="view-container">
+            <div className="view-header">
+              <h1>Manual Entry</h1>
+              <p>Quickly add expenses by typing naturally</p>
+            </div>
+            <ManualEntry onExpensesAdded={handleExpenseAdded} />
+          </div>
+        )}
+
+        {showSummary && (
+          <SpendingSummary onClose={() => setShowSummary(false)} expenses={expenses} />
+        )}
       </main>
     </div>
   );

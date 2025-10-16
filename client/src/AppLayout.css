@@ -1,0 +1,116 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f7fa;
+  color: #333;
+  line-height: 1.6;
+}
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 280px;
+  background: #f5f7fa;
+  min-height: 100vh;
+  overflow-y: auto;
+}
+
+.view-container {
+  padding: 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.view-header h1 {
+  margin: 0;
+  font-size: 32px;
+  color: #2c3e50;
+}
+
+.view-header p {
+  margin: 8px 0 0 0;
+  font-size: 16px;
+  color: #7f8c8d;
+  width: 100%;
+}
+
+.summary-button {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.summary-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(245, 87, 108, 0.4);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    margin-top: 0;
+  }
+
+  .view-container {
+    padding: 20px 15px;
+  }
+
+  .view-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .view-header h1 {
+    font-size: 26px;
+  }
+
+  .summary-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Update existing container styles to work with new layout */
+.container {
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+/* Remove old header styles since sidebar has its own */
+.header {
+  display: none;
+}
