@@ -227,11 +227,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     // Update UI immediately - no recalculation triggered because ref doesn't cause re-render
     setCategorizedExpenses(newCategorized);
 
-    // Re-enable useEffect after animation completes to prevent visual glitches
-    setTimeout(() => {
-      isUpdatingRef.current = false;
-    }, 1000); // Wait for drag animation to complete before allowing recalculation
-
     // Now send to server in background (don't block UI)
     (async () => {
       try {
@@ -257,13 +252,25 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
           onCategoryUpdate(movedItem.expenseId, destinationCategory);
         }
 
-        // Don't refresh immediately - the optimistic update is already showing the correct state
-        // Refreshing here causes a visual "teleport" glitch as data recalculates
-        // The data will sync naturally on next navigation or manual refresh
+        // Refresh parent data after animation completes to prevent visual glitch
+        // Wait for drag animation to finish before syncing with server
+        setTimeout(() => {
+          if (onRefresh) {
+            console.log('🔄 Refreshing parent data after successful update...');
+            onRefresh();
+          }
+          // Re-enable useEffect after refresh completes
+          setTimeout(() => {
+            isUpdatingRef.current = false;
+          }, 100);
+        }, 1000);
 
       } catch (err) {
         console.error('❌ Server update failed:', err);
         setError(`Failed to update: ${err.message}`);
+
+        // Re-enable useEffect immediately on error
+        isUpdatingRef.current = false;
 
         // Revert to previous state on error
         console.log('🔄 Reverting to previous state...');
