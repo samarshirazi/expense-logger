@@ -7,7 +7,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: t
 
 const { processReceiptWithAI, parseManualEntry } = require('./services/aiService');
 const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('./services/googleDriveService');
-const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable, updateExpenseCategory } = require('./services/supabaseService');
+const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable, updateExpenseCategory, updateItemCategory } = require('./services/supabaseService');
 const { signUp, signIn, signOut, requireAuth } = require('./services/authService');
 const { saveSubscription, sendPushToUser, createPushSubscriptionsTable } = require('./services/notificationService');
 
@@ -434,6 +434,46 @@ app.patch('/api/expenses/:id/category', requireAuth, async (req, res) => {
     console.error('Error updating expense category:', error);
     res.status(500).json({
       error: 'Failed to update category',
+      details: error.message
+    });
+  }
+});
+
+app.patch('/api/expenses/:expenseId/items/:itemIndex/category', requireAuth, async (req, res) => {
+  try {
+    const { expenseId, itemIndex } = req.params;
+    const { category } = req.body;
+
+    if (!expenseId) {
+      return res.status(400).json({ error: 'Expense ID is required' });
+    }
+
+    if (itemIndex === undefined || itemIndex === null) {
+      return res.status(400).json({ error: 'Item index is required' });
+    }
+
+    if (!category) {
+      return res.status(400).json({ error: 'Category is required' });
+    }
+
+    const itemIndexNum = parseInt(itemIndex, 10);
+    if (isNaN(itemIndexNum)) {
+      return res.status(400).json({ error: 'Item index must be a number' });
+    }
+
+    console.log(`Updating expense ${expenseId} item ${itemIndexNum} category to ${category}...`);
+    const result = await updateItemCategory(expenseId, itemIndexNum, category, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      expense: result,
+      message: 'Item category updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Error updating item category:', error);
+    res.status(500).json({
+      error: 'Failed to update item category',
       details: error.message
     });
   }

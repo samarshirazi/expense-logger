@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { updateExpenseCategory } from '../services/apiService';
+import { updateExpenseCategory, updateItemCategory } from '../services/apiService';
 import TimeNavigator from './TimeNavigator';
 import './CategorizedExpenses.css';
 
@@ -38,7 +38,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     return expenseDate >= start && expenseDate <= end;
   });
 
-  // Organize expenses by category
+  // Organize individual items by their category
   useEffect(() => {
     const organized = {
       Food: [],
@@ -49,11 +49,47 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     };
 
     filteredExpenses.forEach(expense => {
-      const category = expense.category || 'Other';
-      if (organized[category]) {
-        organized[category].push(expense);
+      // If expense has items, add each item separately
+      if (expense.items && expense.items.length > 0) {
+        expense.items.forEach((item, itemIndex) => {
+          const itemCategory = item.category || 'Other';
+          const itemWithMetadata = {
+            ...item,
+            expenseId: expense.id,
+            itemIndex: itemIndex,
+            merchantName: expense.merchantName,
+            date: expense.date,
+            currency: expense.currency,
+            // Create unique ID for dragging
+            uniqueId: `${expense.id}-item-${itemIndex}`
+          };
+
+          if (organized[itemCategory]) {
+            organized[itemCategory].push(itemWithMetadata);
+          } else {
+            organized['Other'].push(itemWithMetadata);
+          }
+        });
       } else {
-        organized['Other'].push(expense);
+        // If no items, show the expense itself
+        const category = expense.category || 'Other';
+        const expenseAsItem = {
+          description: expense.merchantName,
+          totalPrice: expense.totalAmount,
+          quantity: 1,
+          expenseId: expense.id,
+          itemIndex: -1, // -1 indicates whole expense, not individual item
+          merchantName: expense.merchantName,
+          date: expense.date,
+          currency: expense.currency,
+          uniqueId: expense.id
+        };
+
+        if (organized[category]) {
+          organized[category].push(expenseAsItem);
+        } else {
+          organized['Other'].push(expenseAsItem);
+        }
       }
     });
 
@@ -88,33 +124,45 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     setError(null);
 
     try {
+      // Find the moved item
+      const movedItem = categorizedExpenses[sourceCategory].find(
+        item => item.uniqueId === draggableId
+      );
+
+      if (!movedItem) {
+        throw new Error('Item not found');
+      }
+
       // Update category on server
-      await updateExpenseCategory(draggableId, destinationCategory);
+      if (movedItem.itemIndex === -1) {
+        // Update whole expense category
+        await updateExpenseCategory(movedItem.expenseId, destinationCategory);
+      } else {
+        // Update individual item category
+        await updateItemCategory(movedItem.expenseId, movedItem.itemIndex, destinationCategory);
+      }
 
       // Update local state optimistically
       const newCategorized = { ...categorizedExpenses };
-      const [movedExpense] = newCategorized[sourceCategory].filter(
-        expense => expense.id === draggableId
-      );
 
       // Remove from source
       newCategorized[sourceCategory] = newCategorized[sourceCategory].filter(
-        expense => expense.id !== draggableId
+        item => item.uniqueId !== draggableId
       );
 
       // Add to destination with updated category
-      const updatedExpense = { ...movedExpense, category: destinationCategory };
+      const updatedItem = { ...movedItem, category: destinationCategory };
       newCategorized[destinationCategory] = [
         ...newCategorized[destinationCategory].slice(0, destination.index),
-        updatedExpense,
+        updatedItem,
         ...newCategorized[destinationCategory].slice(destination.index)
       ];
 
       setCategorizedExpenses(newCategorized);
 
-      // Notify parent component
-      if (onCategoryUpdate) {
-        onCategoryUpdate(draggableId, destinationCategory);
+      // Notify parent component if it's a whole expense
+      if (onCategoryUpdate && movedItem.itemIndex === -1) {
+        onCategoryUpdate(movedItem.expenseId, destinationCategory);
       }
 
     } catch (err) {
@@ -149,7 +197,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
   const getCategoryTotal = (category) => {
     return categorizedExpenses[category]?.reduce(
-      (sum, expense) => sum + (expense.totalAmount || 0),
+      (sum, item) => sum + (item.totalPrice || 0),
       0
     ) || 0;
   };
@@ -161,9 +209,9 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   return (
     <div className="categorized-expenses">
       <div className="categorized-header">
-        <h2>Expenses by Category</h2>
+        <h2>Products by Category</h2>
         <p className="categorized-hint">
-          Expenses are grouped in sticky notes. Drag individual items to move them between categories
+          Each product is displayed separately. Drag items to recategorize them
         </p>
       </div>
 
@@ -215,10 +263,10 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                           <span className="sticky-note-title">{category.name} Expenses</span>
                         </div>
                         <div className="sticky-note-items">
-                          {categorizedExpenses[category.id]?.map((expense, index) => (
+                          {categorizedExpenses[category.id]?.map((item, index) => (
                             <Draggable
-                              key={expense.id}
-                              draggableId={expense.id}
+                              key={item.uniqueId}
+                              draggableId={item.uniqueId}
                               index={index}
                               isDragDisabled={loading}
                             >
@@ -230,35 +278,18 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                                   className={`stacked-expense-item ${
                                     snapshot.isDragging ? 'dragging' : ''
                                   }`}
-                                  onClick={() => onExpenseSelect && onExpenseSelect(expense)}
                                 >
                                   <div className="stacked-item-left">
                                     <div className="stacked-item-merchant">
-                                      {expense.merchantName}
+                                      {item.description || item.merchantName}
+                                      {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
                                     </div>
                                     <div className="stacked-item-date">
-                                      {formatDate(expense.date)}
+                                      {item.merchantName} • {formatDate(item.date)}
                                     </div>
-                                    {expense.items && expense.items.length > 0 && (
-                                      <div className="stacked-item-products">
-                                        {expense.items.map((item, idx) => (
-                                          <div key={idx} className="product-line">
-                                            <span className="product-name">
-                                              {item.description || 'Item'}
-                                              {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
-                                            </span>
-                                            {item.totalPrice && (
-                                              <span className="product-price">
-                                                {formatCurrency(item.totalPrice, expense.currency)}
-                                              </span>
-                                            )}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
                                   </div>
                                   <div className="stacked-item-amount">
-                                    {formatCurrency(expense.totalAmount, expense.currency)}
+                                    {formatCurrency(item.totalPrice || 0, item.currency)}
                                   </div>
                                 </div>
                               )}

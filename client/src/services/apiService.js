@@ -140,6 +140,15 @@ export const updateExpenseCategory = async (id, category) => {
   }
 };
 
+export const updateItemCategory = async (expenseId, itemIndex, category) => {
+  try {
+    const response = await api.patch(`/expenses/${expenseId}/items/${itemIndex}/category`, { category });
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Item category update failed'));
+  }
+};
+
 export const checkServerHealth = async () => {
   try {
     const healthUrl = process.env.NODE_ENV === 'production'

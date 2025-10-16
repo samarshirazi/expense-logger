@@ -473,6 +473,82 @@ async function updateExpenseCategory(id, category, userId, userToken = null) {
   }
 }
 
+async function updateItemCategory(expenseId, itemIndex, category, userId, userToken = null) {
+  try {
+    // Validate category
+    const validCategories = ['Food', 'Transport', 'Shopping', 'Bills', 'Other'];
+    if (!validCategories.includes(category)) {
+      throw new Error(`Invalid category. Must be one of: ${validCategories.join(', ')}`);
+    }
+
+    // Create Supabase client with user's access token for RLS
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${userToken}`
+          }
+        }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    // First, fetch the expense to get current items
+    const { data: expense, error: fetchError } = await supabase
+      .from('expenses')
+      .select('items')
+      .eq('id', expenseId)
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    // Update the specific item's category
+    const items = expense.items || [];
+    if (itemIndex < 0 || itemIndex >= items.length) {
+      throw new Error(`Invalid item index: ${itemIndex}`);
+    }
+
+    items[itemIndex] = {
+      ...items[itemIndex],
+      category: category
+    };
+
+    // Update the expense with modified items
+    const { data, error } = await supabase
+      .from('expenses')
+      .update({
+        items: items,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', expenseId)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    console.log(`✅ Item ${itemIndex} category updated in expense ${expenseId}`);
+    return {
+      id: data.id,
+      items: data.items,
+      updatedAt: data.updated_at
+    };
+
+  } catch (error) {
+    console.error('❌ Error updating item category in Supabase:', error);
+    throw new Error(`Failed to update item category: ${error.message}`);
+  }
+}
+
 module.exports = {
   initSupabase,
   testConnection,
@@ -483,5 +559,6 @@ module.exports = {
   deleteExpense,
   getExpensesByCategory,
   subscribeToExpenses,
-  updateExpenseCategory
+  updateExpenseCategory,
+  updateItemCategory
 };
