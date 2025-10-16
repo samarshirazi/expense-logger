@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import authService from '../services/authService';
-import TimeNavigator from './TimeNavigator';
 import './SpendingSummary.css';
 
 const CATEGORIES = [
@@ -15,18 +14,6 @@ const CATEGORIES = [
 function SpendingSummary({ onClose, expenses = [] }) {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState(() => {
-    // Default to this month
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const startOfMonth = new Date(year, month, 1);
-    const endOfMonth = new Date(year, month + 1, 0);
-    return {
-      startDate: startOfMonth.toISOString().split('T')[0],
-      endDate: endOfMonth.toISOString().split('T')[0]
-    };
-  });
   const [viewMode, setViewMode] = useState('summary'); // 'summary' or 'detailed'
 
   const loadSummary = useCallback(async () => {
@@ -37,11 +24,7 @@ function SpendingSummary({ onClose, expenses = [] }) {
         ? '/api'
         : 'http://localhost:5000/api';
 
-      const params = new URLSearchParams();
-      if (dateRange.startDate) params.append('startDate', dateRange.startDate);
-      if (dateRange.endDate) params.append('endDate', dateRange.endDate);
-
-      const response = await axios.get(`${API_BASE_URL}/expenses/summary?${params}`, {
+      const response = await axios.get(`${API_BASE_URL}/expenses/summary`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -53,15 +36,11 @@ function SpendingSummary({ onClose, expenses = [] }) {
     } finally {
       setLoading(false);
     }
-  }, [dateRange.startDate, dateRange.endDate]);
+  }, []);
 
   useEffect(() => {
     loadSummary();
   }, [loadSummary]);
-
-  const handleDateRangeChange = (range) => {
-    setDateRange(range);
-  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -84,8 +63,6 @@ function SpendingSummary({ onClose, expenses = [] }) {
           <h2>📊 Spending Summary</h2>
           <button className="close-button" onClick={onClose}>✕</button>
         </div>
-
-        <TimeNavigator onRangeChange={handleDateRangeChange} expenses={expenses} />
 
         <div className="view-mode-toggle">
           <button
