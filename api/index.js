@@ -10,7 +10,15 @@ const { processReceiptWithAI, parseManualEntry } = require('../server/services/a
 const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('../server/services/googleDriveService');
 const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable, updateExpenseCategory, updateItemCategory, updateExpense } = require('../server/services/supabaseService');
 const { signUp, signIn, signOut, requireAuth } = require('../server/services/authService');
-const { saveSubscription, sendPushToUser, createPushSubscriptionsTable } = require('../server/services/notificationService');
+
+// Try to load notification service, but make it optional
+let notificationService = null;
+try {
+  notificationService = require('../server/services/notificationService');
+  console.log('✅ Notification service loaded');
+} catch (error) {
+  console.warn('⚠️  Notification service not available:', error.message);
+}
 
 const app = express();
 
@@ -110,6 +118,10 @@ const upload = multer({
 // Notification endpoints
 app.post('/api/notifications/subscribe', requireAuth, async (req, res) => {
   try {
+    if (!notificationService) {
+      return res.status(503).json({ error: 'Notification service is not available' });
+    }
+
     const { subscription } = req.body;
 
     if (!subscription || !subscription.endpoint) {
@@ -119,7 +131,7 @@ app.post('/api/notifications/subscribe', requireAuth, async (req, res) => {
     const authHeader = req.headers.authorization;
     const userToken = authHeader ? authHeader.substring(7) : null;
 
-    const result = await saveSubscription(req.user.id, subscription, userToken);
+    const result = await notificationService.saveSubscription(req.user.id, subscription, userToken);
 
     res.json({
       success: true,
@@ -138,6 +150,10 @@ app.post('/api/notifications/subscribe', requireAuth, async (req, res) => {
 
 app.post('/api/notifications/test', requireAuth, async (req, res) => {
   try {
+    if (!notificationService) {
+      return res.status(503).json({ error: 'Notification service is not available' });
+    }
+
     const payload = {
       title: 'Test Notification',
       body: 'This is a test notification from Expense Logger!',
@@ -150,7 +166,7 @@ app.post('/api/notifications/test', requireAuth, async (req, res) => {
     const authHeader = req.headers.authorization;
     const userToken = authHeader ? authHeader.substring(7) : null;
 
-    const result = await sendPushToUser(req.user.id, payload, userToken);
+    const result = await notificationService.sendPushToUser(req.user.id, payload, userToken);
 
     res.json({
       success: true,
@@ -197,22 +213,24 @@ app.post('/api/manual-entry', requireAuth, async (req, res) => {
         expenseData
       });
 
-      // Send push notification
-      try {
-        const notificationPayload = {
-          title: 'Manual Entry Added!',
-          body: `${expenseData.merchantName} - $${expenseData.totalAmount}`,
-          icon: '/icon-192.svg',
-          badge: '/icon-192.svg',
-          tag: `expense-${expenseId}`,
-          data: {
-            url: '/',
-            expenseId: expenseId
-          }
-        };
-        await sendPushToUser(req.user.id, notificationPayload, userToken);
-      } catch (notifError) {
-        console.warn('⚠️  Failed to send push notification:', notifError.message);
+      // Send push notification (optional)
+      if (notificationService) {
+        try {
+          const notificationPayload = {
+            title: 'Manual Entry Added!',
+            body: `${expenseData.merchantName} - $${expenseData.totalAmount}`,
+            icon: '/icon-192.svg',
+            badge: '/icon-192.svg',
+            tag: `expense-${expenseId}`,
+            data: {
+              url: '/',
+              expenseId: expenseId
+            }
+          };
+          await notificationService.sendPushToUser(req.user.id, notificationPayload, userToken);
+        } catch (notifError) {
+          console.warn('⚠️  Failed to send push notification:', notifError.message);
+        }
       }
     }
 
@@ -747,7 +765,13 @@ async function init() {
     }
 
     await createExpensesTable();
-    await createPushSubscriptionsTable();
+
+    if (notificationService) {
+      await notificationService.createPushSubscriptionsTable();
+    } else {
+      console.log('⚠️  Skipping push subscriptions table creation (service not available)');
+    }
+
     console.log('✅ API initialized successfully');
   } catch (error) {
     console.error('❌ Failed to initialize API:', error);
