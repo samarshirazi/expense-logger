@@ -4,6 +4,14 @@ import authService from '../services/authService';
 import TimeNavigator from './TimeNavigator';
 import './SpendingSummary.css';
 
+// Helper function to format date in local timezone (avoids timezone shift)
+const toLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const CATEGORIES = [
   { id: 'Food', name: 'Food', icon: '🍔', color: '#ff6b6b' },
   { id: 'Transport', name: 'Transport', icon: '🚗', color: '#4ecdc4' },
@@ -23,8 +31,8 @@ function SpendingSummary({ onClose, expenses = [] }) {
     const startOfMonth = new Date(year, month, 1);
     const endOfMonth = new Date(year, month + 1, 0);
     return {
-      startDate: startOfMonth.toISOString().split('T')[0],
-      endDate: endOfMonth.toISOString().split('T')[0]
+      startDate: toLocalDateString(startOfMonth),
+      endDate: toLocalDateString(endOfMonth)
     };
   });
   const [viewMode, setViewMode] = useState('summary'); // 'summary' or 'detailed'

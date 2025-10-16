@@ -4,6 +4,14 @@ import { updateExpenseCategory, updateItemCategory } from '../services/apiServic
 import TimeNavigator from './TimeNavigator';
 import './CategorizedExpenses.css';
 
+// Helper function to format date in local timezone (avoids timezone shift)
+const toLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const CATEGORIES = [
   { id: 'Food', name: 'Food', icon: '🍔', color: '#ff6b6b' },
   { id: 'Transport', name: 'Transport', icon: '🚗', color: '#4ecdc4' },
@@ -25,8 +33,8 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     const startOfMonth = new Date(year, month, 1);
     const endOfMonth = new Date(year, month + 1, 0);
     return {
-      startDate: startOfMonth.toISOString().split('T')[0],
-      endDate: endOfMonth.toISOString().split('T')[0]
+      startDate: toLocalDateString(startOfMonth),
+      endDate: toLocalDateString(endOfMonth)
     };
   });
 
@@ -182,59 +190,58 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     // Update UI immediately
     setCategorizedExpenses(newCategorized);
 
-    try {
-      console.log('📡 Sending to server...');
+    // Re-enable useEffect immediately after optimistic update is applied
+    // This prevents any UI freeze
+    setIsUpdating(false);
 
-      // Update category on server
-      if (movedItem.itemIndex === -1) {
-        console.log('🔧 Updating whole expense category');
-        await updateExpenseCategory(movedItem.expenseId, destinationCategory);
-      } else {
-        console.log('🔧 Updating item category:', {
-          expenseId: movedItem.expenseId,
-          itemIndex: movedItem.itemIndex,
-          newCategory: destinationCategory
-        });
-        await updateItemCategory(movedItem.expenseId, movedItem.itemIndex, destinationCategory);
-      }
+    // Now send to server in background (don't block UI)
+    (async () => {
+      try {
+        console.log('📡 Sending to server...');
 
-      console.log('✅ Server update successful!');
+        // Update category on server
+        if (movedItem.itemIndex === -1) {
+          console.log('🔧 Updating whole expense category');
+          await updateExpenseCategory(movedItem.expenseId, destinationCategory);
+        } else {
+          console.log('🔧 Updating item category:', {
+            expenseId: movedItem.expenseId,
+            itemIndex: movedItem.itemIndex,
+            newCategory: destinationCategory
+          });
+          await updateItemCategory(movedItem.expenseId, movedItem.itemIndex, destinationCategory);
+        }
 
-      // Notify parent component if it's a whole expense
-      if (onCategoryUpdate && movedItem.itemIndex === -1) {
-        onCategoryUpdate(movedItem.expenseId, destinationCategory);
-      }
+        console.log('✅ Server update successful!');
 
-      // Refresh from server in background (non-blocking) to ensure parent data is updated
-      // This happens after the optimistic update is shown, so there's no delay
-      if (onRefresh) {
-        setTimeout(() => {
+        // Notify parent component if it's a whole expense
+        if (onCategoryUpdate && movedItem.itemIndex === -1) {
+          onCategoryUpdate(movedItem.expenseId, destinationCategory);
+        }
+
+        // Refresh from server to ensure parent data is updated
+        if (onRefresh) {
           console.log('🔄 Background refresh to sync parent data...');
           onRefresh();
-        }, 500); // Small delay to ensure server has processed the update
+        }
+
+      } catch (err) {
+        console.error('❌ Server update failed:', err);
+        setError(`Failed to update: ${err.message}`);
+
+        // Revert to previous state on error
+        console.log('🔄 Reverting to previous state...');
+        setCategorizedExpenses(previousState);
+
+        // Refresh from server to ensure consistency
+        if (onRefresh) {
+          setTimeout(() => {
+            console.log('🔄 Refreshing from server after error...');
+            onRefresh();
+          }, 500);
+        }
       }
-
-    } catch (err) {
-      console.error('❌ Server update failed:', err);
-      setError(`Failed to update: ${err.message}`);
-
-      // Revert to previous state on error
-      console.log('🔄 Reverting to previous state...');
-      setCategorizedExpenses(previousState);
-
-      // Refresh from server to ensure consistency
-      if (onRefresh) {
-        setTimeout(() => {
-          console.log('🔄 Refreshing from server after error...');
-          onRefresh();
-        }, 500);
-      }
-    } finally {
-      // Re-enable useEffect recalculation after a short delay
-      setTimeout(() => {
-        setIsUpdating(false);
-      }, 100);
-    }
+    })();
   };
 
   const formatCurrency = (amount, currency = 'USD') => {

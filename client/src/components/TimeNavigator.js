@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './TimeNavigator.css';
 
+// Helper function to format date in local timezone (avoids timezone shift)
+const toLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 function TimeNavigator({ onRangeChange, expenses = [], initialDate }) {
   const [viewMode, setViewMode] = useState('month'); // 'month', 'week', or 'day'
   const [currentDate, setCurrentDate] = useState(() => initialDate || new Date());
@@ -23,8 +31,8 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate }) {
       const startOfMonth = new Date(year, month, 1);
       const endOfMonth = new Date(year, month + 1, 0);
       onRangeChange({
-        startDate: startOfMonth.toISOString().split('T')[0],
-        endDate: endOfMonth.toISOString().split('T')[0]
+        startDate: toLocalDateString(startOfMonth),
+        endDate: toLocalDateString(endOfMonth)
       });
     } else if (viewMode === 'week') {
       // Week view (Sunday to Saturday)
@@ -32,15 +40,15 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate }) {
       const startOfWeek = new Date(year, month, day - dayOfWeek);
       const endOfWeek = new Date(year, month, day + (6 - dayOfWeek));
       onRangeChange({
-        startDate: startOfWeek.toISOString().split('T')[0],
-        endDate: endOfWeek.toISOString().split('T')[0]
+        startDate: toLocalDateString(startOfWeek),
+        endDate: toLocalDateString(endOfWeek)
       });
     } else if (viewMode === 'day') {
       // Single day view
       const selectedDay = new Date(year, month, day);
       onRangeChange({
-        startDate: selectedDay.toISOString().split('T')[0],
-        endDate: selectedDay.toISOString().split('T')[0]
+        startDate: toLocalDateString(selectedDay),
+        endDate: toLocalDateString(selectedDay)
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -93,7 +101,7 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate }) {
 
   // Get expenses for a specific date
   const getExpensesForDate = (date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = toLocalDateString(date);
     return expenses.filter(expense => expense.date === dateStr);
   };
 
