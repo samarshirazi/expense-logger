@@ -22,7 +22,6 @@ const CATEGORIES = [
 
 function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRefresh }) {
   const [categorizedExpenses, setCategorizedExpenses] = useState({});
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const isUpdatingRef = useRef(false); // Use ref instead of state to prevent recalculation
   const [dateRange, setDateRange] = useState(() => {
@@ -331,7 +330,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                           key={item.uniqueId}
                           draggableId={item.uniqueId}
                           index={index}
-                          isDragDisabled={loading}
                         >
                           {(provided, snapshot) => (
                             <div
@@ -367,13 +365,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
           ))}
         </div>
       </DragDropContext>
-
-      {loading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner"></div>
-          <p>Updating category...</p>
-        </div>
-      )}
     </div>
   );
 }
