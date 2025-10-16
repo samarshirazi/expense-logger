@@ -300,7 +300,8 @@
   }
 
   .categories-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr; /* 2-column grid on mobile */
+    gap: 12px; /* Reduce gap for mobile */
   }
 
   .categorized-header h2 {
@@ -308,7 +309,38 @@
   }
 
   .category-column {
-    min-height: 300px;
+    min-height: 250px; /* Reduce height for mobile */
+  }
+
+  .category-header {
+    padding: 12px; /* Reduce padding on mobile */
+    font-size: 14px;
+  }
+
+  .category-icon {
+    font-size: 20px; /* Smaller icon on mobile */
+  }
+
+  .category-total {
+    padding: 10px 12px;
+    font-size: 16px;
+  }
+
+  .product-card {
+    padding: 10px 12px; /* Reduce padding on mobile */
+    margin-bottom: 8px;
+  }
+
+  .product-card-name {
+    font-size: 13px;
+  }
+
+  .product-card-meta {
+    font-size: 11px;
+  }
+
+  .product-card-amount {
+    font-size: 16px;
   }
 }
 
@@ -590,26 +622,27 @@
 /* Responsive for action zones */
 @media (max-width: 768px) {
   .action-zones {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr; /* Keep 2-column grid on mobile */
     padding: 0;
     margin-top: 20px;
+    gap: 12px; /* Match categories gap */
   }
 
   .action-zone {
     min-height: 100px;
-    padding: 20px;
+    padding: 16px; /* Slightly reduce padding */
   }
 
   .action-icon {
-    font-size: 36px;
+    font-size: 32px; /* Slightly smaller for mobile */
   }
 
   .action-label {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .action-hint {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .modal-content {
