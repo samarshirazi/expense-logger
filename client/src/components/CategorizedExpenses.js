@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { updateExpenseCategory, updateItemCategory } from '../services/apiService';
 import TimeNavigator from './TimeNavigator';
@@ -24,7 +24,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   const [categorizedExpenses, setCategorizedExpenses] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [isUpdating, setIsUpdating] = useState(false); // Prevent useEffect from overwriting optimistic updates
+  const isUpdatingRef = useRef(false); // Use ref instead of state to prevent recalculation
   const [dateRange, setDateRange] = useState(() => {
     // Default to this month
     const today = new Date();
@@ -41,16 +41,15 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   // Filter expenses by date range
   const filteredExpenses = expenses.filter(expense => {
     if (!dateRange.startDate || !dateRange.endDate) return true;
-    const expenseDate = new Date(expense.date);
-    const start = new Date(dateRange.startDate);
-    const end = new Date(dateRange.endDate);
-    return expenseDate >= start && expenseDate <= end;
+    // Compare dates as strings to avoid timezone issues
+    // expense.date is in format "YYYY-MM-DD"
+    return expense.date >= dateRange.startDate && expense.date <= dateRange.endDate;
   });
 
   // Organize individual items by their category
   useEffect(() => {
     // Don't recalculate if we're in the middle of an optimistic update
-    if (isUpdating) {
+    if (isUpdatingRef.current) {
       console.log('⏸️ Skipping recalculation - optimistic update in progress');
       return;
     }
@@ -111,7 +110,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     });
 
     setCategorizedExpenses(organized);
-  }, [filteredExpenses, isUpdating]);
+  }, [filteredExpenses]); // Only recalculate when filteredExpenses changes
 
   const handleDragEnd = async (result) => {
     console.log('🔄 Drag ended:', result);
@@ -160,7 +159,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     console.log('✅ Found item:', movedItem);
 
     // Set updating flag to prevent useEffect from overwriting our optimistic update
-    setIsUpdating(true);
+    isUpdatingRef.current = true;
 
     // Save previous state for potential revert
     const previousState = JSON.parse(JSON.stringify(categorizedExpenses));
@@ -187,12 +186,13 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     ];
 
     console.log('🔄 Updating UI optimistically...');
-    // Update UI immediately
+    // Update UI immediately - no recalculation triggered because ref doesn't cause re-render
     setCategorizedExpenses(newCategorized);
 
-    // Re-enable useEffect immediately after optimistic update is applied
-    // This prevents any UI freeze
-    setIsUpdating(false);
+    // Re-enable useEffect after a tiny delay to ensure state update completed
+    setTimeout(() => {
+      isUpdatingRef.current = false;
+    }, 10); // Minimal delay just to ensure the state update is painted
 
     // Now send to server in background (don't block UI)
     (async () => {
@@ -253,7 +253,10 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
   const formatDate = (dateString) => {
     if (!dateString) return 'No date';
-    const date = new Date(dateString);
+    // Parse date string as local date to avoid timezone shift
+    // dateString is in format "YYYY-MM-DD"
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day); // month is 0-indexed
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',

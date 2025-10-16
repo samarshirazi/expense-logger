@@ -89,10 +89,8 @@ function Dashboard({ expenses }) {
   // Filter expenses by date range for recent expenses section
   const filteredExpenses = expenses.filter(expense => {
     if (!dateRange.startDate || !dateRange.endDate) return true;
-    const expenseDate = new Date(expense.date);
-    const start = new Date(dateRange.startDate);
-    const end = new Date(dateRange.endDate);
-    return expenseDate >= start && expenseDate <= end;
+    // Compare dates as strings to avoid timezone issues
+    return expense.date >= dateRange.startDate && expense.date <= dateRange.endDate;
   });
 
   return (
