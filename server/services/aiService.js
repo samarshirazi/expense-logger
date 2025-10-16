@@ -314,9 +314,13 @@ async function processReceiptWithAI(fileBuffer, originalFilename, providedMimeTy
     if (provider === AI_PROVIDERS.STUB) {
       console.warn('⚠️  Using stub AI provider. Returned data is static and for testing only.');
 
+      // Get current date in local timezone for stub
+      const now = new Date();
+      const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
       return {
         merchantName: 'Sample Coffee Shop',
-        date: new Date().toISOString().slice(0, 10),
+        date: todayDateStr,
         totalAmount: 11.5,
         currency: 'USD',
         category: 'Food',
@@ -642,10 +646,14 @@ async function parseManualEntry(textEntry) {
     }
 
     if (provider === AI_PROVIDERS.STUB) {
+      // Get current date in local timezone for stub
+      const now = new Date();
+      const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
       // Return mock data for testing
       return [{
         merchantName: 'Manual Entry',
-        date: new Date().toISOString().slice(0, 10),
+        date: todayDateStr,
         totalAmount: 30,
         currency: 'USD',
         category: 'Food',
@@ -668,7 +676,16 @@ async function parseManualEntry(textEntry) {
       }];
     }
 
+    // Get current date in local timezone
+    const now = new Date();
+    const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentYear = now.getFullYear();
+    const currentMonth = now.toLocaleDateString('en-US', { month: 'long' });
+
     const prompt = `Parse this expense entry and extract individual expenses. Return a JSON array of expense objects.
+
+TODAY'S DATE: ${todayDateStr} (${currentMonth} ${now.getDate()}, ${currentYear})
+IMPORTANT: If a date is mentioned like "Oct 10" or "October 10", assume it means ${currentYear}, not a past year.
 
 User entry: "${textEntry}"
 
@@ -687,6 +704,7 @@ Rules:
 - Extract all expenses mentioned in the text
 - Each expense should be a separate object in the array
 - Categorize based on: Food (food/dining), Transport (gas/parking/transit), Shopping (retail/clothing/electronics), Bills (utilities/subscriptions), Other (miscellaneous)
+- If a date like "Oct 10" or "few days ago" is mentioned, calculate based on today's date (${todayDateStr}) and use ${currentYear}
 - If no specific date mentioned, use null
 - Amount must be a number
 - Return ONLY the JSON array, no markdown or explanatory text`;
@@ -810,10 +828,13 @@ Rules:
       ? parsedExpenses[0].merchantName
       : 'Manual Entry';
 
+    // Get date from parsed expense or use today's date in local timezone
+    const expenseDate = parsedExpenses[0].date || todayDateStr;
+
     // Return a single expense with all items
     return [{
       merchantName: merchantName,
-      date: parsedExpenses[0].date || new Date().toISOString().slice(0, 10),
+      date: expenseDate,
       totalAmount: parseFloat(totalAmount.toFixed(2)),
       currency: 'USD',
       category: dominantCategory,
