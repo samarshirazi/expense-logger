@@ -276,31 +276,6 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate }) {
           </div>
         </div>
       )}
-
-      <div className="quick-presets">
-        <button onClick={() => { setCurrentDate(new Date()); setViewMode('month'); }}>
-          This Month
-        </button>
-        <button onClick={() => {
-          const lastMonth = new Date();
-          lastMonth.setMonth(lastMonth.getMonth() - 1);
-          setCurrentDate(lastMonth);
-          setViewMode('month');
-        }}>
-          Last Month
-        </button>
-        <button onClick={() => { setCurrentDate(new Date()); setViewMode('week'); }}>
-          This Week
-        </button>
-        <button onClick={() => {
-          const lastYear = new Date();
-          lastYear.setFullYear(lastYear.getFullYear() - 1);
-          setCurrentDate(lastYear);
-          setViewMode('month');
-        }}>
-          Last Year
-        </button>
-      </div>
     </div>
   );
 }

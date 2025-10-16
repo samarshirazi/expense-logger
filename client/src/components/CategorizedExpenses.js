@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { updateExpenseCategory, updateItemCategory } from '../services/apiService';
+import TimeNavigator from './TimeNavigator';
 import './CategorizedExpenses.css';
 
 const CATEGORIES = [
@@ -16,6 +17,27 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false); // Prevent useEffect from overwriting optimistic updates
+  const [dateRange, setDateRange] = useState(() => {
+    // Default to this month
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const startOfMonth = new Date(year, month, 1);
+    const endOfMonth = new Date(year, month + 1, 0);
+    return {
+      startDate: startOfMonth.toISOString().split('T')[0],
+      endDate: endOfMonth.toISOString().split('T')[0]
+    };
+  });
+
+  // Filter expenses by date range
+  const filteredExpenses = expenses.filter(expense => {
+    if (!dateRange.startDate || !dateRange.endDate) return true;
+    const expenseDate = new Date(expense.date);
+    const start = new Date(dateRange.startDate);
+    const end = new Date(dateRange.endDate);
+    return expenseDate >= start && expenseDate <= end;
+  });
 
   // Organize individual items by their category
   useEffect(() => {
@@ -35,7 +57,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       Other: []
     };
 
-    expenses.forEach(expense => {
+    filteredExpenses.forEach(expense => {
       // If expense has items, add each item separately
       if (expense.items && expense.items.length > 0) {
         expense.items.forEach((item, itemIndex) => {
@@ -81,7 +103,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     });
 
     setCategorizedExpenses(organized);
-  }, [expenses, isUpdating]);
+  }, [filteredExpenses, isUpdating]);
 
   const handleDragEnd = async (result) => {
     console.log('🔄 Drag ended:', result);
@@ -178,12 +200,18 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
       console.log('✅ Server update successful!');
 
-      // Don't refresh from server - trust the optimistic update
-      // The parent will eventually update and we'll recalculate then
-
       // Notify parent component if it's a whole expense
       if (onCategoryUpdate && movedItem.itemIndex === -1) {
         onCategoryUpdate(movedItem.expenseId, destinationCategory);
+      }
+
+      // Refresh from server in background (non-blocking) to ensure parent data is updated
+      // This happens after the optimistic update is shown, so there's no delay
+      if (onRefresh) {
+        setTimeout(() => {
+          console.log('🔄 Background refresh to sync parent data...');
+          onRefresh();
+        }, 500); // Small delay to ensure server has processed the update
       }
 
     } catch (err) {
@@ -233,6 +261,10 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     ) || 0;
   };
 
+  const handleDateRangeChange = (range) => {
+    setDateRange(range);
+  };
+
   return (
     <div className="categorized-expenses">
       <div className="categorized-header">
@@ -241,6 +273,8 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
           Each product is displayed separately. Drag items to recategorize them
         </p>
       </div>
+
+      <TimeNavigator onRangeChange={handleDateRangeChange} expenses={expenses} />
 
       {error && (
         <div className="error-message">
