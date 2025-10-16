@@ -32,38 +32,20 @@ function ExpensesSummary({ expenses }) {
     };
   });
 
-  const [categorizedItems, setCategorizedItems] = useState({
-    Food: [],
-    Transport: [],
-    Shopping: [],
-    Bills: [],
-    Other: []
+  const [tableData, setTableData] = useState({
+    byDate: {}, // { 'YYYY-MM-DD': { Food: [], Transport: [], ... } }
+    categoryTotals: { Food: 0, Transport: 0, Shopping: 0, Bills: 0, Other: 0 }
   });
 
-  const [categoryTotals, setCategoryTotals] = useState({
-    Food: 0,
-    Transport: 0,
-    Shopping: 0,
-    Bills: 0,
-    Other: 0
-  });
-
-  // Filter and categorize expenses based on date range
+  // Group items by date and category
   useEffect(() => {
     const filteredExpenses = expenses.filter(expense => {
       if (!dateRange.startDate || !dateRange.endDate) return true;
       return expense.date >= dateRange.startDate && expense.date <= dateRange.endDate;
     });
 
-    const organized = {
-      Food: [],
-      Transport: [],
-      Shopping: [],
-      Bills: [],
-      Other: []
-    };
-
-    const totals = {
+    const byDate = {};
+    const categoryTotals = {
       Food: 0,
       Transport: 0,
       Shopping: 0,
@@ -72,6 +54,18 @@ function ExpensesSummary({ expenses }) {
     };
 
     filteredExpenses.forEach(expense => {
+      const date = expense.date;
+
+      if (!byDate[date]) {
+        byDate[date] = {
+          Food: [],
+          Transport: [],
+          Shopping: [],
+          Bills: [],
+          Other: []
+        };
+      }
+
       if (expense.items && expense.items.length > 0) {
         expense.items.forEach((item, itemIndex) => {
           const itemCategory = item.category || 'Other';
@@ -84,13 +78,8 @@ function ExpensesSummary({ expenses }) {
             currency: expense.currency
           };
 
-          if (organized[itemCategory]) {
-            organized[itemCategory].push(itemWithMetadata);
-            totals[itemCategory] += item.totalPrice || 0;
-          } else {
-            organized['Other'].push(itemWithMetadata);
-            totals['Other'] += item.totalPrice || 0;
-          }
+          byDate[date][itemCategory].push(itemWithMetadata);
+          categoryTotals[itemCategory] += item.totalPrice || 0;
         });
       } else {
         const category = expense.category || 'Other';
@@ -105,18 +94,12 @@ function ExpensesSummary({ expenses }) {
           currency: expense.currency
         };
 
-        if (organized[category]) {
-          organized[category].push(expenseAsItem);
-          totals[category] += expense.totalAmount || 0;
-        } else {
-          organized['Other'].push(expenseAsItem);
-          totals['Other'] += expense.totalAmount || 0;
-        }
+        byDate[date][category].push(expenseAsItem);
+        categoryTotals[category] += expense.totalAmount || 0;
       }
     });
 
-    setCategorizedItems(organized);
-    setCategoryTotals(totals);
+    setTableData({ byDate, categoryTotals });
   }, [expenses, dateRange]);
 
   const handleDateRangeChange = (range) => {
@@ -141,7 +124,9 @@ function ExpensesSummary({ expenses }) {
     });
   };
 
-  const totalSpending = Object.values(categoryTotals).reduce((sum, val) => sum + val, 0);
+  // Get sorted dates
+  const sortedDates = Object.keys(tableData.byDate).sort();
+  const totalSpending = Object.values(tableData.categoryTotals).reduce((sum, val) => sum + val, 0);
 
   return (
     <div className="expenses-summary">
@@ -154,102 +139,91 @@ function ExpensesSummary({ expenses }) {
 
       <TimeNavigator onRangeChange={handleDateRangeChange} expenses={expenses} />
 
-      <div className="summary-main-content">
-        {/* Date Range Info on the left */}
-        <div className="date-info-sidebar">
-          <div className="date-info-card">
-            <div className="date-info-icon">📅</div>
-            <div className="date-info-content">
-              <div className="date-info-label">Selected Period</div>
-              <div className="date-info-dates">
-                <div className="date-info-date">{formatDate(dateRange.startDate)}</div>
-                <div className="date-info-separator">to</div>
-                <div className="date-info-date">{formatDate(dateRange.endDate)}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="total-spending-card">
-            <div className="total-spending-icon">💰</div>
-            <div className="total-spending-content">
-              <div className="total-spending-label">Total Spending</div>
-              <div className="total-spending-amount">{formatCurrency(totalSpending)}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Categories in horizontal row at the top with products below */}
-        <div className="categories-content">
-          <div className="categories-horizontal">
-            {CATEGORIES.map(category => (
-              <div
-                key={category.id}
-                className="category-tab"
-                style={{ borderBottomColor: category.color }}
-              >
-                <span className="category-tab-icon">{category.icon}</span>
-                <span className="category-tab-name">{category.name}</span>
-                <span className="category-tab-total">{formatCurrency(categoryTotals[category.id])}</span>
-                <span className="category-tab-count">
-                  ({categorizedItems[category.id]?.length || 0})
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Products listed under categories */}
-          <div className="products-by-category">
-            {CATEGORIES.map(category => {
-              const items = categorizedItems[category.id] || [];
-              if (items.length === 0) return null;
-
-              return (
-                <div key={category.id} className="category-section">
-                  <div
-                    className="category-section-header"
-                    style={{ backgroundColor: category.color }}
-                  >
-                    <span className="category-section-icon">{category.icon}</span>
-                    <span className="category-section-name">{category.name}</span>
-                    <span className="category-section-count">{items.length} items</span>
+      <div className="excel-table-wrapper">
+        <table className="excel-table">
+          <thead>
+            <tr>
+              <th className="date-column">Date</th>
+              {CATEGORIES.map(category => (
+                <th key={category.id} style={{ borderTopColor: category.color }}>
+                  <div className="category-header-cell">
+                    <span className="category-icon">{category.icon}</span>
+                    <span className="category-name">{category.name}</span>
                   </div>
-
-                  <div className="category-products-list">
-                    {items.map((item, index) => (
-                      <div key={`${item.expenseId}-${item.itemIndex}-${index}`} className="product-item">
-                        <div className="product-item-left">
-                          <div className="product-item-name">
-                            {item.description || item.merchantName}
-                            {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
-                          </div>
-                          <div className="product-item-meta">
-                            {item.merchantName} • {formatDate(item.date)}
-                          </div>
-                        </div>
-                        <div className="product-item-amount">
-                          {formatCurrency(item.totalPrice || 0, item.currency)}
-                        </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedDates.length === 0 ? (
+              <tr>
+                <td colSpan={CATEGORIES.length + 1} className="no-data">
+                  <div className="no-expenses-message">
+                    <div className="no-expenses-icon">📭</div>
+                    <h3>No expenses found</h3>
+                    <p>Try selecting a different date range or add some expenses.</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              <>
+                {sortedDates.map(date => (
+                  <tr key={date}>
+                    <td className="date-cell">
+                      <div className="date-cell-content">
+                        {formatDate(date)}
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="category-section-total">
-                    <span>Subtotal:</span>
-                    <span>{formatCurrency(categoryTotals[category.id])}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {totalSpending === 0 && (
-            <div className="no-expenses-message">
-              <div className="no-expenses-icon">📭</div>
-              <h3>No expenses found</h3>
-              <p>Try selecting a different date range or add some expenses.</p>
-            </div>
-          )}
-        </div>
+                    </td>
+                    {CATEGORIES.map(category => {
+                      const items = tableData.byDate[date][category.id] || [];
+                      return (
+                        <td key={category.id} className="category-cell">
+                          {items.length > 0 ? (
+                            <div className="items-list">
+                              {items.map((item, index) => (
+                                <div key={`${item.expenseId}-${item.itemIndex}-${index}`} className="item-entry">
+                                  <div className="item-description">
+                                    {item.description || item.merchantName}
+                                    {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
+                                  </div>
+                                  <div className="item-price">
+                                    {formatCurrency(item.totalPrice || 0, item.currency)}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="empty-cell">—</div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+                {/* Total row */}
+                <tr className="total-row">
+                  <td className="total-label">
+                    <strong>TOTAL</strong>
+                  </td>
+                  {CATEGORIES.map(category => (
+                    <td key={category.id} className="total-cell">
+                      <strong>{formatCurrency(tableData.categoryTotals[category.id])}</strong>
+                    </td>
+                  ))}
+                </tr>
+                {/* Grand total row */}
+                <tr className="grand-total-row">
+                  <td className="grand-total-label">
+                    <strong>GRAND TOTAL</strong>
+                  </td>
+                  <td colSpan={CATEGORIES.length} className="grand-total-cell">
+                    <strong>{formatCurrency(totalSpending)}</strong>
+                  </td>
+                </tr>
+              </>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 .expenses-summary {
   padding: 20px;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
 }
 
@@ -21,252 +21,199 @@
   margin: 0;
 }
 
-.summary-main-content {
-  display: flex;
-  gap: 20px;
+/* Excel-like table styling */
+.excel-table-wrapper {
   margin-top: 30px;
+  overflow-x: auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Date Info Sidebar */
-.date-info-sidebar {
-  width: 280px;
-  flex-shrink: 0;
+.excel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 13px;
+}
+
+.excel-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: white;
+}
+
+.excel-table th {
+  background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #cbd5e0;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 700;
+  color: #2c3e50;
+  white-space: nowrap;
+  border-top: 4px solid #667eea;
+}
+
+.excel-table th.date-column {
+  width: 140px;
+  background: linear-gradient(to bottom, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-align: center;
+  border-top-color: #667eea;
+}
+
+.category-header-cell {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  align-items: center;
+  gap: 6px;
 }
 
-.date-info-card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+.category-icon {
+  font-size: 24px;
 }
 
-.date-info-icon {
-  font-size: 36px;
-  text-align: center;
-  margin-bottom: 12px;
-}
-
-.date-info-content {
-  text-align: center;
-}
-
-.date-info-label {
-  font-size: 13px;
-  color: #7f8c8d;
+.category-name {
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 12px;
-  font-weight: 600;
 }
 
-.date-info-dates {
+.excel-table td {
+  border: 1px solid #e2e8f0;
+  padding: 12px;
+  vertical-align: top;
+  background: white;
+  min-width: 180px;
+}
+
+.excel-table tr:nth-child(even) td {
+  background: #f8f9fa;
+}
+
+.excel-table tr:hover td {
+  background: #e3f2fd;
+}
+
+.date-cell {
+  background: linear-gradient(to right, #f8f9fa 0%, #ffffff 100%) !important;
+  font-weight: 600;
+  color: #2c3e50;
+  text-align: center;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  border-right: 2px solid #cbd5e0;
+}
+
+.date-cell-content {
+  white-space: nowrap;
+}
+
+.category-cell {
+  padding: 8px !important;
+}
+
+.items-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.date-info-date {
-  font-size: 15px;
-  color: #2c3e50;
-  font-weight: 600;
-}
-
-.date-info-separator {
-  font-size: 12px;
-  color: #95a5a6;
-}
-
-.total-spending-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-  color: white;
-  text-align: center;
-}
-
-.total-spending-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
-}
-
-.total-spending-label {
-  font-size: 14px;
-  opacity: 0.9;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-.total-spending-amount {
-  font-size: 32px;
-  font-weight: 700;
-  color: white;
-}
-
-/* Categories Content */
-.categories-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.categories-horizontal {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 30px;
-  overflow-x: auto;
-  padding-bottom: 10px;
-}
-
-.category-tab {
+.item-entry {
+  padding: 8px;
   background: white;
-  border-radius: 12px;
-  padding: 16px 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  border-left: 3px solid #667eea;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  min-width: 140px;
-  border-bottom: 4px solid transparent;
-  transition: all 0.3s ease;
-}
-
-.category-tab:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-}
-
-.category-tab-icon {
-  font-size: 32px;
-}
-
-.category-tab-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.category-tab-total {
-  font-size: 18px;
-  font-weight: 700;
-  color: #2c3e50;
-}
-
-.category-tab-count {
-  font-size: 12px;
-  color: #7f8c8d;
-}
-
-/* Products by Category */
-.products-by-category {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.category-section {
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.category-section-header {
-  padding: 16px 20px;
-  color: white;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.category-section-icon {
-  font-size: 24px;
-}
-
-.category-section-name {
-  flex: 1;
-}
-
-.category-section-count {
-  background: rgba(255, 255, 255, 0.3);
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 13px;
-}
-
-.category-products-list {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.product-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  background: #f8f9fa;
-  border-radius: 8px;
+  gap: 4px;
   transition: all 0.2s ease;
 }
 
-.product-item:hover {
-  background: #e9ecef;
-  transform: translateX(4px);
+.excel-table tr:nth-child(even) .item-entry {
+  background: #fafbfc;
 }
 
-.product-item-left {
-  flex: 1;
-  min-width: 0;
-  padding-right: 12px;
+.item-entry:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transform: translateX(2px);
 }
 
-.product-item-name {
-  font-weight: 600;
+.item-description {
+  font-size: 13px;
   color: #2c3e50;
-  font-size: 15px;
-  margin-bottom: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
-.product-item-meta {
-  font-size: 12px;
-  color: #6c757d;
-}
-
-.product-item-amount {
-  font-size: 16px;
+.item-price {
+  font-size: 14px;
   font-weight: 700;
   color: #27ae60;
-  white-space: nowrap;
 }
 
-.category-section-total {
-  padding: 16px 20px;
-  background: #f8f9fa;
-  border-top: 2px solid #e9ecef;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 16px;
+.empty-cell {
+  text-align: center;
+  color: #cbd5e0;
+  font-size: 18px;
+  padding: 20px;
+}
+
+/* Total rows */
+.total-row {
+  background: linear-gradient(to bottom, #f1f3f5 0%, #e9ecef 100%) !important;
+  border-top: 3px solid #667eea;
+}
+
+.total-row td {
+  background: transparent !important;
   font-weight: 700;
+  padding: 14px 16px !important;
+  border-bottom: 2px solid #cbd5e0;
+}
+
+.total-label {
+  text-align: center;
+  font-size: 14px;
   color: #2c3e50;
+}
+
+.total-cell {
+  text-align: left;
+  font-size: 15px;
+  color: #2c3e50;
+}
+
+.grand-total-row {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.grand-total-row td {
+  background: transparent !important;
+  color: white;
+  font-weight: 700;
+  padding: 16px !important;
+  font-size: 16px;
+}
+
+.grand-total-label {
+  text-align: center;
+}
+
+.grand-total-cell {
+  text-align: center;
+  font-size: 20px;
+}
+
+.no-data {
+  padding: 60px 20px !important;
 }
 
 .no-expenses-message {
   text-align: center;
-  padding: 80px 20px;
+  padding: 40px 20px;
   color: #7f8c8d;
 }
 
@@ -289,7 +236,7 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .expenses-summary {
-    padding: 90px 15px 20px 15px;
+    padding: 90px 10px 20px 10px;
   }
 
   .expenses-summary-header {
@@ -301,48 +248,60 @@
     font-size: 24px;
   }
 
-  .summary-main-content {
-    flex-direction: column;
-    gap: 20px;
+  .excel-table-wrapper {
+    border-radius: 4px;
   }
 
-  .date-info-sidebar {
-    width: 100%;
+  .excel-table {
+    font-size: 12px;
   }
 
-  .date-info-card,
-  .total-spending-card {
-    padding: 16px;
+  .excel-table th {
+    padding: 10px 8px;
+    font-size: 11px;
   }
 
-  .categories-horizontal {
-    gap: 12px;
-    margin-bottom: 20px;
+  .excel-table th.date-column {
+    width: 100px;
   }
 
-  .category-tab {
-    min-width: 120px;
-    padding: 12px 16px;
+  .excel-table td {
+    padding: 8px 6px;
+    min-width: 140px;
   }
 
-  .category-tab-icon {
-    font-size: 28px;
+  .category-icon {
+    font-size: 20px;
   }
 
-  .category-tab-total {
+  .category-name {
+    font-size: 10px;
+  }
+
+  .item-entry {
+    padding: 6px;
+  }
+
+  .item-description {
+    font-size: 12px;
+  }
+
+  .item-price {
+    font-size: 13px;
+  }
+
+  .date-cell {
+    font-size: 11px;
+  }
+
+  .total-row td,
+  .grand-total-row td {
+    font-size: 12px;
+    padding: 12px 8px !important;
+  }
+
+  .grand-total-cell {
     font-size: 16px;
-  }
-
-  .product-item {
-    padding: 12px;
-  }
-
-  .product-item-name {
-    font-size: 14px;
-  }
-
-  .product-item-amount {
-    font-size: 15px;
   }
 }
 
@@ -356,48 +315,71 @@
     color: #ecf0f1;
   }
 
-  .date-info-card,
-  .category-tab,
-  .category-section {
+  .excel-table-wrapper {
     background: #2c3e50;
   }
 
-  .category-section-total {
-    background: #34495e;
-    border-top-color: #4a5568;
+  .excel-table th {
+    background: linear-gradient(to bottom, #34495e 0%, #2c3e50 100%);
+    color: #ecf0f1;
+    border-color: #4a5568;
   }
 
-  .product-item {
+  .excel-table td {
+    background: #2c3e50;
+    border-color: #4a5568;
+  }
+
+  .excel-table tr:nth-child(even) td {
     background: #34495e;
   }
 
-  .product-item:hover {
+  .excel-table tr:hover td {
     background: #415973;
   }
 
-  .product-item-name {
+  .date-cell {
+    background: linear-gradient(to right, #34495e 0%, #2c3e50 100%) !important;
+    color: #ecf0f1;
+    border-right-color: #4a5568;
+  }
+
+  .item-entry {
+    background: #34495e;
+    border-left-color: #667eea;
+  }
+
+  .excel-table tr:nth-child(even) .item-entry {
+    background: #3d5166;
+  }
+
+  .item-description {
     color: #ecf0f1;
   }
 
-  .product-item-meta {
-    color: #95a5a6;
-  }
-
-  .product-item-amount {
+  .item-price {
     color: #2ecc71;
   }
 
-  .category-tab-name,
-  .category-tab-total,
-  .category-section-total {
-    color: #ecf0f1;
+  .total-row {
+    background: linear-gradient(to bottom, #3d5166 0%, #34495e 100%) !important;
   }
 
-  .date-info-date {
+  .total-row td {
+    color: #ecf0f1;
+    border-bottom-color: #4a5568;
+  }
+
+  .total-label,
+  .total-cell {
     color: #ecf0f1;
   }
 
   .no-expenses-message h3 {
     color: #ecf0f1;
+  }
+
+  .empty-cell {
+    color: #4a5568;
   }
 }
