@@ -421,6 +421,58 @@ function subscribeToExpenses(callback) {
   return subscription;
 }
 
+async function updateExpenseCategory(id, category, userId, userToken = null) {
+  try {
+    // Validate category
+    const validCategories = ['Food', 'Transport', 'Shopping', 'Bills', 'Other'];
+    if (!validCategories.includes(category)) {
+      throw new Error(`Invalid category. Must be one of: ${validCategories.join(', ')}`);
+    }
+
+    // Create Supabase client with user's access token for RLS
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${userToken}`
+          }
+        }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { data, error } = await supabase
+      .from('expenses')
+      .update({
+        category: category,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    console.log('✅ Expense category updated in Supabase:', id);
+    return {
+      id: data.id,
+      category: data.category,
+      updatedAt: data.updated_at
+    };
+
+  } catch (error) {
+    console.error('❌ Error updating expense category in Supabase:', error);
+    throw new Error(`Failed to update expense category: ${error.message}`);
+  }
+}
+
 module.exports = {
   initSupabase,
   testConnection,
@@ -430,5 +482,6 @@ module.exports = {
   getExpenseById,
   deleteExpense,
   getExpensesByCategory,
-  subscribeToExpenses
+  subscribeToExpenses,
+  updateExpenseCategory
 };

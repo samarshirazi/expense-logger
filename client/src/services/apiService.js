@@ -131,6 +131,15 @@ export const deleteExpense = async (id) => {
   }
 };
 
+export const updateExpenseCategory = async (id, category) => {
+  try {
+    const response = await api.patch(`/expenses/${id}/category`, { category });
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Category update failed'));
+  }
+};
+
 export const checkServerHealth = async () => {
   try {
     const healthUrl = process.env.NODE_ENV === 'production'

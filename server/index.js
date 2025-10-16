@@ -5,9 +5,9 @@ const path = require('path');
 
 require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: true });
 
-const { processReceiptWithAI } = require('./services/aiService');
+const { processReceiptWithAI, parseManualEntry } = require('./services/aiService');
 const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('./services/googleDriveService');
-const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable } = require('./services/supabaseService');
+const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable, updateExpenseCategory } = require('./services/supabaseService');
 const { signUp, signIn, signOut, requireAuth } = require('./services/authService');
 const { saveSubscription, sendPushToUser, createPushSubscriptionsTable } = require('./services/notificationService');
 
@@ -161,6 +161,68 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
+app.post('/api/manual-entry', requireAuth, async (req, res) => {
+  try {
+    const { textEntry } = req.body;
+
+    if (!textEntry || typeof textEntry !== 'string') {
+      return res.status(400).json({ error: 'Text entry is required' });
+    }
+
+    console.log('Processing manual entry...');
+    const parsedExpenses = await parseManualEntry(textEntry);
+
+    // Save each expense to database
+    const savedExpenses = [];
+    for (const expenseData of parsedExpenses) {
+      console.log('Saving manual expense to database...');
+      const expenseId = await saveExpense({
+        ...expenseData,
+        originalFilename: null,
+        driveFileId: null,
+        uploadDate: new Date().toISOString()
+      }, req.user.id, req.token);
+
+      savedExpenses.push({
+        expenseId,
+        expenseData
+      });
+
+      // Send push notification
+      try {
+        const notificationPayload = {
+          title: 'Manual Entry Added!',
+          body: `${expenseData.merchantName} - $${expenseData.totalAmount}`,
+          icon: '/icon-192.svg',
+          badge: '/icon-192.svg',
+          tag: `expense-${expenseId}`,
+          data: {
+            url: '/',
+            expenseId: expenseId
+          }
+        };
+        await sendPushToUser(req.user.id, notificationPayload, req.token);
+      } catch (notifError) {
+        console.warn('⚠️  Failed to send push notification:', notifError.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      count: savedExpenses.length,
+      expenses: savedExpenses,
+      message: `${savedExpenses.length} expense(s) added successfully`
+    });
+
+  } catch (error) {
+    console.error('Error processing manual entry:', error);
+    res.status(500).json({
+      error: 'Failed to process manual entry',
+      details: error.message
+    });
+  }
+});
+
 app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (req, res) => {
   try {
     if (!req.file) {
@@ -235,6 +297,145 @@ app.get('/api/expenses', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Error fetching expenses:', error);
     res.status(500).json({ error: 'Failed to fetch expenses' });
+  }
+});
+
+app.get('/api/expenses/summary', requireAuth, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const expenses = await getExpenses(req.user.id, 10000, 0, req.token);
+
+    // Filter by date range if provided
+    let filteredExpenses = expenses;
+    if (startDate || endDate) {
+      filteredExpenses = expenses.filter(expense => {
+        const expenseDate = expense.date ? new Date(expense.date) : null;
+        if (!expenseDate) return false;
+
+        if (startDate && expenseDate < new Date(startDate)) return false;
+        if (endDate && expenseDate > new Date(endDate)) return false;
+
+        return true;
+      });
+    }
+
+    // Calculate totals by category
+    const categoryTotals = {
+      Food: 0,
+      Transport: 0,
+      Shopping: 0,
+      Bills: 0,
+      Other: 0
+    };
+
+    // Calculate item-level category totals
+    const itemCategoryTotals = {
+      Food: 0,
+      Transport: 0,
+      Shopping: 0,
+      Bills: 0,
+      Other: 0
+    };
+
+    // Build detailed items list for Excel-like view
+    const detailedItems = [];
+
+    let totalSpending = 0;
+
+    filteredExpenses.forEach(expense => {
+      const amount = expense.totalAmount || 0;
+      totalSpending += amount;
+
+      // Receipt-level category
+      const category = expense.category || 'Other';
+      categoryTotals[category] = (categoryTotals[category] || 0) + amount;
+
+      // Item-level categories and detailed items
+      if (expense.items && Array.isArray(expense.items)) {
+        expense.items.forEach(item => {
+          const itemCategory = item.category || 'Other';
+          const itemPrice = item.totalPrice || item.unitPrice || 0;
+          itemCategoryTotals[itemCategory] = (itemCategoryTotals[itemCategory] || 0) + itemPrice;
+
+          // Add to detailed items list
+          detailedItems.push({
+            date: expense.date,
+            merchantName: expense.merchantName || 'Unknown',
+            category: itemCategory,
+            description: item.description || 'Unknown Item',
+            quantity: item.quantity || 1,
+            unitPrice: item.unitPrice || itemPrice,
+            totalPrice: itemPrice
+          });
+        });
+      } else {
+        // If no items, add the expense itself as a single item
+        detailedItems.push({
+          date: expense.date,
+          merchantName: expense.merchantName || 'Unknown',
+          category: category,
+          description: expense.merchantName || 'Expense',
+          quantity: 1,
+          unitPrice: amount,
+          totalPrice: amount
+        });
+      }
+    });
+
+    // Sort detailed items by date (newest first)
+    detailedItems.sort((a, b) => {
+      const dateA = a.date ? new Date(a.date) : new Date(0);
+      const dateB = b.date ? new Date(b.date) : new Date(0);
+      return dateB - dateA;
+    });
+
+    res.json({
+      totalSpending,
+      expenseCount: filteredExpenses.length,
+      dateRange: {
+        start: startDate || null,
+        end: endDate || null
+      },
+      categoryTotals,
+      itemCategoryTotals,
+      averageExpense: filteredExpenses.length > 0 ? totalSpending / filteredExpenses.length : 0,
+      detailedItems: detailedItems
+    });
+
+  } catch (error) {
+    console.error('Error generating summary:', error);
+    res.status(500).json({ error: 'Failed to generate summary' });
+  }
+});
+
+app.patch('/api/expenses/:id/category', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { category } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Expense ID is required' });
+    }
+
+    if (!category) {
+      return res.status(400).json({ error: 'Category is required' });
+    }
+
+    console.log(`Updating expense ${id} category to ${category}...`);
+    const result = await updateExpenseCategory(id, category, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      expense: result,
+      message: 'Category updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Error updating expense category:', error);
+    res.status(500).json({
+      error: 'Failed to update category',
+      details: error.message
+    });
   }
 });
 
