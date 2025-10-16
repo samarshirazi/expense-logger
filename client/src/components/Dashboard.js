@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import authService from '../services/authService';
 import TimeNavigator from './TimeNavigator';
@@ -20,11 +20,7 @@ function Dashboard({ expenses }) {
     };
   });
 
-  useEffect(() => {
-    loadSummary();
-  }, [dateRange.startDate, dateRange.endDate]);
-
-  const loadSummary = async () => {
+  const loadSummary = useCallback(async () => {
     try {
       setLoading(true);
       const token = authService.getAccessToken();
@@ -48,7 +44,11 @@ function Dashboard({ expenses }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange.startDate, dateRange.endDate]);
+
+  useEffect(() => {
+    loadSummary();
+  }, [loadSummary]);
 
   const handleDateRangeChange = (range) => {
     setDateRange(range);
