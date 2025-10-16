@@ -6,6 +6,7 @@ import ManualEntry from './components/ManualEntry';
 import ExpenseDetails from './components/ExpenseDetails';
 import CategorizedExpenses from './components/CategorizedExpenses';
 import ExpensesSummary from './components/ExpensesSummary';
+import BudgetManage from './components/BudgetManage';
 import SpendingSummary from './components/SpendingSummary';
 import Auth from './components/Auth';
 import NotificationPrompt from './components/NotificationPrompt';
@@ -177,6 +178,12 @@ function App() {
               onCategoryUpdate={handleCategoryUpdate}
               onRefresh={loadExpenses}
             />
+          </div>
+        )}
+
+        {activeView === 'manage' && (
+          <div className="view-container">
+            <BudgetManage expenses={expenses} />
           </div>
         )}
 

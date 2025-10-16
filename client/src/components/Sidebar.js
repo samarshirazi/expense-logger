@@ -7,6 +7,7 @@ function Sidebar({ activeView, onViewChange, onSignOut, userName }) {
     { id: 'dashboard', icon: '📊', label: 'Dashboard', description: 'Overview & Stats' },
     { id: 'expenses', icon: '💰', label: 'Expenses', description: 'View all expenses' },
     { id: 'categories', icon: '📂', label: 'Categories', description: 'Organize by category' },
+    { id: 'manage', icon: '🎯', label: 'Manage', description: 'Budgets & Goals' },
     { id: 'upload', icon: '📤', label: 'Upload', description: 'Add new receipt' },
     { id: 'manual', icon: '✍️', label: 'Manual Entry', description: 'Quick add' }
   ];
