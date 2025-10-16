@@ -81,20 +81,27 @@ body {
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0;
-    margin-top: 0;
+    padding-top: 0; /* Remove padding from main-content */
   }
 
   .view-container {
-    padding: 20px 15px;
+    padding: 90px 15px 20px 15px; /* Add top padding to clear menu button */
   }
 
   .view-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center; /* Center-align on mobile */
+    text-align: center;
+    margin-bottom: 20px;
   }
 
   .view-header h1 {
     font-size: 26px;
+    width: 100%;
+  }
+
+  .view-header p {
+    text-align: center;
   }
 
   .summary-button {

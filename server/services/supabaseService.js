@@ -549,6 +549,78 @@ async function updateItemCategory(expenseId, itemIndex, category, userId, userTo
   }
 }
 
+async function updateExpense(id, expenseData, userId, userToken = null) {
+  try {
+    // Create Supabase client with user's access token for RLS
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${userToken}`
+          }
+        }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    // Build update object with database column names
+    const updateData = {
+      updated_at: new Date().toISOString()
+    };
+
+    if (expenseData.merchantName !== undefined) updateData.merchant_name = expenseData.merchantName;
+    if (expenseData.date !== undefined) updateData.date = expenseData.date;
+    if (expenseData.totalAmount !== undefined) updateData.total_amount = expenseData.totalAmount;
+    if (expenseData.currency !== undefined) updateData.currency = expenseData.currency;
+    if (expenseData.category !== undefined) updateData.category = expenseData.category;
+    if (expenseData.items !== undefined) updateData.items = expenseData.items;
+    if (expenseData.paymentMethod !== undefined) updateData.payment_method = expenseData.paymentMethod;
+    if (expenseData.taxAmount !== undefined) updateData.tax_amount = expenseData.taxAmount;
+    if (expenseData.tipAmount !== undefined) updateData.tip_amount = expenseData.tipAmount;
+
+    const { data, error } = await supabase
+      .from('expenses')
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    console.log('✅ Expense updated in Supabase:', id);
+
+    // Transform data back to frontend format
+    return {
+      id: data.id,
+      merchantName: data.merchant_name,
+      date: data.date,
+      totalAmount: parseFloat(data.total_amount),
+      currency: data.currency,
+      category: data.category,
+      items: data.items || [],
+      paymentMethod: data.payment_method,
+      taxAmount: data.tax_amount ? parseFloat(data.tax_amount) : null,
+      tipAmount: data.tip_amount ? parseFloat(data.tip_amount) : null,
+      originalFilename: data.original_filename,
+      driveFileId: data.drive_file_id,
+      uploadDate: data.upload_date,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
+
+  } catch (error) {
+    console.error('❌ Error updating expense in Supabase:', error);
+    throw new Error(`Failed to update expense: ${error.message}`);
+  }
+}
+
 module.exports = {
   initSupabase,
   testConnection,
@@ -560,5 +632,6 @@ module.exports = {
   getExpensesByCategory,
   subscribeToExpenses,
   updateExpenseCategory,
-  updateItemCategory
+  updateItemCategory,
+  updateExpense
 };

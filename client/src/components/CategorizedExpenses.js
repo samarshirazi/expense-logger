@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { updateExpenseCategory, updateItemCategory } from '../services/apiService';
+import {
+  updateExpenseCategory,
+  updateItemCategory,
+  deleteExpense,
+  deleteExpenseItem,
+  updateExpense,
+  updateExpenseItem
+} from '../services/apiService';
 import TimeNavigator from './TimeNavigator';
 import './CategorizedExpenses.css';
 
@@ -24,6 +31,20 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   const [categorizedExpenses, setCategorizedExpenses] = useState({});
   const [error, setError] = useState(null);
   const isUpdatingRef = useRef(false); // Use ref instead of state to prevent recalculation
+
+  // Modal states
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [actionItem, setActionItem] = useState(null); // Item being deleted or edited
+
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    description: '',
+    totalPrice: '',
+    date: '',
+    currency: 'USD'
+  });
+
   const [dateRange, setDateRange] = useState(() => {
     // Default to this month
     const today = new Date();
@@ -136,14 +157,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
     console.log(`📦 Moving from ${sourceCategory} to ${destinationCategory}`);
 
-    // Category didn't change (shouldn't happen with different droppables)
-    if (sourceCategory === destinationCategory) {
-      console.log('❌ Same category');
-      return;
-    }
-
-    setError(null);
-
     // Find the moved item
     const movedItem = categorizedExpenses[sourceCategory]?.find(
       item => item.uniqueId === draggableId
@@ -155,6 +168,32 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       return;
     }
 
+    // Handle special zones (Trash and Edit)
+    if (destinationCategory === 'TRASH') {
+      setActionItem(movedItem);
+      setShowDeleteConfirm(true);
+      return;
+    }
+
+    if (destinationCategory === 'EDIT') {
+      setActionItem(movedItem);
+      setEditForm({
+        description: movedItem.description || movedItem.merchantName,
+        totalPrice: movedItem.totalPrice || 0,
+        date: movedItem.date || '',
+        currency: movedItem.currency || 'USD'
+      });
+      setShowEditModal(true);
+      return;
+    }
+
+    // Category didn't change (shouldn't happen with different droppables)
+    if (sourceCategory === destinationCategory) {
+      console.log('❌ Same category');
+      return;
+    }
+
+    setError(null);
     console.log('✅ Found item:', movedItem);
 
     // Set updating flag to prevent useEffect from overwriting our optimistic update
@@ -274,6 +313,67 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     setDateRange(range);
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!actionItem) return;
+
+    try {
+      // Delete entire expense or just the item
+      if (actionItem.itemIndex === -1) {
+        await deleteExpense(actionItem.expenseId);
+      } else {
+        await deleteExpenseItem(actionItem.expenseId, actionItem.itemIndex);
+      }
+
+      // Close modal and refresh
+      setShowDeleteConfirm(false);
+      setActionItem(null);
+
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (err) {
+      console.error('Delete failed:', err);
+      setError(`Failed to delete: ${err.message}`);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!actionItem) return;
+
+    try {
+      const updates = {
+        date: editForm.date,
+        totalAmount: parseFloat(editForm.totalPrice)
+      };
+
+      // Update entire expense or just the item
+      if (actionItem.itemIndex === -1) {
+        // For whole expense, update merchant name
+        updates.merchantName = editForm.description;
+        await updateExpense(actionItem.expenseId, updates);
+      } else {
+        // For item, update description and price
+        updates.description = editForm.description;
+        updates.totalPrice = parseFloat(editForm.totalPrice);
+        await updateExpenseItem(actionItem.expenseId, actionItem.itemIndex, updates);
+      }
+
+      // Close modal and refresh
+      setShowEditModal(false);
+      setActionItem(null);
+
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (err) {
+      console.error('Update failed:', err);
+      setError(`Failed to update: ${err.message}`);
+      setShowEditModal(false);
+    }
+  };
+
   return (
     <div className="categorized-expenses">
       <div className="categorized-header">
@@ -364,7 +464,128 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
             </div>
           ))}
         </div>
+
+        {/* Action Zones */}
+        <div className="action-zones">
+          <Droppable droppableId="TRASH">
+            {(provided, snapshot) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className={`action-zone trash-zone ${
+                  snapshot.isDraggingOver ? 'dragging-over' : ''
+                }`}
+              >
+                <span className="action-icon">🗑️</span>
+                <span className="action-label">Trash</span>
+                <p className="action-hint">Drag here to delete</p>
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+
+          <Droppable droppableId="EDIT">
+            {(provided, snapshot) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className={`action-zone edit-zone ${
+                  snapshot.isDraggingOver ? 'dragging-over' : ''
+                }`}
+              >
+                <span className="action-icon">✏️</span>
+                <span className="action-label">Edit</span>
+                <p className="action-hint">Drag here to edit</p>
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </div>
       </DragDropContext>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Confirm Delete</h3>
+            <p>
+              Are you sure you want to delete{' '}
+              <strong>{actionItem?.description || actionItem?.merchantName}</strong>?
+            </p>
+            <div className="modal-actions">
+              <button
+                className="btn btn-cancel"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-delete"
+                onClick={handleDeleteConfirm}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Edit Item</h3>
+            <form onSubmit={handleEditSubmit}>
+              <div className="form-group">
+                <label htmlFor="description">Description</label>
+                <input
+                  type="text"
+                  id="description"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="totalPrice">Price</label>
+                <input
+                  type="number"
+                  id="totalPrice"
+                  step="0.01"
+                  value={editForm.totalPrice}
+                  onChange={(e) => setEditForm({ ...editForm, totalPrice: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="date">Date</label>
+                <input
+                  type="date"
+                  id="date"
+                  value={editForm.date}
+                  onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-cancel"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

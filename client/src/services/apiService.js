@@ -149,6 +149,33 @@ export const updateItemCategory = async (expenseId, itemIndex, category) => {
   }
 };
 
+export const updateExpense = async (id, updates) => {
+  try {
+    const response = await api.patch(`/expenses/${id}`, updates);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Expense update failed'));
+  }
+};
+
+export const updateExpenseItem = async (expenseId, itemIndex, updates) => {
+  try {
+    const response = await api.patch(`/expenses/${expenseId}/items/${itemIndex}`, updates);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Item update failed'));
+  }
+};
+
+export const deleteExpenseItem = async (expenseId, itemIndex) => {
+  try {
+    const response = await api.delete(`/expenses/${expenseId}/items/${itemIndex}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Item delete failed'));
+  }
+};
+
 export const checkServerHealth = async () => {
   try {
     const healthUrl = process.env.NODE_ENV === 'production'

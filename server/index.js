@@ -7,7 +7,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: t
 
 const { processReceiptWithAI, parseManualEntry } = require('./services/aiService');
 const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('./services/googleDriveService');
-const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable, updateExpenseCategory, updateItemCategory } = require('./services/supabaseService');
+const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable, updateExpenseCategory, updateItemCategory, updateExpense } = require('./services/supabaseService');
 const { signUp, signIn, signOut, requireAuth } = require('./services/authService');
 const { saveSubscription, sendPushToUser, createPushSubscriptionsTable } = require('./services/notificationService');
 
@@ -474,6 +474,176 @@ app.patch('/api/expenses/:expenseId/items/:itemIndex/category', requireAuth, asy
     console.error('Error updating item category:', error);
     res.status(500).json({
       error: 'Failed to update item category',
+      details: error.message
+    });
+  }
+});
+
+app.patch('/api/expenses/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Expense ID is required' });
+    }
+
+    console.log(`Updating expense ${id}...`, updates);
+
+    // Get the current expense
+    const expense = await getExpenseById(id, req.user.id, req.token);
+    if (!expense) {
+      return res.status(404).json({ error: 'Expense not found' });
+    }
+
+    // Merge updates
+    const updatedExpense = { ...expense, ...updates };
+
+    const result = await updateExpense(id, updatedExpense, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      expense: result,
+      message: 'Expense updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Error updating expense:', error);
+    res.status(500).json({
+      error: 'Failed to update expense',
+      details: error.message
+    });
+  }
+});
+
+app.patch('/api/expenses/:expenseId/items/:itemIndex', requireAuth, async (req, res) => {
+  try {
+    const { expenseId, itemIndex } = req.params;
+    const updates = req.body;
+
+    if (!expenseId) {
+      return res.status(400).json({ error: 'Expense ID is required' });
+    }
+
+    if (itemIndex === undefined || itemIndex === null) {
+      return res.status(400).json({ error: 'Item index is required' });
+    }
+
+    const itemIndexNum = parseInt(itemIndex, 10);
+    if (isNaN(itemIndexNum)) {
+      return res.status(400).json({ error: 'Item index must be a number' });
+    }
+
+    console.log(`Updating expense ${expenseId} item ${itemIndexNum}...`, updates);
+
+    // Get the current expense
+    const expense = await getExpenseById(expenseId, req.user.id, req.token);
+    if (!expense) {
+      return res.status(404).json({ error: 'Expense not found' });
+    }
+
+    if (!expense.items || !Array.isArray(expense.items)) {
+      return res.status(400).json({ error: 'Expense has no items' });
+    }
+
+    if (itemIndexNum < 0 || itemIndexNum >= expense.items.length) {
+      return res.status(400).json({ error: 'Item index out of range' });
+    }
+
+    // Update the specific item
+    expense.items[itemIndexNum] = {
+      ...expense.items[itemIndexNum],
+      ...updates
+    };
+
+    // Save the updated expense
+    const result = await updateExpense(expenseId, expense, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      expense: result,
+      message: 'Item updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Error updating item:', error);
+    res.status(500).json({
+      error: 'Failed to update item',
+      details: error.message
+    });
+  }
+});
+
+app.delete('/api/expenses/:expenseId/items/:itemIndex', requireAuth, async (req, res) => {
+  try {
+    const { expenseId, itemIndex } = req.params;
+
+    if (!expenseId) {
+      return res.status(400).json({ error: 'Expense ID is required' });
+    }
+
+    if (itemIndex === undefined || itemIndex === null) {
+      return res.status(400).json({ error: 'Item index is required' });
+    }
+
+    const itemIndexNum = parseInt(itemIndex, 10);
+    if (isNaN(itemIndexNum)) {
+      return res.status(400).json({ error: 'Item index must be a number' });
+    }
+
+    console.log(`Deleting expense ${expenseId} item ${itemIndexNum}...`);
+
+    // Get the current expense
+    const expense = await getExpenseById(expenseId, req.user.id, req.token);
+    if (!expense) {
+      return res.status(404).json({ error: 'Expense not found' });
+    }
+
+    if (!expense.items || !Array.isArray(expense.items)) {
+      return res.status(400).json({ error: 'Expense has no items' });
+    }
+
+    if (itemIndexNum < 0 || itemIndexNum >= expense.items.length) {
+      return res.status(400).json({ error: 'Item index out of range' });
+    }
+
+    // Remove the item
+    expense.items.splice(itemIndexNum, 1);
+
+    // If no items left, delete the entire expense
+    if (expense.items.length === 0) {
+      console.log('No items left, deleting entire expense...');
+      await deleteExpense(expenseId, req.user.id, req.token);
+
+      // Delete from Google Drive if file exists
+      if (expense.driveFileId) {
+        try {
+          await deleteFromGoogleDrive(expense.driveFileId);
+        } catch (driveError) {
+          console.warn('⚠️  Google Drive deletion failed:', driveError.message);
+        }
+      }
+
+      return res.json({
+        success: true,
+        message: 'Item deleted and expense removed (no items remaining)',
+        expenseDeleted: true
+      });
+    }
+
+    // Save the updated expense
+    const result = await updateExpense(expenseId, expense, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      expense: result,
+      message: 'Item deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting item:', error);
+    res.status(500).json({
+      error: 'Failed to delete item',
       details: error.message
     });
   }
