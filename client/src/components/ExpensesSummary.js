@@ -139,6 +139,69 @@ function ExpensesSummary({ expenses }) {
 
       <TimeNavigator onRangeChange={handleDateRangeChange} expenses={expenses} />
 
+      {/* Mobile Card Layout */}
+      <div className="mobile-expenses-view">
+        {sortedDates.length === 0 ? (
+          <div className="no-expenses-message">
+            <div className="no-expenses-icon">📭</div>
+            <h3>No expenses found</h3>
+            <p>Try selecting a different date range or add some expenses.</p>
+          </div>
+        ) : (
+          <>
+            {sortedDates.map(date => {
+              // Calculate total for this date
+              const dateTotal = CATEGORIES.reduce((sum, category) => {
+                const items = tableData.byDate[date][category.id] || [];
+                return sum + items.reduce((catSum, item) => catSum + (item.totalPrice || 0), 0);
+              }, 0);
+
+              return (
+                <div key={date} className="mobile-date-card">
+                  <div className="mobile-date-header">
+                    <span>{formatDate(date)}</span>
+                    <span className="mobile-date-total">{formatCurrency(dateTotal)}</span>
+                  </div>
+
+                  {CATEGORIES.map(category => {
+                    const items = tableData.byDate[date][category.id] || [];
+                    if (items.length === 0) return null;
+
+                    return (
+                      <div key={category.id} className="mobile-category-section">
+                        <div className="mobile-category-header" style={{ borderLeftColor: category.color }}>
+                          <span>{category.icon}</span>
+                          <span>{category.name}</span>
+                        </div>
+                        <div className="mobile-category-items">
+                          {items.map((item, index) => (
+                            <div key={`${item.expenseId}-${item.itemIndex}-${index}`} className="mobile-item">
+                              <div className="mobile-item-description">
+                                {item.description || item.merchantName}
+                                {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
+                              </div>
+                              <div className="mobile-item-price">
+                                {formatCurrency(item.totalPrice || 0, item.currency)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+
+            <div className="mobile-grand-total">
+              <div className="mobile-grand-total-label">Grand Total</div>
+              <div className="mobile-grand-total-amount">{formatCurrency(totalSpending)}</div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Desktop Table Layout */}
       <div className="excel-table-wrapper">
         <table className="excel-table">
           <thead>

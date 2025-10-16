@@ -101,9 +101,9 @@
 }
 
 .date-cell {
-  background: linear-gradient(to right, #f8f9fa 0%, #ffffff 100%) !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
   font-weight: 600;
-  color: #2c3e50;
+  color: white;
   text-align: center;
   position: sticky;
   left: 0;
@@ -237,6 +237,112 @@
   font-size: 14px;
 }
 
+/* Mobile Card Layout */
+.mobile-expenses-view {
+  display: none;
+}
+
+.mobile-date-card {
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.mobile-date-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 20px;
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-date-total {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.mobile-category-section {
+  border-bottom: 1px solid #e9ecef;
+}
+
+.mobile-category-section:last-child {
+  border-bottom: none;
+}
+
+.mobile-category-header {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #2c3e50;
+  border-left: 4px solid;
+}
+
+.mobile-category-items {
+  padding: 8px 16px 12px 16px;
+  background: #f8f9fa;
+}
+
+.mobile-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: white;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  border-left: 3px solid #667eea;
+}
+
+.mobile-item:last-child {
+  margin-bottom: 0;
+}
+
+.mobile-item-description {
+  font-size: 13px;
+  color: #2c3e50;
+  font-weight: 500;
+  flex: 1;
+  padding-right: 12px;
+}
+
+.mobile-item-price {
+  font-size: 15px;
+  font-weight: 700;
+  color: #27ae60;
+  white-space: nowrap;
+}
+
+.mobile-grand-total {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  text-align: center;
+  border-radius: 12px;
+  margin-top: 20px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.mobile-grand-total-label {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mobile-grand-total-amount {
+  font-size: 28px;
+  font-weight: 700;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .expenses-summary {
@@ -252,60 +358,13 @@
     font-size: 24px;
   }
 
+  /* Hide table on mobile, show card layout */
   .excel-table-wrapper {
-    border-radius: 4px;
+    display: none;
   }
 
-  .excel-table {
-    font-size: 12px;
-  }
-
-  .excel-table th {
-    padding: 10px 8px;
-    font-size: 11px;
-  }
-
-  .excel-table th.date-column {
-    width: 100px;
-  }
-
-  .excel-table td {
-    padding: 8px 6px;
-    min-width: 140px;
-  }
-
-  .category-icon {
-    font-size: 20px;
-  }
-
-  .category-name {
-    font-size: 10px;
-  }
-
-  .item-entry {
-    padding: 6px;
-  }
-
-  .item-description {
-    font-size: 12px;
-  }
-
-  .item-price {
-    font-size: 13px;
-  }
-
-  .date-cell {
-    font-size: 11px;
-  }
-
-  .total-row td,
-  .grand-total-row td {
-    font-size: 12px;
-    padding: 12px 8px !important;
-  }
-
-  .grand-total-cell {
-    font-size: 16px;
+  .mobile-expenses-view {
+    display: block;
   }
 }
 
@@ -347,9 +406,38 @@
   }
 
   .date-cell {
-    background: linear-gradient(to right, #34495e 0%, #2c3e50 100%) !important;
-    color: #ecf0f1;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white;
     border-right-color: #4a5568;
+  }
+
+  /* Mobile dark mode */
+  .mobile-date-card {
+    background: #2c3e50;
+  }
+
+  .mobile-category-section {
+    border-bottom-color: #4a5568;
+  }
+
+  .mobile-category-header {
+    color: #ecf0f1;
+  }
+
+  .mobile-category-items {
+    background: #34495e;
+  }
+
+  .mobile-item {
+    background: #415973;
+  }
+
+  .mobile-item-description {
+    color: #ecf0f1;
+  }
+
+  .mobile-item-price {
+    color: #2ecc71;
   }
 
   .item-entry {
