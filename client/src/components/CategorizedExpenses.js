@@ -120,19 +120,44 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       return;
     }
 
-    setLoading(true);
     setError(null);
 
+    // Find the moved item
+    const movedItem = categorizedExpenses[sourceCategory].find(
+      item => item.uniqueId === draggableId
+    );
+
+    if (!movedItem) {
+      setError('Item not found');
+      return;
+    }
+
+    // Save previous state for potential revert
+    const previousState = { ...categorizedExpenses };
+
+    // Update local state IMMEDIATELY (optimistic update)
+    const newCategorized = { ...categorizedExpenses };
+
+    // Remove from source
+    newCategorized[sourceCategory] = newCategorized[sourceCategory].filter(
+      item => item.uniqueId !== draggableId
+    );
+
+    // Add to destination with updated category
+    const updatedItem = { ...movedItem, category: destinationCategory };
+    newCategorized[destinationCategory] = [
+      ...newCategorized[destinationCategory].slice(0, destination.index),
+      updatedItem,
+      ...newCategorized[destinationCategory].slice(destination.index)
+    ];
+
+    // Update UI immediately
+    setCategorizedExpenses(newCategorized);
+
+    // Now update server in background
+    setLoading(true);
+
     try {
-      // Find the moved item
-      const movedItem = categorizedExpenses[sourceCategory].find(
-        item => item.uniqueId === draggableId
-      );
-
-      if (!movedItem) {
-        throw new Error('Item not found');
-      }
-
       // Update category on server
       if (movedItem.itemIndex === -1) {
         // Update whole expense category
@@ -142,24 +167,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         await updateItemCategory(movedItem.expenseId, movedItem.itemIndex, destinationCategory);
       }
 
-      // Update local state optimistically
-      const newCategorized = { ...categorizedExpenses };
-
-      // Remove from source
-      newCategorized[sourceCategory] = newCategorized[sourceCategory].filter(
-        item => item.uniqueId !== draggableId
-      );
-
-      // Add to destination with updated category
-      const updatedItem = { ...movedItem, category: destinationCategory };
-      newCategorized[destinationCategory] = [
-        ...newCategorized[destinationCategory].slice(0, destination.index),
-        updatedItem,
-        ...newCategorized[destinationCategory].slice(destination.index)
-      ];
-
-      setCategorizedExpenses(newCategorized);
-
       // Notify parent component if it's a whole expense
       if (onCategoryUpdate && movedItem.itemIndex === -1) {
         onCategoryUpdate(movedItem.expenseId, destinationCategory);
@@ -167,11 +174,14 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
     } catch (err) {
       console.error('Failed to update category:', err);
-      setError('Failed to update category. Please try again.');
+      setError('Failed to update category. Reverting changes...');
 
-      // Revert on error by refreshing
+      // Revert to previous state on error
+      setCategorizedExpenses(previousState);
+
+      // Also refresh from server to ensure consistency
       if (onRefresh) {
-        onRefresh();
+        setTimeout(() => onRefresh(), 500);
       }
     } finally {
       setLoading(false);
