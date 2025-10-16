@@ -239,6 +239,23 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                                     <div className="stacked-item-date">
                                       {formatDate(expense.date)}
                                     </div>
+                                    {expense.items && expense.items.length > 0 && (
+                                      <div className="stacked-item-products">
+                                        {expense.items.map((item, idx) => (
+                                          <div key={idx} className="product-line">
+                                            <span className="product-name">
+                                              {item.description || 'Item'}
+                                              {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
+                                            </span>
+                                            {item.totalPrice && (
+                                              <span className="product-price">
+                                                {formatCurrency(item.totalPrice, expense.currency)}
+                                              </span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                   <div className="stacked-item-amount">
                                     {formatCurrency(expense.totalAmount, expense.currency)}

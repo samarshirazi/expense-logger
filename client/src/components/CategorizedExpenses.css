@@ -214,6 +214,38 @@
   margin-left: 12px;
 }
 
+/* Product list within stacked items */
+.stacked-item-products {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #e9ecef;
+}
+
+.product-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12px;
+  gap: 8px;
+}
+
+.product-name {
+  color: #555;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-price {
+  color: #27ae60;
+  font-weight: 600;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
 /* Legacy styles for backwards compatibility */
 .expense-card {
   background: white;
@@ -402,6 +434,19 @@
 
   .stacked-item-date {
     color: #95a5a6;
+  }
+
+  /* Product display dark mode */
+  .stacked-item-products {
+    border-top-color: #34495e;
+  }
+
+  .product-name {
+    color: #bdc3c7;
+  }
+
+  .product-price {
+    color: #2ecc71;
   }
 
   /* Legacy card styles */
