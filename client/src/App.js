@@ -3,9 +3,9 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import ReceiptUpload from './components/ReceiptUpload';
 import ManualEntry from './components/ManualEntry';
-import ExpenseList from './components/ExpenseList';
 import ExpenseDetails from './components/ExpenseDetails';
 import CategorizedExpenses from './components/CategorizedExpenses';
+import ExpensesSummary from './components/ExpensesSummary';
 import SpendingSummary from './components/SpendingSummary';
 import Auth from './components/Auth';
 import NotificationPrompt from './components/NotificationPrompt';
@@ -16,7 +16,6 @@ import './AppLayout.css';
 function App() {
   const [expenses, setExpenses] = useState([]);
   const [selectedExpense, setSelectedExpense] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
@@ -54,13 +53,10 @@ function App() {
 
   const loadExpenses = async () => {
     try {
-      setLoading(true);
       const data = await getExpenses();
       setExpenses(data);
     } catch (error) {
       console.error('Failed to load expenses:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -169,21 +165,7 @@ function App() {
 
         {activeView === 'expenses' && (
           <div className="view-container">
-            <div className="view-header">
-              <h1>All Expenses</h1>
-              <button
-                className="summary-button"
-                onClick={() => setShowSummary(true)}
-              >
-                💰 View Summary
-              </button>
-            </div>
-            <ExpenseList
-              expenses={expenses}
-              loading={loading}
-              onExpenseSelect={handleExpenseSelect}
-              onRefresh={loadExpenses}
-            />
+            <ExpensesSummary expenses={expenses} />
           </div>
         )}
 
