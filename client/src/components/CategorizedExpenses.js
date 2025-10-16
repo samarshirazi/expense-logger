@@ -97,10 +97,13 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   }, [filteredExpenses]);
 
   const handleDragEnd = async (result) => {
+    console.log('🔄 Drag ended:', result);
+
     const { destination, source, draggableId } = result;
 
     // Dropped outside a valid droppable
     if (!destination) {
+      console.log('❌ Dropped outside droppable area');
       return;
     }
 
@@ -109,34 +112,46 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       destination.droppableId === source.droppableId &&
       destination.index === source.index
     ) {
+      console.log('❌ Dropped in same position');
       return;
     }
 
     const sourceCategory = source.droppableId;
     const destinationCategory = destination.droppableId;
 
-    // Category didn't change
+    console.log(`📦 Moving from ${sourceCategory} to ${destinationCategory}`);
+
+    // Category didn't change (shouldn't happen with different droppables)
     if (sourceCategory === destinationCategory) {
+      console.log('❌ Same category');
       return;
     }
 
     setError(null);
 
     // Find the moved item
-    const movedItem = categorizedExpenses[sourceCategory].find(
+    const movedItem = categorizedExpenses[sourceCategory]?.find(
       item => item.uniqueId === draggableId
     );
 
     if (!movedItem) {
+      console.error('❌ Item not found:', draggableId);
       setError('Item not found');
       return;
     }
 
+    console.log('✅ Found item:', movedItem);
+
     // Save previous state for potential revert
-    const previousState = { ...categorizedExpenses };
+    const previousState = JSON.parse(JSON.stringify(categorizedExpenses));
 
     // Update local state IMMEDIATELY (optimistic update)
-    const newCategorized = { ...categorizedExpenses };
+    const newCategorized = {};
+
+    // Deep clone to avoid mutations
+    Object.keys(categorizedExpenses).forEach(key => {
+      newCategorized[key] = [...categorizedExpenses[key]];
+    });
 
     // Remove from source
     newCategorized[sourceCategory] = newCategorized[sourceCategory].filter(
@@ -151,6 +166,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       ...newCategorized[destinationCategory].slice(destination.index)
     ];
 
+    console.log('🔄 Updating UI optimistically...');
     // Update UI immediately
     setCategorizedExpenses(newCategorized);
 
@@ -158,14 +174,22 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     setLoading(true);
 
     try {
+      console.log('📡 Sending to server...');
+
       // Update category on server
       if (movedItem.itemIndex === -1) {
-        // Update whole expense category
+        console.log('🔧 Updating whole expense category');
         await updateExpenseCategory(movedItem.expenseId, destinationCategory);
       } else {
-        // Update individual item category
+        console.log('🔧 Updating item category:', {
+          expenseId: movedItem.expenseId,
+          itemIndex: movedItem.itemIndex,
+          newCategory: destinationCategory
+        });
         await updateItemCategory(movedItem.expenseId, movedItem.itemIndex, destinationCategory);
       }
+
+      console.log('✅ Server update successful!');
 
       // Notify parent component if it's a whole expense
       if (onCategoryUpdate && movedItem.itemIndex === -1) {
@@ -173,15 +197,19 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       }
 
     } catch (err) {
-      console.error('Failed to update category:', err);
-      setError('Failed to update category. Reverting changes...');
+      console.error('❌ Server update failed:', err);
+      setError(`Failed to update: ${err.message}`);
 
       // Revert to previous state on error
+      console.log('🔄 Reverting to previous state...');
       setCategorizedExpenses(previousState);
 
       // Also refresh from server to ensure consistency
       if (onRefresh) {
-        setTimeout(() => onRefresh(), 500);
+        setTimeout(() => {
+          console.log('🔄 Refreshing from server...');
+          onRefresh();
+        }, 500);
       }
     } finally {
       setLoading(false);
