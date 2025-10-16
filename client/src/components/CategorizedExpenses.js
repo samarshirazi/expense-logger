@@ -227,10 +227,10 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     // Update UI immediately - no recalculation triggered because ref doesn't cause re-render
     setCategorizedExpenses(newCategorized);
 
-    // Re-enable useEffect after a tiny delay to ensure state update completed
+    // Re-enable useEffect after animation completes to prevent visual glitches
     setTimeout(() => {
       isUpdatingRef.current = false;
-    }, 10); // Minimal delay just to ensure the state update is painted
+    }, 1000); // Wait for drag animation to complete before allowing recalculation
 
     // Now send to server in background (don't block UI)
     (async () => {
@@ -257,11 +257,9 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
           onCategoryUpdate(movedItem.expenseId, destinationCategory);
         }
 
-        // Refresh from server to ensure parent data is updated
-        if (onRefresh) {
-          console.log('🔄 Background refresh to sync parent data...');
-          onRefresh();
-        }
+        // Don't refresh immediately - the optimistic update is already showing the correct state
+        // Refreshing here causes a visual "teleport" glitch as data recalculates
+        // The data will sync naturally on next navigation or manual refresh
 
       } catch (err) {
         console.error('❌ Server update failed:', err);
@@ -343,20 +341,24 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     if (!actionItem) return;
 
     try {
-      const updates = {
-        date: editForm.date,
-        totalAmount: parseFloat(editForm.totalPrice)
-      };
+      let updates;
 
       // Update entire expense or just the item
       if (actionItem.itemIndex === -1) {
-        // For whole expense, update merchant name
-        updates.merchantName = editForm.description;
+        // For whole expense, update merchant name and total amount
+        updates = {
+          merchantName: editForm.description,
+          totalAmount: parseFloat(editForm.totalPrice),
+          date: editForm.date
+        };
         await updateExpense(actionItem.expenseId, updates);
       } else {
         // For item, update description and price
-        updates.description = editForm.description;
-        updates.totalPrice = parseFloat(editForm.totalPrice);
+        updates = {
+          description: editForm.description,
+          totalPrice: parseFloat(editForm.totalPrice),
+          date: editForm.date
+        };
         await updateExpenseItem(actionItem.expenseId, actionItem.itemIndex, updates);
       }
 
