@@ -253,6 +253,10 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
       uploadDate: new Date().toISOString()
     }, req.user.id, req.token);
 
+    // Fetch the saved expense to get the full object in correct format
+    console.log('Fetching saved expense...');
+    const savedExpense = await getExpenseById(expenseId, req.user.id, req.token);
+
     // Send push notification for successful receipt processing
     try {
       const notificationPayload = {
@@ -274,9 +278,7 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
 
     res.json({
       success: true,
-      expenseId: expenseId,
-      expenseData: expenseData,
-      driveFileId: driveFileId,
+      expense: savedExpense,
       message: 'Receipt processed successfully'
     });
 

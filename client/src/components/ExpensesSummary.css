@@ -479,3 +479,259 @@
     color: #4a5568;
   }
 }
+
+/* View Mode Selector */
+.view-mode-selector {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 30px 0;
+  flex-wrap: wrap;
+}
+
+.view-mode-selector button {
+  padding: 12px 28px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  color: #2c3e50;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.view-mode-selector button:hover {
+  border-color: #667eea;
+  background: #f7f9fc;
+  transform: translateY(-2px);
+}
+
+.view-mode-selector button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Line Graph Styles */
+.line-graph-container {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  margin: 30px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.month-selectors {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.month-selector-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.month-selector-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.month-select {
+  padding: 10px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #2c3e50;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 200px;
+}
+
+.month-select:hover {
+  border-color: #667eea;
+}
+
+.month-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.line-graph-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.line-graph-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.legend-line {
+  width: 30px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.line-graph-svg-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-bottom: 30px;
+}
+
+.line-graph-svg {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+}
+
+.line-graph-totals {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.total-box {
+  background: white;
+  border: 3px solid;
+  border-radius: 12px;
+  padding: 20px 30px;
+  text-align: center;
+  min-width: 200px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.total-box .total-label {
+  font-size: 14px;
+  color: #7f8c8d;
+  margin-bottom: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.total-box .total-amount {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+/* Mobile Responsive for Line Graph */
+@media (max-width: 768px) {
+  .view-mode-selector {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .view-mode-selector button {
+    flex: 1;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .line-graph-container {
+    padding: 20px 15px;
+  }
+
+  .month-selectors {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .month-selector-group {
+    width: 100%;
+  }
+
+  .month-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .line-graph-legend {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .line-graph-totals {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .total-box {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* Dark mode for line graph */
+@media (prefers-color-scheme: dark) {
+  .line-graph-container {
+    background: #2c3e50;
+  }
+
+  .month-selector-group label {
+    color: #ecf0f1;
+  }
+
+  .month-select {
+    background: #34495e;
+    border-color: #4a5568;
+    color: #ecf0f1;
+  }
+
+  .month-select:hover,
+  .month-select:focus {
+    border-color: #667eea;
+  }
+
+  .line-graph-legend .legend-item {
+    color: #ecf0f1;
+  }
+
+  .total-box {
+    background: #34495e;
+  }
+
+  .total-box .total-label {
+    color: #95a5a6;
+  }
+
+  .total-box .total-amount {
+    color: #ecf0f1;
+  }
+
+  .view-mode-selector button {
+    background: #34495e;
+    border-color: #4a5568;
+    color: #ecf0f1;
+  }
+
+  .view-mode-selector button:hover {
+    background: #415973;
+  }
+
+  .view-mode-selector button.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+}

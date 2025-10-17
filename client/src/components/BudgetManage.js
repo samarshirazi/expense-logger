@@ -65,7 +65,7 @@ function BudgetManage({ expenses }) {
 
   const [isEditingBudgets, setIsEditingBudgets] = useState(false);
   const [tempBudgets, setTempBudgets] = useState({});
-  const [viewMode, setViewMode] = useState('overview'); // 'overview', 'pie', 'bar', 'comparison'
+  const [viewMode, setViewMode] = useState('overview'); // 'overview', 'pie'
 
   // Get current month based on selected date range
   const currentMonth = getMonthKey(dateRange.startDate);
@@ -467,12 +467,6 @@ function BudgetManage({ expenses }) {
         >
           🥧 Pie Chart
         </button>
-        <button
-          className={viewMode === 'bar' ? 'active' : ''}
-          onClick={() => setViewMode('bar')}
-        >
-          📊 Bar Graph
-        </button>
       </div>
 
       {/* Overall Budget Summary - Only show in overview mode */}
@@ -541,13 +535,6 @@ function BudgetManage({ expenses }) {
         <div className="chart-section">
           <h3>Spending Distribution</h3>
           <PieChart data={rangeSpending} />
-        </div>
-      )}
-
-      {viewMode === 'bar' && (
-        <div className="chart-section">
-          <h3>Month-to-Month Comparison</h3>
-          <MonthComparisonChart />
         </div>
       )}
 

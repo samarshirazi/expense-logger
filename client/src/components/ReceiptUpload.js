@@ -37,14 +37,9 @@ const ReceiptUpload = ({ onExpenseAdded }) => {
 
       setSuccess('Receipt processed successfully!');
 
-      if (onExpenseAdded && result.expenseData) {
-        onExpenseAdded({
-          id: result.expenseId,
-          ...result.expenseData,
-          driveFileId: result.driveFileId,
-          originalFilename: file.name,
-          uploadDate: new Date().toISOString()
-        });
+      // Use the full expense object from server response
+      if (onExpenseAdded && result.expense) {
+        onExpenseAdded(result.expense);
       }
 
     } catch (err) {
