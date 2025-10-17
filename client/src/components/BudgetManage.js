@@ -10,6 +10,19 @@ const toLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+// Get month key (YYYY-MM) from date
+const getMonthKey = (dateString) => {
+  return dateString.substring(0, 7); // "2024-01-15" -> "2024-01"
+};
+
+// Get previous month key
+const getPreviousMonthKey = (monthKey) => {
+  const [year, month] = monthKey.split('-').map(Number);
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevYear = month === 1 ? year - 1 : year;
+  return `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
+};
+
 const CATEGORIES = [
   { id: 'Food', name: 'Food', icon: '🍔', color: '#ff6b6b' },
   { id: 'Transport', name: 'Transport', icon: '🚗', color: '#4ecdc4' },
@@ -18,9 +31,16 @@ const CATEGORIES = [
   { id: 'Other', name: 'Other', icon: '📦', color: '#95afc0' }
 ];
 
+const DEFAULT_BUDGET = {
+  Food: 500,
+  Transport: 200,
+  Shopping: 300,
+  Bills: 400,
+  Other: 100
+};
+
 function BudgetManage({ expenses }) {
   const [dateRange, setDateRange] = useState(() => {
-    // Default to this month
     const today = new Date();
     const year = today.getFullYear();
     const month = today.getMonth();
@@ -32,40 +52,68 @@ function BudgetManage({ expenses }) {
     };
   });
 
-  // Budget state - stored in localStorage for now
-  const [budgets, setBudgets] = useState(() => {
-    const saved = localStorage.getItem('categoryBudgets');
+  // Per-month budgets stored as { "2024-01": { Food: 500, ... }, "2024-02": { ... } }
+  const [monthlyBudgets, setMonthlyBudgets] = useState(() => {
+    const saved = localStorage.getItem('monthlyBudgets');
     if (saved) {
       return JSON.parse(saved);
     }
-    return {
-      Food: 500,
-      Transport: 200,
-      Shopping: 300,
-      Bills: 400,
-      Other: 100
-    };
+    // Initialize current month with default budget
+    const currentMonth = getMonthKey(toLocalDateString(new Date()));
+    return { [currentMonth]: { ...DEFAULT_BUDGET } };
   });
 
   const [isEditingBudgets, setIsEditingBudgets] = useState(false);
-  const [tempBudgets, setTempBudgets] = useState(budgets);
+  const [tempBudgets, setTempBudgets] = useState({});
+  const [viewMode, setViewMode] = useState('overview'); // 'overview', 'pie', 'bar', 'comparison'
 
-  // Calculate actual spending per category for the selected date range
-  const [actualSpending, setActualSpending] = useState({
-    Food: 0,
-    Transport: 0,
-    Shopping: 0,
-    Bills: 0,
-    Other: 0
-  });
+  // Get current month based on selected date range
+  const currentMonth = getMonthKey(dateRange.startDate);
+
+  // Get budget for current month (or default if not set)
+  const currentBudget = monthlyBudgets[currentMonth] || { ...DEFAULT_BUDGET };
+
+  // Calculate spending for the ENTIRE month (not just selected range)
+  const [monthSpending, setMonthSpending] = useState({});
+
+  // Calculate spending for selected date range only
+  const [rangeSpending, setRangeSpending] = useState({});
 
   useEffect(() => {
+    // Calculate spending for entire month
+    const monthExpenses = expenses.filter(expense => {
+      return expense.date.startsWith(currentMonth);
+    });
+
+    const monthTotals = {
+      Food: 0,
+      Transport: 0,
+      Shopping: 0,
+      Bills: 0,
+      Other: 0
+    };
+
+    monthExpenses.forEach(expense => {
+      if (expense.items && expense.items.length > 0) {
+        expense.items.forEach(item => {
+          const itemCategory = item.category || 'Other';
+          monthTotals[itemCategory] += item.totalPrice || 0;
+        });
+      } else {
+        const category = expense.category || 'Other';
+        monthTotals[category] += expense.totalAmount || 0;
+      }
+    });
+
+    setMonthSpending(monthTotals);
+
+    // Calculate spending for selected date range
     const filteredExpenses = expenses.filter(expense => {
       if (!dateRange.startDate || !dateRange.endDate) return true;
       return expense.date >= dateRange.startDate && expense.date <= dateRange.endDate;
     });
 
-    const spending = {
+    const rangeTotals = {
       Food: 0,
       Transport: 0,
       Shopping: 0,
@@ -77,30 +125,50 @@ function BudgetManage({ expenses }) {
       if (expense.items && expense.items.length > 0) {
         expense.items.forEach(item => {
           const itemCategory = item.category || 'Other';
-          spending[itemCategory] += item.totalPrice || 0;
+          rangeTotals[itemCategory] += item.totalPrice || 0;
         });
       } else {
         const category = expense.category || 'Other';
-        spending[category] += expense.totalAmount || 0;
+        rangeTotals[category] += expense.totalAmount || 0;
       }
     });
 
-    setActualSpending(spending);
-  }, [expenses, dateRange]);
+    setRangeSpending(rangeTotals);
+  }, [expenses, dateRange, currentMonth]);
 
   const handleDateRangeChange = (range) => {
     setDateRange(range);
   };
 
   const handleSaveBudgets = () => {
-    setBudgets(tempBudgets);
-    localStorage.setItem('categoryBudgets', JSON.stringify(tempBudgets));
+    const updatedBudgets = {
+      ...monthlyBudgets,
+      [currentMonth]: tempBudgets
+    };
+    setMonthlyBudgets(updatedBudgets);
+    localStorage.setItem('monthlyBudgets', JSON.stringify(updatedBudgets));
     setIsEditingBudgets(false);
   };
 
   const handleCancelEdit = () => {
-    setTempBudgets(budgets);
+    setTempBudgets({});
     setIsEditingBudgets(false);
+  };
+
+  const handleStartEdit = () => {
+    setTempBudgets({ ...currentBudget });
+    setIsEditingBudgets(true);
+  };
+
+  const handleCopyPreviousMonth = () => {
+    const prevMonth = getPreviousMonthKey(currentMonth);
+    const prevBudget = monthlyBudgets[prevMonth];
+
+    if (prevBudget) {
+      setTempBudgets({ ...prevBudget });
+    } else {
+      setTempBudgets({ ...DEFAULT_BUDGET });
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -117,45 +185,188 @@ function BudgetManage({ expenses }) {
 
   const getStatusColor = (actual, budget) => {
     const percentage = (actual / budget) * 100;
-    if (percentage >= 100) return '#e74c3c'; // Red - over budget
-    if (percentage >= 80) return '#f39c12'; // Orange - close to budget
-    return '#27ae60'; // Green - within budget
+    if (percentage >= 100) return '#e74c3c';
+    if (percentage >= 80) return '#f39c12';
+    return '#27ae60';
   };
 
-  const totalBudget = Object.values(budgets).reduce((sum, val) => sum + val, 0);
-  const totalSpending = Object.values(actualSpending).reduce((sum, val) => sum + val, 0);
-  const totalPercentage = getPercentage(totalSpending, totalBudget);
+  const totalBudget = Object.values(currentBudget).reduce((sum, val) => sum + val, 0);
+  const totalMonthSpending = Object.values(monthSpending).reduce((sum, val) => sum + val, 0);
+  const totalRangeSpending = Object.values(rangeSpending).reduce((sum, val) => sum + val, 0);
+
+  // Remaining = Monthly Budget - Total Spent in Month So Far
+  const totalRemaining = totalBudget - totalMonthSpending;
+  const totalPercentage = getPercentage(totalMonthSpending, totalBudget);
+
+  // Simple Pie Chart Component
+  const PieChart = ({ data }) => {
+    const total = Object.values(data).reduce((sum, val) => sum + val, 0);
+    if (total === 0) return <div className="no-data-chart">No spending data</div>;
+
+    let currentAngle = 0;
+    const segments = CATEGORIES.map(category => {
+      const value = data[category.id] || 0;
+      const percentage = (value / total) * 100;
+      const angle = (value / total) * 360;
+
+      const segment = {
+        category: category,
+        value: value,
+        percentage: percentage,
+        startAngle: currentAngle,
+        endAngle: currentAngle + angle
+      };
+
+      currentAngle += angle;
+      return segment;
+    }).filter(seg => seg.value > 0);
+
+    return (
+      <div className="pie-chart-container">
+        <svg viewBox="0 0 200 200" className="pie-chart">
+          {segments.map((seg, index) => {
+            const x1 = 100 + 90 * Math.cos((seg.startAngle - 90) * Math.PI / 180);
+            const y1 = 100 + 90 * Math.sin((seg.startAngle - 90) * Math.PI / 180);
+            const x2 = 100 + 90 * Math.cos((seg.endAngle - 90) * Math.PI / 180);
+            const y2 = 100 + 90 * Math.sin((seg.endAngle - 90) * Math.PI / 180);
+            const largeArc = (seg.endAngle - seg.startAngle) > 180 ? 1 : 0;
+
+            const path = `M 100 100 L ${x1} ${y1} A 90 90 0 ${largeArc} 1 ${x2} ${y2} Z`;
+
+            return (
+              <path
+                key={seg.category.id}
+                d={path}
+                fill={seg.category.color}
+                stroke="white"
+                strokeWidth="2"
+              />
+            );
+          })}
+        </svg>
+        <div className="pie-chart-legend">
+          {segments.map(seg => (
+            <div key={seg.category.id} className="legend-item">
+              <span className="legend-color" style={{ backgroundColor: seg.category.color }}></span>
+              <span className="legend-label">{seg.category.icon} {seg.category.name}</span>
+              <span className="legend-value">{formatCurrency(seg.value)} ({seg.percentage.toFixed(1)}%)</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Simple Bar Chart Component
+  const BarChart = ({ spending, budgets }) => {
+    const maxValue = Math.max(
+      ...CATEGORIES.map(cat => Math.max(spending[cat.id] || 0, budgets[cat.id] || 0))
+    );
+
+    return (
+      <div className="bar-chart-container">
+        {CATEGORIES.map(category => {
+          const spentAmount = spending[category.id] || 0;
+          const budgetAmount = budgets[category.id] || 0;
+          const spentHeight = maxValue > 0 ? (spentAmount / maxValue) * 100 : 0;
+          const budgetHeight = maxValue > 0 ? (budgetAmount / maxValue) * 100 : 0;
+
+          return (
+            <div key={category.id} className="bar-group">
+              <div className="bar-labels">
+                <div className="bar-amount">{formatCurrency(spentAmount)}</div>
+              </div>
+              <div className="bars">
+                <div className="bar-wrapper">
+                  <div
+                    className="bar bar-budget"
+                    style={{ height: `${budgetHeight}%` }}
+                    title={`Budget: ${formatCurrency(budgetAmount)}`}
+                  >
+                    <div className="bar-inner" style={{ backgroundColor: category.color, opacity: 0.3 }}></div>
+                  </div>
+                  <div
+                    className="bar bar-spent"
+                    style={{ height: `${spentHeight}%` }}
+                    title={`Spent: ${formatCurrency(spentAmount)}`}
+                  >
+                    <div className="bar-inner" style={{ backgroundColor: category.color }}></div>
+                  </div>
+                </div>
+              </div>
+              <div className="bar-category">
+                <span className="bar-icon">{category.icon}</span>
+                <span className="bar-name">{category.name}</span>
+              </div>
+            </div>
+          );
+        })}
+        <div className="bar-legend">
+          <div className="bar-legend-item">
+            <span className="bar-legend-box" style={{ backgroundColor: '#ccc', opacity: 0.5 }}></span>
+            <span>Budget</span>
+          </div>
+          <div className="bar-legend-item">
+            <span className="bar-legend-box" style={{ backgroundColor: '#667eea' }}></span>
+            <span>Spent</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="budget-manage">
       <div className="budget-header">
         <h2>Budget Management</h2>
         <p className="budget-subheading">
-          Set budgets for each category and track your spending
+          Set monthly budgets and track your spending - {currentMonth}
         </p>
       </div>
 
       <TimeNavigator onRangeChange={handleDateRangeChange} expenses={expenses} />
 
+      {/* View Mode Toggle */}
+      <div className="view-mode-selector">
+        <button
+          className={viewMode === 'overview' ? 'active' : ''}
+          onClick={() => setViewMode('overview')}
+        >
+          📊 Overview
+        </button>
+        <button
+          className={viewMode === 'pie' ? 'active' : ''}
+          onClick={() => setViewMode('pie')}
+        >
+          🥧 Pie Chart
+        </button>
+        <button
+          className={viewMode === 'bar' ? 'active' : ''}
+          onClick={() => setViewMode('bar')}
+        >
+          📊 Bar Chart
+        </button>
+      </div>
+
       {/* Overall Budget Summary */}
       <div className="overall-budget-card">
         <div className="overall-budget-content">
           <div className="overall-budget-info">
-            <div className="overall-budget-label">Total Budget</div>
+            <div className="overall-budget-label">Monthly Budget</div>
             <div className="overall-budget-amount">{formatCurrency(totalBudget)}</div>
           </div>
           <div className="overall-budget-divider"></div>
           <div className="overall-budget-info">
-            <div className="overall-budget-label">Total Spending</div>
-            <div className="overall-budget-amount" style={{ color: getStatusColor(totalSpending, totalBudget) }}>
-              {formatCurrency(totalSpending)}
+            <div className="overall-budget-label">Spent So Far</div>
+            <div className="overall-budget-amount" style={{ color: getStatusColor(totalMonthSpending, totalBudget) }}>
+              {formatCurrency(totalMonthSpending)}
             </div>
           </div>
           <div className="overall-budget-divider"></div>
           <div className="overall-budget-info">
             <div className="overall-budget-label">Remaining</div>
-            <div className="overall-budget-amount" style={{ color: totalBudget - totalSpending >= 0 ? '#27ae60' : '#e74c3c' }}>
-              {formatCurrency(totalBudget - totalSpending)}
+            <div className="overall-budget-amount" style={{ color: totalRemaining >= 0 ? '#2ecc71' : '#e74c3c' }}>
+              {formatCurrency(totalRemaining)}
             </div>
           </div>
         </div>
@@ -164,25 +375,33 @@ function BudgetManage({ expenses }) {
             className="overall-progress-fill"
             style={{
               width: `${totalPercentage}%`,
-              backgroundColor: getStatusColor(totalSpending, totalBudget)
+              backgroundColor: getStatusColor(totalMonthSpending, totalBudget)
             }}
           ></div>
         </div>
         <div className="overall-percentage">
-          {totalPercentage.toFixed(1)}% of budget used
+          {totalPercentage.toFixed(1)}% of monthly budget used
         </div>
+        {dateRange.startDate !== currentMonth + '-01' && (
+          <div className="range-info">
+            <small>Selected period spending: {formatCurrency(totalRangeSpending)}</small>
+          </div>
+        )}
       </div>
 
       {/* Budget Edit Controls */}
       <div className="budget-controls">
         {!isEditingBudgets ? (
-          <button className="btn-edit-budgets" onClick={() => setIsEditingBudgets(true)}>
-            ✏️ Edit Budgets
+          <button className="btn-edit-budgets" onClick={handleStartEdit}>
+            ✏️ Edit Budget for {currentMonth}
           </button>
         ) : (
           <div className="budget-edit-actions">
+            <button className="btn-copy" onClick={handleCopyPreviousMonth}>
+              📋 Copy Previous Month
+            </button>
             <button className="btn-save" onClick={handleSaveBudgets}>
-              ✓ Save Budgets
+              ✓ Save Budget
             </button>
             <button className="btn-cancel" onClick={handleCancelEdit}>
               ✕ Cancel
@@ -191,80 +410,106 @@ function BudgetManage({ expenses }) {
         )}
       </div>
 
-      {/* Category Budgets */}
-      <div className="category-budgets">
-        {CATEGORIES.map(category => {
-          const budget = isEditingBudgets ? tempBudgets[category.id] : budgets[category.id];
-          const actual = actualSpending[category.id];
-          const percentage = getPercentage(actual, budget);
-          const remaining = budget - actual;
-          const statusColor = getStatusColor(actual, budget);
+      {/* Charts View */}
+      {viewMode === 'pie' && (
+        <div className="chart-section">
+          <h3>Spending Distribution</h3>
+          <PieChart data={rangeSpending} />
+        </div>
+      )}
 
-          return (
-            <div key={category.id} className="budget-category-card">
-              <div className="budget-category-header" style={{ backgroundColor: category.color }}>
-                <span className="budget-category-icon">{category.icon}</span>
-                <span className="budget-category-name">{category.name}</span>
-              </div>
+      {viewMode === 'bar' && (
+        <div className="chart-section">
+          <h3>Budget vs Actual Spending</h3>
+          <BarChart spending={monthSpending} budgets={currentBudget} />
+        </div>
+      )}
 
-              <div className="budget-category-content">
-                {isEditingBudgets ? (
-                  <div className="budget-input-group">
-                    <label>Monthly Budget</label>
-                    <div className="budget-input-wrapper">
-                      <span className="budget-currency">$</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="10"
-                        value={tempBudgets[category.id]}
-                        onChange={(e) => setTempBudgets({
-                          ...tempBudgets,
-                          [category.id]: parseFloat(e.target.value) || 0
-                        })}
-                        className="budget-input"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="budget-amounts">
-                    <div className="budget-amount-item">
-                      <span className="budget-amount-label">Budget</span>
-                      <span className="budget-amount-value">{formatCurrency(budget)}</span>
-                    </div>
-                    <div className="budget-amount-item">
-                      <span className="budget-amount-label">Spent</span>
-                      <span className="budget-amount-value" style={{ color: statusColor }}>
-                        {formatCurrency(actual)}
-                      </span>
-                    </div>
-                    <div className="budget-amount-item">
-                      <span className="budget-amount-label">Remaining</span>
-                      <span className="budget-amount-value" style={{ color: remaining >= 0 ? '#27ae60' : '#e74c3c' }}>
-                        {formatCurrency(remaining)}
-                      </span>
-                    </div>
-                  </div>
-                )}
+      {/* Category Budgets - Only show in overview mode */}
+      {viewMode === 'overview' && (
+        <div className="category-budgets">
+          {CATEGORIES.map(category => {
+            const budget = isEditingBudgets ? (tempBudgets[category.id] || 0) : currentBudget[category.id];
+            const monthActual = monthSpending[category.id] || 0;
+            const rangeActual = rangeSpending[category.id] || 0;
+            const percentage = getPercentage(monthActual, budget);
+            const remaining = budget - monthActual;
+            const statusColor = getStatusColor(monthActual, budget);
 
-                <div className="budget-progress-bar">
-                  <div
-                    className="budget-progress-fill"
-                    style={{
-                      width: `${percentage}%`,
-                      backgroundColor: statusColor
-                    }}
-                  ></div>
+            return (
+              <div key={category.id} className="budget-category-card">
+                <div className="budget-category-header" style={{ backgroundColor: category.color }}>
+                  <span className="budget-category-icon">{category.icon}</span>
+                  <span className="budget-category-name">{category.name}</span>
                 </div>
-                <div className="budget-percentage">
-                  {percentage.toFixed(1)}% used
-                  {percentage >= 100 && <span className="over-budget-badge">⚠️ Over Budget</span>}
+
+                <div className="budget-category-content">
+                  {isEditingBudgets ? (
+                    <div className="budget-input-group">
+                      <label>Monthly Budget</label>
+                      <div className="budget-input-wrapper">
+                        <span className="budget-currency">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="10"
+                          value={tempBudgets[category.id] || 0}
+                          onChange={(e) => setTempBudgets({
+                            ...tempBudgets,
+                            [category.id]: parseFloat(e.target.value) || 0
+                          })}
+                          className="budget-input"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="budget-amounts">
+                      <div className="budget-amount-item">
+                        <span className="budget-amount-label">Budget</span>
+                        <span className="budget-amount-value">{formatCurrency(budget)}</span>
+                      </div>
+                      <div className="budget-amount-item">
+                        <span className="budget-amount-label">Spent (Month)</span>
+                        <span className="budget-amount-value" style={{ color: statusColor }}>
+                          {formatCurrency(monthActual)}
+                        </span>
+                      </div>
+                      {dateRange.startDate !== currentMonth + '-01' && (
+                        <div className="budget-amount-item">
+                          <span className="budget-amount-label">Spent (Range)</span>
+                          <span className="budget-amount-value">
+                            {formatCurrency(rangeActual)}
+                          </span>
+                        </div>
+                      )}
+                      <div className="budget-amount-item">
+                        <span className="budget-amount-label">Remaining</span>
+                        <span className="budget-amount-value" style={{ color: remaining >= 0 ? '#27ae60' : '#e74c3c' }}>
+                          {formatCurrency(remaining)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="budget-progress-bar">
+                    <div
+                      className="budget-progress-fill"
+                      style={{
+                        width: `${percentage}%`,
+                        backgroundColor: statusColor
+                      }}
+                    ></div>
+                  </div>
+                  <div className="budget-percentage">
+                    {percentage.toFixed(1)}% used
+                    {percentage >= 100 && <span className="over-budget-badge">⚠️ Over Budget</span>}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
