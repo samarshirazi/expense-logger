@@ -258,59 +258,101 @@ function BudgetManage({ expenses }) {
     );
   };
 
-  // Simple Bar Chart Component
-  const BarChart = ({ spending, budgets }) => {
-    const maxValue = Math.max(
-      ...CATEGORIES.map(cat => Math.max(spending[cat.id] || 0, budgets[cat.id] || 0))
-    );
+  // Time Comparison Bar Chart - Shows weekly or monthly spending comparison
+  const TimeComparisonChart = () => {
+    // Determine if we're showing weeks or months based on date range
+    const startDate = new Date(dateRange.startDate);
+    const endDate = new Date(dateRange.endDate);
+    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+
+    // If date range is more than 60 days, show monthly comparison, otherwise show weekly
+    const showMonthly = daysDiff > 60;
+
+    let periods = [];
+
+    if (showMonthly) {
+      // Get last 6 months including current
+      const monthsToShow = 6;
+      const currentDate = new Date(dateRange.endDate);
+
+      for (let i = monthsToShow - 1; i >= 0; i--) {
+        const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+        const monthKey = getMonthKey(toLocalDateString(targetDate));
+        const monthName = targetDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+        const monthTotal = expenses
+          .filter(expense => expense.date && expense.date.startsWith(monthKey))
+          .reduce((sum, expense) => {
+            if (expense.items && expense.items.length > 0) {
+              return sum + expense.items.reduce((itemSum, item) => itemSum + (item.totalPrice || 0), 0);
+            }
+            return sum + (expense.totalAmount || 0);
+          }, 0);
+
+        periods.push({ label: monthName, amount: monthTotal, key: monthKey });
+      }
+    } else {
+      // Show weekly breakdown of current month
+      const monthStart = new Date(currentMonth + '-01');
+      const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+
+      // Get all weeks in the current month
+      let currentWeekStart = new Date(monthStart);
+      let weekNum = 1;
+
+      while (currentWeekStart <= monthEnd) {
+        const currentWeekEnd = new Date(currentWeekStart);
+        currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+
+        const weekEndCapped = currentWeekEnd > monthEnd ? monthEnd : currentWeekEnd;
+        const weekStartStr = toLocalDateString(currentWeekStart);
+        const weekEndStr = toLocalDateString(weekEndCapped);
+
+        const weekTotal = expenses
+          .filter(expense => expense.date && expense.date >= weekStartStr && expense.date <= weekEndStr)
+          .reduce((sum, expense) => {
+            if (expense.items && expense.items.length > 0) {
+              return sum + expense.items.reduce((itemSum, item) => itemSum + (item.totalPrice || 0), 0);
+            }
+            return sum + (expense.totalAmount || 0);
+          }, 0);
+
+        const weekLabel = `Week ${weekNum}`;
+        periods.push({ label: weekLabel, amount: weekTotal, key: weekStartStr });
+
+        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+        weekNum++;
+      }
+    }
+
+    const maxAmount = Math.max(...periods.map(p => p.amount), 1);
 
     return (
-      <div className="bar-chart-container">
-        {CATEGORIES.map(category => {
-          const spentAmount = spending[category.id] || 0;
-          const budgetAmount = budgets[category.id] || 0;
-          const spentHeight = maxValue > 0 ? (spentAmount / maxValue) * 100 : 0;
-          const budgetHeight = maxValue > 0 ? (budgetAmount / maxValue) * 100 : 0;
+      <div className="time-comparison-chart">
+        <div className="comparison-bars">
+          {periods.map((period, index) => {
+            const heightPercent = (period.amount / maxAmount) * 100;
+            const color = index === periods.length - 1 ? '#667eea' : '#95afc0';
 
-          return (
-            <div key={category.id} className="bar-group">
-              <div className="bar-labels">
-                <div className="bar-amount">{formatCurrency(spentAmount)}</div>
-              </div>
-              <div className="bars">
-                <div className="bar-wrapper">
+            return (
+              <div key={period.key} className="comparison-bar-group">
+                <div className="comparison-bar-wrapper">
+                  <div className="comparison-amount">{formatCurrency(period.amount)}</div>
                   <div
-                    className="bar bar-budget"
-                    style={{ height: `${budgetHeight}%` }}
-                    title={`Budget: ${formatCurrency(budgetAmount)}`}
-                  >
-                    <div className="bar-inner" style={{ backgroundColor: category.color, opacity: 0.3 }}></div>
-                  </div>
-                  <div
-                    className="bar bar-spent"
-                    style={{ height: `${spentHeight}%` }}
-                    title={`Spent: ${formatCurrency(spentAmount)}`}
-                  >
-                    <div className="bar-inner" style={{ backgroundColor: category.color }}></div>
-                  </div>
+                    className="comparison-bar"
+                    style={{
+                      height: `${heightPercent}%`,
+                      backgroundColor: color
+                    }}
+                  ></div>
                 </div>
+                <div className="comparison-label">{period.label}</div>
               </div>
-              <div className="bar-category">
-                <span className="bar-icon">{category.icon}</span>
-                <span className="bar-name">{category.name}</span>
-              </div>
-            </div>
-          );
-        })}
-        <div className="bar-legend">
-          <div className="bar-legend-item">
-            <span className="bar-legend-box" style={{ backgroundColor: '#ccc', opacity: 0.5 }}></span>
-            <span>Budget</span>
-          </div>
-          <div className="bar-legend-item">
-            <span className="bar-legend-box" style={{ backgroundColor: '#667eea' }}></span>
-            <span>Spent</span>
-          </div>
+            );
+          })}
+        </div>
+        <div className="comparison-info">
+          {showMonthly ? '📅 Monthly Comparison (Last 6 Months)' : '📊 Weekly Breakdown'}
         </div>
       </div>
     );
@@ -349,7 +391,8 @@ function BudgetManage({ expenses }) {
         </button>
       </div>
 
-      {/* Overall Budget Summary */}
+      {/* Overall Budget Summary - Only show in overview mode */}
+      {viewMode === 'overview' && (
       <div className="overall-budget-card">
         <div className="overall-budget-content">
           <div className="overall-budget-info">
@@ -389,8 +432,10 @@ function BudgetManage({ expenses }) {
           </div>
         )}
       </div>
+      )}
 
-      {/* Budget Edit Controls */}
+      {/* Budget Edit Controls - Only show in overview mode */}
+      {viewMode === 'overview' && (
       <div className="budget-controls">
         {!isEditingBudgets ? (
           <button className="btn-edit-budgets" onClick={handleStartEdit}>
@@ -410,6 +455,7 @@ function BudgetManage({ expenses }) {
           </div>
         )}
       </div>
+      )}
 
       {/* Charts View */}
       {viewMode === 'pie' && (
@@ -421,8 +467,8 @@ function BudgetManage({ expenses }) {
 
       {viewMode === 'bar' && (
         <div className="chart-section">
-          <h3>Budget vs Actual Spending</h3>
-          <BarChart spending={monthSpending} budgets={currentBudget} />
+          <h3>Spending Comparison</h3>
+          <TimeComparisonChart />
         </div>
       )}
 
