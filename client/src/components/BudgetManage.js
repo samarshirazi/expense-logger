@@ -70,6 +70,10 @@ function BudgetManage({ expenses }) {
   // Get current month based on selected date range
   const currentMonth = getMonthKey(dateRange.startDate);
 
+  // Month selectors for bar graph
+  const [selectedMonth1, setSelectedMonth1] = useState(currentMonth);
+  const [selectedMonth2, setSelectedMonth2] = useState(() => getPreviousMonthKey(currentMonth));
+
   // Get budget for current month (or default if not set)
   const currentBudget = monthlyBudgets[currentMonth] || { ...DEFAULT_BUDGET };
 
@@ -107,11 +111,14 @@ function BudgetManage({ expenses }) {
 
     setMonthSpending(monthTotals);
 
-    // Calculate spending for selected date range
+    // Calculate CUMULATIVE spending from month start up to selected end date
+    // This ensures daily/weekly views show cumulative totals, not just that period
+    const monthStartDate = currentMonth + '-01';
     const filteredExpenses = expenses.filter(expense => {
       if (!expense.date) return false;
       if (!dateRange.startDate || !dateRange.endDate) return true;
-      return expense.date >= dateRange.startDate && expense.date <= dateRange.endDate;
+      // Filter from start of month to selected end date for cumulative totals
+      return expense.date >= monthStartDate && expense.date <= dateRange.endDate;
     });
 
     const rangeTotals = {
@@ -292,18 +299,19 @@ function BudgetManage({ expenses }) {
 
   // Month-to-Month Comparison Bar Graph
   const MonthComparisonChart = () => {
-    // Get current month and previous month
-    const prevMonthKey = getPreviousMonthKey(currentMonth);
+    // Get available months from expenses
+    const availableMonths = [...new Set(
+      expenses
+        .filter(e => e.date)
+        .map(e => getMonthKey(e.date))
+    )].sort().reverse();
 
-    // Calculate current month spending by category
-    const currentMonthData = { ...monthSpending };
-
-    // Calculate previous month spending by category
-    const prevMonthExpenses = expenses.filter(expense => {
-      return expense.date && expense.date.startsWith(prevMonthKey);
+    // Calculate spending for month 1
+    const month1Expenses = expenses.filter(expense => {
+      return expense.date && expense.date.startsWith(selectedMonth1);
     });
 
-    const prevMonthData = {
+    const month1Data = {
       Food: 0,
       Transport: 0,
       Shopping: 0,
@@ -311,81 +319,135 @@ function BudgetManage({ expenses }) {
       Other: 0
     };
 
-    prevMonthExpenses.forEach(expense => {
+    month1Expenses.forEach(expense => {
       if (expense.items && expense.items.length > 0) {
         expense.items.forEach(item => {
           const itemCategory = item.category || 'Other';
-          prevMonthData[itemCategory] += item.totalPrice || 0;
+          month1Data[itemCategory] += item.totalPrice || 0;
         });
       } else {
         const category = expense.category || 'Other';
-        prevMonthData[category] += expense.totalAmount || 0;
+        month1Data[category] += expense.totalAmount || 0;
       }
     });
 
-    const hasPrevMonthData = Object.values(prevMonthData).some(val => val > 0);
+    // Calculate spending for month 2
+    const month2Expenses = expenses.filter(expense => {
+      return expense.date && expense.date.startsWith(selectedMonth2);
+    });
+
+    const month2Data = {
+      Food: 0,
+      Transport: 0,
+      Shopping: 0,
+      Bills: 0,
+      Other: 0
+    };
+
+    month2Expenses.forEach(expense => {
+      if (expense.items && expense.items.length > 0) {
+        expense.items.forEach(item => {
+          const itemCategory = item.category || 'Other';
+          month2Data[itemCategory] += item.totalPrice || 0;
+        });
+      } else {
+        const category = expense.category || 'Other';
+        month2Data[category] += expense.totalAmount || 0;
+      }
+    });
 
     // Get month labels
-    const currentMonthDate = new Date(currentMonth + '-01');
-    const prevMonthDate = new Date(prevMonthKey + '-01');
-    const currentLabel = currentMonthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    const prevLabel = prevMonthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const month1Date = new Date(selectedMonth1 + '-01');
+    const month2Date = new Date(selectedMonth2 + '-01');
+    const month1Label = month1Date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const month2Label = month2Date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
     // Calculate max value for scaling
-    const allValues = [...Object.values(currentMonthData), ...Object.values(prevMonthData)];
+    const allValues = [...Object.values(month1Data), ...Object.values(month2Data)];
     const maxValue = Math.max(...allValues, 1);
 
     return (
       <div className="month-comparison-chart">
-        <div className="month-comparison-legend">
-          {hasPrevMonthData && (
-            <div className="month-legend-item">
-              <span className="month-legend-box" style={{ backgroundColor: '#95afc0' }}></span>
-              <span>{prevLabel}</span>
-            </div>
-          )}
-          <div className="month-legend-item">
-            <span className="month-legend-box" style={{ backgroundColor: '#667eea' }}></span>
-            <span>{currentLabel}</span>
+        {/* Month Selectors */}
+        <div className="month-selectors">
+          <div className="month-selector-group">
+            <label>First Month:</label>
+            <select
+              value={selectedMonth1}
+              onChange={(e) => setSelectedMonth1(e.target.value)}
+              className="month-select"
+            >
+              {availableMonths.map(month => {
+                const date = new Date(month + '-01');
+                const label = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                return <option key={month} value={month}>{label}</option>;
+              })}
+            </select>
+          </div>
+          <div className="month-selector-group">
+            <label>Second Month:</label>
+            <select
+              value={selectedMonth2}
+              onChange={(e) => setSelectedMonth2(e.target.value)}
+              className="month-select"
+            >
+              {availableMonths.map(month => {
+                const date = new Date(month + '-01');
+                const label = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                return <option key={month} value={month}>{label}</option>;
+              })}
+            </select>
           </div>
         </div>
 
+        {/* Legend */}
+        <div className="month-comparison-legend">
+          <div className="month-legend-item">
+            <span className="month-legend-box" style={{ backgroundColor: '#95afc0' }}></span>
+            <span>{month1Label}</span>
+          </div>
+          <div className="month-legend-item">
+            <span className="month-legend-box" style={{ backgroundColor: '#667eea' }}></span>
+            <span>{month2Label}</span>
+          </div>
+        </div>
+
+        {/* Bars */}
         <div className="month-comparison-bars">
           {CATEGORIES.map(category => {
-            const prevAmount = prevMonthData[category.id] || 0;
-            const currentAmount = currentMonthData[category.id] || 0;
-            const prevHeight = maxValue > 0 ? (prevAmount / maxValue) * 100 : 0;
-            const currentHeight = maxValue > 0 ? (currentAmount / maxValue) * 100 : 0;
+            const month1Amount = month1Data[category.id] || 0;
+            const month2Amount = month2Data[category.id] || 0;
+            const month1Height = maxValue > 0 ? (month1Amount / maxValue) * 100 : 0;
+            const month2Height = maxValue > 0 ? (month2Amount / maxValue) * 100 : 0;
 
             return (
               <div key={category.id} className="month-comparison-group">
-                <div className="month-comparison-category">
-                  <span className="month-category-icon">{category.icon}</span>
-                  <span className="month-category-name">{category.name}</span>
-                </div>
                 <div className="month-bars-wrapper">
-                  {hasPrevMonthData && (
-                    <div className="month-bar-container">
-                      <div className="month-bar-amount">{formatCurrency(prevAmount)}</div>
-                      <div
-                        className="month-bar"
-                        style={{
-                          height: `${prevHeight}%`,
-                          backgroundColor: '#95afc0'
-                        }}
-                      ></div>
-                    </div>
-                  )}
                   <div className="month-bar-container">
-                    <div className="month-bar-amount">{formatCurrency(currentAmount)}</div>
+                    <div className="month-bar-amount">{formatCurrency(month1Amount)}</div>
                     <div
                       className="month-bar"
                       style={{
-                        height: `${currentHeight}%`,
+                        height: `${month1Height}%`,
+                        backgroundColor: '#95afc0'
+                      }}
+                    ></div>
+                  </div>
+                  <div className="month-bar-container">
+                    <div className="month-bar-amount">{formatCurrency(month2Amount)}</div>
+                    <div
+                      className="month-bar"
+                      style={{
+                        height: `${month2Height}%`,
                         backgroundColor: '#667eea'
                       }}
                     ></div>
                   </div>
+                </div>
+                {/* Category label below bars */}
+                <div className="month-comparison-category">
+                  <span className="month-category-icon">{category.icon}</span>
+                  <span className="month-category-name">{category.name}</span>
                 </div>
               </div>
             );
