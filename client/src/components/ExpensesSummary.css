@@ -366,6 +366,54 @@
   .mobile-expenses-view {
     display: block;
   }
+
+  /* View mode selector mobile */
+  .view-mode-selector {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .view-mode-selector button {
+    flex: 1;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  /* Line graph mobile */
+  .line-graph-container {
+    padding: 20px 15px;
+  }
+
+  .month-selectors {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .month-selector-group {
+    width: 100%;
+  }
+
+  .month-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .line-graph-legend {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .line-graph-totals {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .total-box {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 /* Dark mode support */
@@ -632,55 +680,6 @@
   font-size: 24px;
   font-weight: 700;
   color: #2c3e50;
-}
-
-/* Mobile Responsive for Line Graph */
-@media (max-width: 768px) {
-  .view-mode-selector {
-    flex-direction: row;
-    gap: 8px;
-  }
-
-  .view-mode-selector button {
-    flex: 1;
-    padding: 10px 16px;
-    font-size: 13px;
-  }
-
-  .line-graph-container {
-    padding: 20px 15px;
-  }
-
-  .month-selectors {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-
-  .month-selector-group {
-    width: 100%;
-  }
-
-  .month-select {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .line-graph-legend {
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .line-graph-totals {
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .total-box {
-    width: 100%;
-    min-width: 0;
-  }
 }
 
 /* Dark mode for line graph */
