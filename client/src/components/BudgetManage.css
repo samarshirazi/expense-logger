@@ -617,7 +617,7 @@
   }
 
   .category-budgets {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr; /* 2x2 grid like Categories page */
     gap: 16px;
   }
 
@@ -640,11 +640,14 @@
   }
 
   .view-mode-selector {
-    flex-direction: column;
+    flex-direction: row; /* Keep horizontal on mobile */
+    gap: 8px;
   }
 
   .view-mode-selector button {
-    width: 100%;
+    flex: 1; /* Equal width buttons */
+    padding: 10px 16px;
+    font-size: 13px;
   }
 
   .chart-section {
@@ -697,17 +700,19 @@
   }
 
   .month-comparison-bars {
-    flex-direction: column;
+    flex-wrap: wrap; /* Wrap instead of column, allowing 2-3 items per row */
     gap: 20px;
+    justify-content: center;
   }
 
   .month-comparison-group {
-    max-width: 100%;
-    width: 100%;
+    max-width: 140px; /* Fixed width for consistent layout */
+    min-width: 120px;
+    flex: 0 0 calc(50% - 10px); /* 2 columns on smaller screens */
   }
 
   .month-bars-wrapper {
-    height: 150px;
+    height: 180px; /* Taller for better visibility */
     justify-content: center;
   }
 

@@ -349,9 +349,11 @@ function BudgetManage({ expenses }) {
       }
     });
 
-    // Get month labels
-    const month1Date = new Date(selectedMonth1 + '-01');
-    const month2Date = new Date(selectedMonth2 + '-01');
+    // Get month labels - use proper date construction to avoid timezone issues
+    const [year1, month1] = selectedMonth1.split('-').map(Number);
+    const [year2, month2] = selectedMonth2.split('-').map(Number);
+    const month1Date = new Date(year1, month1 - 1, 1); // month is 0-indexed
+    const month2Date = new Date(year2, month2 - 1, 1);
     const month1Label = month1Date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     const month2Label = month2Date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 

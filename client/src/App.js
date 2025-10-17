@@ -67,6 +67,11 @@ function App() {
     if (activeView === 'upload' || activeView === 'manual') {
       setSelectedExpense(newExpense);
     }
+    // Refresh expenses from server to ensure data is in sync
+    // This is especially important for camera uploads
+    setTimeout(() => {
+      loadExpenses();
+    }, 500);
   };
 
   const handleExpenseSelect = (expense) => {
