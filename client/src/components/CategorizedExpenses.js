@@ -360,13 +360,16 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         };
         await updateExpense(actionItem.expenseId, updates);
       } else {
-        // For item, update description and price
+        // For item, update description, price, and date
         updates = {
           description: editForm.description,
           totalPrice: parseFloat(editForm.totalPrice),
           date: editForm.date
         };
         await updateExpenseItem(actionItem.expenseId, actionItem.itemIndex, updates);
+
+        // Also update the parent expense date so filtering works correctly
+        await updateExpense(actionItem.expenseId, { date: editForm.date });
       }
 
       // Close modal and refresh

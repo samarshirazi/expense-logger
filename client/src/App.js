@@ -61,17 +61,16 @@ function App() {
     }
   };
 
-  const handleExpenseAdded = (newExpense) => {
+  const handleExpenseAdded = async (newExpense) => {
+    // Add to local state for immediate feedback
     setExpenses(prev => [newExpense, ...prev]);
     // Only show the expense details if in upload or manual entry view
     if (activeView === 'upload' || activeView === 'manual') {
       setSelectedExpense(newExpense);
     }
-    // Refresh expenses from server to ensure data is in sync
+    // Refresh expenses from server immediately to ensure data is in sync
     // This is especially important for camera uploads
-    setTimeout(() => {
-      loadExpenses();
-    }, 500);
+    await loadExpenses();
   };
 
   const handleExpenseSelect = (expense) => {
