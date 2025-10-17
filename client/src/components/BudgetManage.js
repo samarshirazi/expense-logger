@@ -299,13 +299,6 @@ function BudgetManage({ expenses }) {
 
   // Month-to-Month Comparison Bar Graph
   const MonthComparisonChart = () => {
-    // Get available months from expenses
-    const availableMonths = [...new Set(
-      expenses
-        .filter(e => e.date)
-        .map(e => getMonthKey(e.date))
-    )].sort().reverse();
-
     // Calculate spending for month 1
     const month1Expenses = expenses.filter(expense => {
       return expense.date && expense.date.startsWith(selectedMonth1);
@@ -371,32 +364,22 @@ function BudgetManage({ expenses }) {
         {/* Month Selectors */}
         <div className="month-selectors">
           <div className="month-selector-group">
-            <label>First Month:</label>
-            <select
+            <label>First Month (MM/YYYY):</label>
+            <input
+              type="month"
               value={selectedMonth1}
               onChange={(e) => setSelectedMonth1(e.target.value)}
               className="month-select"
-            >
-              {availableMonths.map(month => {
-                const date = new Date(month + '-01');
-                const label = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                return <option key={month} value={month}>{label}</option>;
-              })}
-            </select>
+            />
           </div>
           <div className="month-selector-group">
-            <label>Second Month:</label>
-            <select
+            <label>Second Month (MM/YYYY):</label>
+            <input
+              type="month"
               value={selectedMonth2}
               onChange={(e) => setSelectedMonth2(e.target.value)}
               className="month-select"
-            >
-              {availableMonths.map(month => {
-                const date = new Date(month + '-01');
-                const label = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                return <option key={month} value={month}>{label}</option>;
-              })}
-            </select>
+            />
           </div>
         </div>
 
