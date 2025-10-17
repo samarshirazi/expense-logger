@@ -82,7 +82,7 @@ function BudgetManage({ expenses }) {
   useEffect(() => {
     // Calculate spending for entire month
     const monthExpenses = expenses.filter(expense => {
-      return expense.date.startsWith(currentMonth);
+      return expense.date && expense.date.startsWith(currentMonth);
     });
 
     const monthTotals = {
@@ -109,6 +109,7 @@ function BudgetManage({ expenses }) {
 
     // Calculate spending for selected date range
     const filteredExpenses = expenses.filter(expense => {
+      if (!expense.date) return false;
       if (!dateRange.startDate || !dateRange.endDate) return true;
       return expense.date >= dateRange.startDate && expense.date <= dateRange.endDate;
     });
