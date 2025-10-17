@@ -442,78 +442,105 @@
   white-space: nowrap;
 }
 
-/* Time Comparison Chart Styles */
-.time-comparison-chart {
+/* Month Comparison Chart Styles */
+.month-comparison-chart {
   padding: 20px;
 }
 
-.comparison-bars {
+.month-comparison-legend {
   display: flex;
-  gap: 16px;
-  justify-content: space-around;
-  align-items: flex-end;
-  height: 300px;
-  padding: 20px 0;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
 }
 
-.comparison-bar-group {
+.month-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.month-legend-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.month-comparison-bars {
+  display: flex;
+  gap: 24px;
+  justify-content: space-around;
+}
+
+.month-comparison-group {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  max-width: 100px;
+  max-width: 150px;
 }
 
-.comparison-bar-wrapper {
-  width: 100%;
+.month-comparison-category {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.month-category-icon {
+  font-size: 28px;
+}
+
+.month-category-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2c3e50;
+  text-align: center;
+}
+
+.month-bars-wrapper {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
   height: 250px;
+  width: 100%;
+}
+
+.month-bar-container {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  position: relative;
+  height: 100%;
 }
 
-.comparison-amount {
-  font-size: 12px;
+.month-bar-amount {
+  font-size: 11px;
   font-weight: 700;
   color: #2c3e50;
   margin-bottom: 8px;
   white-space: nowrap;
 }
 
-.comparison-bar {
-  width: 60px;
+.month-bar {
+  width: 100%;
+  min-width: 40px;
   min-height: 10px;
   border-radius: 8px 8px 0 0;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.comparison-bar:hover {
+.month-bar:hover {
   opacity: 0.8;
   transform: scaleY(1.05);
   cursor: pointer;
-}
-
-.comparison-label {
-  margin-top: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #2c3e50;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.comparison-info {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #667eea;
-  padding: 12px;
-  background: #f7f9fc;
-  border-radius: 8px;
 }
 
 /* Responsive design */
@@ -609,25 +636,31 @@
     gap: 12px;
   }
 
-  .comparison-bars {
-    height: 200px;
-    gap: 8px;
+  .month-comparison-bars {
+    flex-direction: column;
+    gap: 20px;
   }
 
-  .comparison-bar-wrapper {
+  .month-comparison-group {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .month-bars-wrapper {
     height: 150px;
+    justify-content: center;
   }
 
-  .comparison-bar {
-    width: 40px;
+  .month-category-icon {
+    font-size: 24px;
   }
 
-  .comparison-amount {
+  .month-category-name {
+    font-size: 12px;
+  }
+
+  .month-bar-amount {
     font-size: 10px;
-  }
-
-  .comparison-label {
-    font-size: 11px;
   }
 }
 
@@ -730,13 +763,9 @@
     color: #95a5a6;
   }
 
-  .comparison-amount,
-  .comparison-label {
-    color: #ecf0f1;
-  }
-
-  .comparison-info {
-    background: #34495e;
+  .month-legend-item,
+  .month-category-name,
+  .month-bar-amount {
     color: #ecf0f1;
   }
 }

@@ -195,32 +195,64 @@ function BudgetManage({ expenses }) {
   const totalMonthSpending = Object.values(monthSpending).reduce((sum, val) => sum + val, 0);
   const totalRangeSpending = Object.values(rangeSpending).reduce((sum, val) => sum + val, 0);
 
-  // Remaining = Monthly Budget - Total Spent in Month So Far
-  const totalRemaining = totalBudget - totalMonthSpending;
-  const totalPercentage = getPercentage(totalMonthSpending, totalBudget);
+  // Check if viewing the entire month or a subset (daily/weekly)
+  const monthStart = currentMonth + '-01';
+  const monthEndDate = new Date(currentMonth + '-01');
+  monthEndDate.setMonth(monthEndDate.getMonth() + 1);
+  monthEndDate.setDate(0);
+  const monthEnd = toLocalDateString(monthEndDate);
+  const isViewingFullMonth = dateRange.startDate === monthStart && dateRange.endDate === monthEnd;
 
-  // Simple Pie Chart Component
+  // For overview display: use range spending for daily/weekly views, month spending for full month
+  const displaySpending = isViewingFullMonth ? totalMonthSpending : totalRangeSpending;
+  const displayRemaining = totalBudget - displaySpending;
+  const displayPercentage = getPercentage(displaySpending, totalBudget);
+
+  // Pie Chart Component with Remaining Budget
   const PieChart = ({ data }) => {
-    const total = Object.values(data).reduce((sum, val) => sum + val, 0);
-    if (total === 0) return <div className="no-data-chart">No spending data</div>;
+    const spentTotal = Object.values(data).reduce((sum, val) => sum + val, 0);
+    const remaining = Math.max(0, totalBudget - spentTotal);
+    const grandTotal = spentTotal + remaining;
+
+    if (grandTotal === 0) return <div className="no-data-chart">No budget data</div>;
 
     let currentAngle = 0;
-    const segments = CATEGORIES.map(category => {
-      const value = data[category.id] || 0;
-      const percentage = (value / total) * 100;
-      const angle = (value / total) * 360;
+    const segments = [];
 
-      const segment = {
-        category: category,
-        value: value,
+    // Add category segments
+    CATEGORIES.forEach(category => {
+      const value = data[category.id] || 0;
+      if (value > 0) {
+        const percentage = (value / grandTotal) * 100;
+        const angle = (value / grandTotal) * 360;
+
+        segments.push({
+          category: category,
+          value: value,
+          percentage: percentage,
+          startAngle: currentAngle,
+          endAngle: currentAngle + angle,
+          isRemaining: false
+        });
+
+        currentAngle += angle;
+      }
+    });
+
+    // Add remaining budget segment
+    if (remaining > 0) {
+      const percentage = (remaining / grandTotal) * 100;
+      const angle = (remaining / grandTotal) * 360;
+
+      segments.push({
+        category: { id: 'Remaining', name: 'Remaining Budget', icon: '💰', color: '#27ae60' },
+        value: remaining,
         percentage: percentage,
         startAngle: currentAngle,
-        endAngle: currentAngle + angle
-      };
-
-      currentAngle += angle;
-      return segment;
-    }).filter(seg => seg.value > 0);
+        endAngle: currentAngle + angle,
+        isRemaining: true
+      });
+    }
 
     return (
       <div className="pie-chart-container">
@@ -258,101 +290,106 @@ function BudgetManage({ expenses }) {
     );
   };
 
-  // Time Comparison Bar Chart - Shows weekly or monthly spending comparison
-  const TimeComparisonChart = () => {
-    // Determine if we're showing weeks or months based on date range
-    const startDate = new Date(dateRange.startDate);
-    const endDate = new Date(dateRange.endDate);
-    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+  // Month-to-Month Comparison Bar Graph
+  const MonthComparisonChart = () => {
+    // Get current month and previous month
+    const prevMonthKey = getPreviousMonthKey(currentMonth);
 
-    // If date range is more than 60 days, show monthly comparison, otherwise show weekly
-    const showMonthly = daysDiff > 60;
+    // Calculate current month spending by category
+    const currentMonthData = { ...monthSpending };
 
-    let periods = [];
+    // Calculate previous month spending by category
+    const prevMonthExpenses = expenses.filter(expense => {
+      return expense.date && expense.date.startsWith(prevMonthKey);
+    });
 
-    if (showMonthly) {
-      // Get last 6 months including current
-      const monthsToShow = 6;
-      const currentDate = new Date(dateRange.endDate);
+    const prevMonthData = {
+      Food: 0,
+      Transport: 0,
+      Shopping: 0,
+      Bills: 0,
+      Other: 0
+    };
 
-      for (let i = monthsToShow - 1; i >= 0; i--) {
-        const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-        const monthKey = getMonthKey(toLocalDateString(targetDate));
-        const monthName = targetDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-
-        const monthTotal = expenses
-          .filter(expense => expense.date && expense.date.startsWith(monthKey))
-          .reduce((sum, expense) => {
-            if (expense.items && expense.items.length > 0) {
-              return sum + expense.items.reduce((itemSum, item) => itemSum + (item.totalPrice || 0), 0);
-            }
-            return sum + (expense.totalAmount || 0);
-          }, 0);
-
-        periods.push({ label: monthName, amount: monthTotal, key: monthKey });
+    prevMonthExpenses.forEach(expense => {
+      if (expense.items && expense.items.length > 0) {
+        expense.items.forEach(item => {
+          const itemCategory = item.category || 'Other';
+          prevMonthData[itemCategory] += item.totalPrice || 0;
+        });
+      } else {
+        const category = expense.category || 'Other';
+        prevMonthData[category] += expense.totalAmount || 0;
       }
-    } else {
-      // Show weekly breakdown of current month
-      const monthStart = new Date(currentMonth + '-01');
-      const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+    });
 
-      // Get all weeks in the current month
-      let currentWeekStart = new Date(monthStart);
-      let weekNum = 1;
+    const hasPrevMonthData = Object.values(prevMonthData).some(val => val > 0);
 
-      while (currentWeekStart <= monthEnd) {
-        const currentWeekEnd = new Date(currentWeekStart);
-        currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+    // Get month labels
+    const currentMonthDate = new Date(currentMonth + '-01');
+    const prevMonthDate = new Date(prevMonthKey + '-01');
+    const currentLabel = currentMonthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const prevLabel = prevMonthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
-        const weekEndCapped = currentWeekEnd > monthEnd ? monthEnd : currentWeekEnd;
-        const weekStartStr = toLocalDateString(currentWeekStart);
-        const weekEndStr = toLocalDateString(weekEndCapped);
-
-        const weekTotal = expenses
-          .filter(expense => expense.date && expense.date >= weekStartStr && expense.date <= weekEndStr)
-          .reduce((sum, expense) => {
-            if (expense.items && expense.items.length > 0) {
-              return sum + expense.items.reduce((itemSum, item) => itemSum + (item.totalPrice || 0), 0);
-            }
-            return sum + (expense.totalAmount || 0);
-          }, 0);
-
-        const weekLabel = `Week ${weekNum}`;
-        periods.push({ label: weekLabel, amount: weekTotal, key: weekStartStr });
-
-        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
-        weekNum++;
-      }
-    }
-
-    const maxAmount = Math.max(...periods.map(p => p.amount), 1);
+    // Calculate max value for scaling
+    const allValues = [...Object.values(currentMonthData), ...Object.values(prevMonthData)];
+    const maxValue = Math.max(...allValues, 1);
 
     return (
-      <div className="time-comparison-chart">
-        <div className="comparison-bars">
-          {periods.map((period, index) => {
-            const heightPercent = (period.amount / maxAmount) * 100;
-            const color = index === periods.length - 1 ? '#667eea' : '#95afc0';
+      <div className="month-comparison-chart">
+        <div className="month-comparison-legend">
+          {hasPrevMonthData && (
+            <div className="month-legend-item">
+              <span className="month-legend-box" style={{ backgroundColor: '#95afc0' }}></span>
+              <span>{prevLabel}</span>
+            </div>
+          )}
+          <div className="month-legend-item">
+            <span className="month-legend-box" style={{ backgroundColor: '#667eea' }}></span>
+            <span>{currentLabel}</span>
+          </div>
+        </div>
+
+        <div className="month-comparison-bars">
+          {CATEGORIES.map(category => {
+            const prevAmount = prevMonthData[category.id] || 0;
+            const currentAmount = currentMonthData[category.id] || 0;
+            const prevHeight = maxValue > 0 ? (prevAmount / maxValue) * 100 : 0;
+            const currentHeight = maxValue > 0 ? (currentAmount / maxValue) * 100 : 0;
 
             return (
-              <div key={period.key} className="comparison-bar-group">
-                <div className="comparison-bar-wrapper">
-                  <div className="comparison-amount">{formatCurrency(period.amount)}</div>
-                  <div
-                    className="comparison-bar"
-                    style={{
-                      height: `${heightPercent}%`,
-                      backgroundColor: color
-                    }}
-                  ></div>
+              <div key={category.id} className="month-comparison-group">
+                <div className="month-comparison-category">
+                  <span className="month-category-icon">{category.icon}</span>
+                  <span className="month-category-name">{category.name}</span>
                 </div>
-                <div className="comparison-label">{period.label}</div>
+                <div className="month-bars-wrapper">
+                  {hasPrevMonthData && (
+                    <div className="month-bar-container">
+                      <div className="month-bar-amount">{formatCurrency(prevAmount)}</div>
+                      <div
+                        className="month-bar"
+                        style={{
+                          height: `${prevHeight}%`,
+                          backgroundColor: '#95afc0'
+                        }}
+                      ></div>
+                    </div>
+                  )}
+                  <div className="month-bar-container">
+                    <div className="month-bar-amount">{formatCurrency(currentAmount)}</div>
+                    <div
+                      className="month-bar"
+                      style={{
+                        height: `${currentHeight}%`,
+                        backgroundColor: '#667eea'
+                      }}
+                    ></div>
+                  </div>
+                </div>
               </div>
             );
           })}
-        </div>
-        <div className="comparison-info">
-          {showMonthly ? '📅 Monthly Comparison (Last 6 Months)' : '📊 Weekly Breakdown'}
         </div>
       </div>
     );
@@ -387,7 +424,7 @@ function BudgetManage({ expenses }) {
           className={viewMode === 'bar' ? 'active' : ''}
           onClick={() => setViewMode('bar')}
         >
-          📊 Bar Chart
+          📊 Bar Graph
         </button>
       </div>
 
@@ -396,21 +433,21 @@ function BudgetManage({ expenses }) {
       <div className="overall-budget-card">
         <div className="overall-budget-content">
           <div className="overall-budget-info">
-            <div className="overall-budget-label">Monthly Budget</div>
+            <div className="overall-budget-label">{isViewingFullMonth ? 'Monthly Budget' : 'Budget'}</div>
             <div className="overall-budget-amount">{formatCurrency(totalBudget)}</div>
           </div>
           <div className="overall-budget-divider"></div>
           <div className="overall-budget-info">
-            <div className="overall-budget-label">Spent So Far</div>
-            <div className="overall-budget-amount" style={{ color: getStatusColor(totalMonthSpending, totalBudget) }}>
-              {formatCurrency(totalMonthSpending)}
+            <div className="overall-budget-label">{isViewingFullMonth ? 'Spent (Month)' : 'Spent (Period)'}</div>
+            <div className="overall-budget-amount" style={{ color: getStatusColor(displaySpending, totalBudget) }}>
+              {formatCurrency(displaySpending)}
             </div>
           </div>
           <div className="overall-budget-divider"></div>
           <div className="overall-budget-info">
             <div className="overall-budget-label">Remaining</div>
-            <div className="overall-budget-amount" style={{ color: totalRemaining >= 0 ? '#2ecc71' : '#e74c3c' }}>
-              {formatCurrency(totalRemaining)}
+            <div className="overall-budget-amount" style={{ color: displayRemaining >= 0 ? '#2ecc71' : '#e74c3c' }}>
+              {formatCurrency(displayRemaining)}
             </div>
           </div>
         </div>
@@ -418,19 +455,14 @@ function BudgetManage({ expenses }) {
           <div
             className="overall-progress-fill"
             style={{
-              width: `${totalPercentage}%`,
-              backgroundColor: getStatusColor(totalMonthSpending, totalBudget)
+              width: `${displayPercentage}%`,
+              backgroundColor: getStatusColor(displaySpending, totalBudget)
             }}
           ></div>
         </div>
         <div className="overall-percentage">
-          {totalPercentage.toFixed(1)}% of monthly budget used
+          {displayPercentage.toFixed(1)}% of budget used {isViewingFullMonth ? 'this month' : 'in selected period'}
         </div>
-        {dateRange.startDate !== currentMonth + '-01' && (
-          <div className="range-info">
-            <small>Selected period spending: {formatCurrency(totalRangeSpending)}</small>
-          </div>
-        )}
       </div>
       )}
 
@@ -467,8 +499,8 @@ function BudgetManage({ expenses }) {
 
       {viewMode === 'bar' && (
         <div className="chart-section">
-          <h3>Spending Comparison</h3>
-          <TimeComparisonChart />
+          <h3>Month-to-Month Comparison</h3>
+          <MonthComparisonChart />
         </div>
       )}
 
