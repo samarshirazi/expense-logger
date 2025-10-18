@@ -152,14 +152,20 @@ function App() {
   // Scroll handler using useCallback for stable reference
   const handleScroll = useCallback(() => {
     const mainContent = document.querySelector('.main-content');
-    if (!mainContent) return;
+    if (!mainContent) {
+      console.log('⚠️ handleScroll called but main-content not found');
+      return;
+    }
 
     const state = scrollStateRef.current;
     const scrollPosition = mainContent.scrollTop;
     const scrollingDown = scrollPosition > state.previousScrollPosition;
     const scrollingUp = scrollPosition < state.previousScrollPosition;
 
-    console.log('📊 Scroll:', scrollPosition, 'px | Down:', scrollingDown, '| Up:', scrollingUp, '| BtnVisible:', state.buttonVisible);
+    // Only log if there's actual movement
+    if (scrollPosition !== state.previousScrollPosition) {
+      console.log('📊 Scroll:', scrollPosition, 'px | Prev:', state.previousScrollPosition, '| Down:', scrollingDown, '| Up:', scrollingUp, '| BtnVisible:', state.buttonVisible);
+    }
 
     // Simple behavior: Hide button when scrolling down, show when scrolling up
 
