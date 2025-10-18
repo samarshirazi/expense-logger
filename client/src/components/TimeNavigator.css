@@ -414,8 +414,14 @@
 
 /* Responsive design */
 @media (max-width: 768px) {
+  .time-navigator .mobile-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .time-navigator {
-    padding: 16px;
+    padding: 0;
   }
 
   .navigator-header {
