@@ -13,7 +13,7 @@
   justify-content: center;
   position: fixed;
   top: 15px;
-  left: 15px;
+  left: 295px;
   z-index: 1100;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -445,6 +445,10 @@
 
 /* Responsive design */
 @media (max-width: 768px) {
+  .time-navigator .mobile-menu-toggle {
+    left: 15px;
+  }
+
   .time-navigator {
     padding: 0;
   }
