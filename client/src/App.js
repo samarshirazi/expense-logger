@@ -34,8 +34,6 @@ function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showOptionsButton, setShowOptionsButton] = useState(true);
   const scrollStateRef = useRef({
-    isAtTop: true,
-    hasScrolledAwayOnce: false,
     buttonVisible: true,
     previousScrollPosition: 0
   });
@@ -159,42 +157,20 @@ function App() {
     const state = scrollStateRef.current;
     const scrollPosition = mainContent.scrollTop;
     const scrollingDown = scrollPosition > state.previousScrollPosition;
+    const scrollingUp = scrollPosition < state.previousScrollPosition;
 
-    console.log('📊 Scroll:', scrollPosition, 'px | Down:', scrollingDown, '| AtTop:', state.isAtTop, '| HasScrolled:', state.hasScrolledAwayOnce, '| BtnVisible:', state.buttonVisible);
+    console.log('📊 Scroll:', scrollPosition, 'px | Down:', scrollingDown, '| Up:', scrollingUp, '| BtnVisible:', state.buttonVisible);
 
-    // Option B: Button visible initially, hides on scroll, reappears only when returning to top and scrolling again
+    // Simple behavior: Hide button when scrolling down, show when scrolling up
 
-    if (scrollPosition === 0) {
-      // At the very top
-      if (!state.isAtTop) {
-        console.log('🔄 Back to top - ready for next scroll');
-        state.isAtTop = true;
-        state.hasScrolledAwayOnce = true;
-      }
-    } else if (scrollPosition > 0 && scrollPosition <= 20) {
-      // Just started scrolling from top (0-20px)
-      if (state.isAtTop && scrollingDown) {
-        if (state.hasScrolledAwayOnce) {
-          // Subsequent scroll from top - show button
-          console.log('✅ SHOW button (scrolling from top again)');
-          setShowOptionsButton(true);
-          state.buttonVisible = true;
-        } else {
-          // First scroll ever - hide button
-          console.log('❌ HIDE button (first scroll)');
-          setShowOptionsButton(false);
-          state.buttonVisible = false;
-        }
-      }
-      state.isAtTop = false;
-    } else if (scrollPosition > 20) {
-      // Scrolled past threshold - ensure button is hidden
-      if (state.buttonVisible) {
-        console.log('❌ HIDE button (past threshold)');
-        setShowOptionsButton(false);
-        state.buttonVisible = false;
-      }
-      state.isAtTop = false;
+    if (scrollingDown && state.buttonVisible) {
+      console.log('❌ HIDE button (scrolling down)');
+      setShowOptionsButton(false);
+      state.buttonVisible = false;
+    } else if (scrollingUp && !state.buttonVisible) {
+      console.log('✅ SHOW button (scrolling up)');
+      setShowOptionsButton(true);
+      state.buttonVisible = true;
     }
 
     state.previousScrollPosition = scrollPosition;
