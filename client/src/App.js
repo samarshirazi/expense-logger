@@ -148,6 +148,7 @@ function App() {
   // Scroll detection for options button visibility
   useEffect(() => {
     let previousScrollPosition = 0;
+    let wasAtTop = true;
 
     const handleScroll = () => {
       // Get scroll position from main-content or window
@@ -158,17 +159,26 @@ function App() {
 
       // Determine scroll direction
       const scrollingDown = scrollPosition > previousScrollPosition;
-
-      // Update states
       const currentlyAtTop = scrollPosition === 0;
 
-      // Option B: Show button when at top AND scrolling down
-      if (currentlyAtTop && scrollingDown && !showOptionsButton) {
+      console.log('Scroll event:', { scrollPosition, scrollingDown, currentlyAtTop, showOptionsButton, wasAtTop });
+
+      // Option B: Show button when at top AND starting to scroll down
+      if (currentlyAtTop && scrollingDown && wasAtTop && !showOptionsButton) {
         // User is at top and starting to scroll down - show the button
+        console.log('✅ Showing button: at top and scrolling down');
         setShowOptionsButton(true);
-      } else if (scrollPosition > 0 && showOptionsButton) {
+      } else if (scrollPosition > 0) {
         // User has scrolled away from top - hide the button
-        setShowOptionsButton(false);
+        if (showOptionsButton) {
+          console.log('❌ Hiding button: scrolled away from top');
+          setShowOptionsButton(false);
+        }
+        wasAtTop = false;
+      } else if (currentlyAtTop && !scrollingDown) {
+        // User scrolled back to top (scrolling up)
+        wasAtTop = true;
+        console.log('📍 At top, waiting for scroll down');
       }
 
       previousScrollPosition = scrollPosition;
