@@ -7,7 +7,7 @@
   position: fixed;
   left: 0;
   top: 0;
-  z-index: 1000;
+  z-index: 1100;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
 }
@@ -191,8 +191,8 @@
   display: none;
   position: fixed;
   top: 15px;
-  right: 15px;
-  z-index: 1100;
+  left: 15px;
+  z-index: 999;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
