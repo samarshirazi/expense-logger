@@ -7,48 +7,6 @@
   position: relative;
 }
 
-.time-navigator .mobile-menu-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: fixed;
-  top: 15px;
-  left: 295px;
-  z-index: 1100;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
-}
-
-.time-navigator .mobile-menu-toggle.visible {
-  transform: translateY(0);
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.time-navigator .mobile-menu-toggle.hidden {
-  transform: translateY(-80px);
-  opacity: 0;
-  pointer-events: none;
-}
-
-.time-navigator .mobile-menu-toggle:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-}
-
-.time-navigator .menu-icon {
-  font-size: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .navigator-header {
   display: flex;
   align-items: center;
@@ -445,10 +403,6 @@
 
 /* Responsive design */
 @media (max-width: 768px) {
-  .time-navigator .mobile-menu-toggle {
-    left: 15px;
-  }
-
   .time-navigator {
     padding: 0;
   }

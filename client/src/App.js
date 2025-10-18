@@ -32,6 +32,7 @@ function App() {
   const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'expenses', 'categories', 'upload', 'manual'
   const [showSummary, setShowSummary] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showOptionsButton, setShowOptionsButton] = useState(true);
 
   // Shared timeline state for all sections
   const [sharedTimelineState, setSharedTimelineState] = useState({
@@ -144,6 +145,36 @@ function App() {
     setDateRange(range);
   };
 
+  // Scroll detection for options button visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      // Get scroll position from main-content or window
+      const mainContent = document.querySelector('.main-content');
+      const scrollPosition = mainContent
+        ? mainContent.scrollTop
+        : (window.scrollY || document.documentElement.scrollTop);
+
+      // Show button only when at the very top (scroll position = 0)
+      if (scrollPosition === 0) {
+        setShowOptionsButton(true);
+      } else {
+        setShowOptionsButton(false);
+      }
+    };
+
+    // Try to attach scroll listener to main-content first, fallback to window
+    const mainContent = document.querySelector('.main-content');
+    const scrollElement = mainContent || window;
+
+    scrollElement.addEventListener('scroll', handleScroll);
+
+    // Check initial scroll position
+    handleScroll();
+
+    // Cleanup
+    return () => scrollElement.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // Close expense details when navigating away from upload/manual views
   useEffect(() => {
     if (activeView !== 'upload' && activeView !== 'manual') {
@@ -175,6 +206,15 @@ function App() {
 
   return (
     <div className="app-layout">
+      {/* Options Button - positioned above timeline navigation */}
+      <button
+        className={`options-toggle-btn ${showOptionsButton ? 'visible' : 'hidden'}`}
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        aria-label="Toggle options menu"
+      >
+        <span className="options-icon">{isMobileMenuOpen ? '✕' : '⚙️'}</span>
+      </button>
+
       <Sidebar
         activeView={activeView}
         onViewChange={setActiveView}
@@ -207,8 +247,6 @@ function App() {
               expenses={expenses}
               timelineState={sharedTimelineState}
               onTimelineStateChange={setSharedTimelineState}
-              isMobileMenuOpen={isMobileMenuOpen}
-              setIsMobileMenuOpen={setIsMobileMenuOpen}
             />
           </div>
         )}
