@@ -33,8 +33,6 @@ function App() {
   const [showSummary, setShowSummary] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showOptionsButton, setShowOptionsButton] = useState(true);
-  const [isAtTop, setIsAtTop] = useState(true);
-  const [lastScrollDirection, setLastScrollDirection] = useState(null);
 
   // Shared timeline state for all sections
   const [sharedTimelineState, setSharedTimelineState] = useState({
@@ -160,21 +158,17 @@ function App() {
 
       // Determine scroll direction
       const scrollingDown = scrollPosition > previousScrollPosition;
-      const scrollingUp = scrollPosition < previousScrollPosition;
 
       // Update states
       const currentlyAtTop = scrollPosition === 0;
-      setIsAtTop(currentlyAtTop);
 
       // Option B: Show button when at top AND scrolling down
       if (currentlyAtTop && scrollingDown && !showOptionsButton) {
         // User is at top and starting to scroll down - show the button
         setShowOptionsButton(true);
-        setLastScrollDirection('down');
       } else if (scrollPosition > 0 && showOptionsButton) {
         // User has scrolled away from top - hide the button
         setShowOptionsButton(false);
-        setLastScrollDirection(scrollingDown ? 'down' : 'up');
       }
 
       previousScrollPosition = scrollPosition;
