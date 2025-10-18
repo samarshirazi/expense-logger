@@ -201,7 +201,7 @@
   border-radius: 12px;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
+  transition: all 0.3s ease, transform 0.2s ease;
 }
 
 .mobile-menu-toggle:hover {
@@ -243,14 +243,16 @@
     width: 280px;
     height: 100vh;
     position: fixed;
-    left: -280px;
+    right: -280px;
+    left: auto;
     top: 0;
     border-radius: 0;
-    transition: left 0.3s ease;
+    transition: right 0.3s ease;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
   }
 
   .sidebar.mobile-open {
-    left: 0;
+    right: 0;
   }
 
   .sidebar-header {

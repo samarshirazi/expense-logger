@@ -24,7 +24,7 @@ function Sidebar({ activeView, onViewChange, onSignOut, userName }) {
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         aria-label="Toggle menu"
       >
-        <span className="menu-icon">{isMobileMenuOpen ? '✕' : '☰'}</span>
+        <span className="menu-icon">{isMobileMenuOpen ? '✕' : '⚙️'}</span>
       </button>
 
       <div className={`sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>

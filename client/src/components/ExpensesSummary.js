@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { updateExpenseItem, updateExpense } from '../services/apiService';
 import './ExpensesSummary.css';
 
 // Helper function to format date in local timezone (avoids timezone shift)
@@ -37,6 +38,15 @@ function ExpensesSummary({ expenses, dateRange }) {
   const currentMonth = getMonthKey(toLocalDateString(new Date()));
   const [selectedMonth1, setSelectedMonth1] = useState(currentMonth);
   const [selectedMonth2, setSelectedMonth2] = useState(() => getPreviousMonthKey(currentMonth));
+
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [editForm, setEditForm] = useState({
+    description: '',
+    totalPrice: '',
+    date: ''
+  });
 
   const [tableData, setTableData] = useState({
     byDate: {}, // { 'YYYY-MM-DD': { Food: [], Transport: [], ... } }
@@ -126,12 +136,74 @@ function ExpensesSummary({ expenses, dateRange }) {
     });
   };
 
+  // Handle item click to edit
+  const handleItemClick = (item) => {
+    setEditItem(item);
+    setEditForm({
+      description: item.description || item.merchantName || '',
+      totalPrice: item.totalPrice || 0,
+      date: item.date || ''
+    });
+    setShowEditModal(true);
+  };
+
+  // Handle edit form submission
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editItem) return;
+
+    try {
+      if (editItem.itemIndex === -1) {
+        // Whole expense
+        await updateExpense(editItem.expenseId, {
+          merchantName: editForm.description,
+          totalAmount: parseFloat(editForm.totalPrice),
+          date: editForm.date
+        });
+      } else {
+        // Individual item
+        await updateExpenseItem(editItem.expenseId, editItem.itemIndex, {
+          description: editForm.description,
+          totalPrice: parseFloat(editForm.totalPrice)
+        });
+        // Also update parent expense date
+        await updateExpense(editItem.expenseId, { date: editForm.date });
+      }
+
+      setShowEditModal(false);
+      setEditItem(null);
+
+      // Reload page to refresh data
+      window.location.reload();
+    } catch (err) {
+      console.error('Update failed:', err);
+      alert(`Failed to update: ${err.message}`);
+    }
+  };
+
   // Get sorted dates
   const sortedDates = Object.keys(tableData.byDate).sort();
   const totalSpending = Object.values(tableData.categoryTotals).reduce((sum, val) => sum + val, 0);
 
   // Line Graph Component for month comparison
   const MonthLineGraph = () => {
+    // Get budget from localStorage
+    const DEFAULT_BUDGET = {
+      Food: 500,
+      Transport: 200,
+      Shopping: 300,
+      Bills: 400,
+      Other: 100
+    };
+
+    const monthlyBudgets = JSON.parse(localStorage.getItem('monthlyBudgets') || '{}');
+    const month1Budget = monthlyBudgets[selectedMonth1] || DEFAULT_BUDGET;
+    const month2Budget = monthlyBudgets[selectedMonth2] || DEFAULT_BUDGET;
+
+    // Calculate total budget for each month
+    const totalMonth1Budget = Object.values(month1Budget).reduce((sum, val) => sum + val, 0);
+    const totalMonth2Budget = Object.values(month2Budget).reduce((sum, val) => sum + val, 0);
+
     // Calculate spending for month 1 by day
     const month1Expenses = expenses.filter(expense => {
       return expense.date && expense.date.startsWith(selectedMonth1);
@@ -180,8 +252,8 @@ function ExpensesSummary({ expenses, dateRange }) {
     const month1Label = month1Date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     const month2Label = month2Date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
-    // Get max day for both months
-    const maxDay = Math.max(...Object.keys(month1ByDay).map(Number), ...Object.keys(month2ByDay).map(Number), 1);
+    // Fixed max day to 31
+    const maxDay = 31;
 
     // Calculate cumulative spending for each day
     const month1Cumulative = {};
@@ -196,8 +268,8 @@ function ExpensesSummary({ expenses, dateRange }) {
       month2Cumulative[day] = month2Running;
     }
 
-    // Find max value for scaling
-    const maxValue = Math.max(month1Running, month2Running, 1);
+    // Use the maximum budget as the Y-axis max value
+    const maxValue = Math.max(totalMonth1Budget, totalMonth2Budget, month1Running, month2Running, 1);
 
     // Create SVG points for line graph
     const width = 600;
@@ -246,11 +318,19 @@ function ExpensesSummary({ expenses, dateRange }) {
         <div className="line-graph-legend">
           <div className="legend-item">
             <span className="legend-line" style={{ backgroundColor: '#667eea' }}></span>
-            <span>{month1Label}</span>
+            <span>{month1Label} Spending</span>
           </div>
           <div className="legend-item">
             <span className="legend-line" style={{ backgroundColor: '#f093fb' }}></span>
-            <span>{month2Label}</span>
+            <span>{month2Label} Spending</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-line" style={{ backgroundColor: '#27ae60', borderStyle: 'dashed' }}></span>
+            <span>{month1Label} Budget</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-line" style={{ backgroundColor: '#e74c3c', borderStyle: 'dashed' }}></span>
+            <span>{month2Label} Budget</span>
           </div>
         </div>
 
@@ -308,6 +388,30 @@ function ExpensesSummary({ expenses, dateRange }) {
               strokeLinejoin="round"
             />
 
+            {/* Budget line for Month 1 */}
+            <line
+              x1={padding}
+              y1={padding + graphHeight - (totalMonth1Budget / maxValue) * graphHeight}
+              x2={width - padding}
+              y2={padding + graphHeight - (totalMonth1Budget / maxValue) * graphHeight}
+              stroke="#27ae60"
+              strokeWidth="2"
+              strokeDasharray="8,4"
+              opacity="0.7"
+            />
+
+            {/* Budget line for Month 2 */}
+            <line
+              x1={padding}
+              y1={padding + graphHeight - (totalMonth2Budget / maxValue) * graphHeight}
+              x2={width - padding}
+              y2={padding + graphHeight - (totalMonth2Budget / maxValue) * graphHeight}
+              stroke="#e74c3c"
+              strokeWidth="2"
+              strokeDasharray="8,4"
+              opacity="0.7"
+            />
+
             {/* X-axis */}
             <line
               x1={padding}
@@ -358,12 +462,20 @@ function ExpensesSummary({ expenses, dateRange }) {
         {/* Totals */}
         <div className="line-graph-totals">
           <div className="total-box" style={{ borderColor: '#667eea' }}>
-            <div className="total-label">{month1Label}</div>
+            <div className="total-label">{month1Label} Spending</div>
             <div className="total-amount">{formatCurrency(month1Running)}</div>
+            <div className="total-budget">Budget: {formatCurrency(totalMonth1Budget)}</div>
+            <div className={`total-status ${month1Running > totalMonth1Budget ? 'over-budget' : 'under-budget'}`}>
+              {month1Running > totalMonth1Budget ? '⚠️ Over Budget' : '✅ Under Budget'}
+            </div>
           </div>
           <div className="total-box" style={{ borderColor: '#f093fb' }}>
-            <div className="total-label">{month2Label}</div>
+            <div className="total-label">{month2Label} Spending</div>
             <div className="total-amount">{formatCurrency(month2Running)}</div>
+            <div className="total-budget">Budget: {formatCurrency(totalMonth2Budget)}</div>
+            <div className={`total-status ${month2Running > totalMonth2Budget ? 'over-budget' : 'under-budget'}`}>
+              {month2Running > totalMonth2Budget ? '⚠️ Over Budget' : '✅ Under Budget'}
+            </div>
           </div>
         </div>
       </div>
@@ -434,7 +546,12 @@ function ExpensesSummary({ expenses, dateRange }) {
                         </div>
                         <div className="mobile-category-items">
                           {items.map((item, index) => (
-                            <div key={`${item.expenseId}-${item.itemIndex}-${index}`} className="mobile-item">
+                            <div
+                              key={`${item.expenseId}-${item.itemIndex}-${index}`}
+                              className="mobile-item"
+                              onClick={() => handleItemClick(item)}
+                              style={{ cursor: 'pointer' }}
+                            >
                               <div className="mobile-item-description">
                                 {item.description || item.merchantName}
                                 {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
@@ -505,7 +622,12 @@ function ExpensesSummary({ expenses, dateRange }) {
                           {items.length > 0 ? (
                             <div className="items-list">
                               {items.map((item, index) => (
-                                <div key={`${item.expenseId}-${item.itemIndex}-${index}`} className="item-entry">
+                                <div
+                                  key={`${item.expenseId}-${item.itemIndex}-${index}`}
+                                  className="item-entry"
+                                  onClick={() => handleItemClick(item)}
+                                  style={{ cursor: 'pointer' }}
+                                >
                                   <div className="item-description">
                                     {item.description || item.merchantName}
                                     {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
@@ -549,6 +671,63 @@ function ExpensesSummary({ expenses, dateRange }) {
           </tbody>
         </table>
       </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Edit Item</h3>
+            <form onSubmit={handleEditSubmit}>
+              <div className="form-group">
+                <label htmlFor="description">Description</label>
+                <input
+                  type="text"
+                  id="description"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="totalPrice">Price</label>
+                <input
+                  type="number"
+                  id="totalPrice"
+                  step="0.01"
+                  value={editForm.totalPrice}
+                  onChange={(e) => setEditForm({ ...editForm, totalPrice: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="date">Date</label>
+                <input
+                  type="date"
+                  id="date"
+                  value={editForm.date}
+                  onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-cancel"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
