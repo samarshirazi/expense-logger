@@ -29,9 +29,11 @@ body {
 }
 
 .shared-timeline-container {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 1000;
+  left: 280px;
+  right: 0;
+  z-index: 1050;
   background: #f5f7fa;
   padding: 20px 30px 10px 30px;
   margin: 0;
@@ -41,6 +43,7 @@ body {
 
 .view-container {
   padding: 30px;
+  padding-top: 100px;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -96,8 +99,10 @@ body {
   }
 
   .shared-timeline-container {
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     padding: 15px;
     margin: 0;
     border-radius: 0;
@@ -105,6 +110,7 @@ body {
 
   .view-container {
     padding: 20px 15px;
+    padding-top: 100px;
   }
 
   .view-header {

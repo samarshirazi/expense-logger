@@ -36,6 +36,7 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
   const [showCalendar, setShowCalendar] = useState(false);
   const [showViewModeMenu, setShowViewModeMenu] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => initialDate || new Date());
+  const [showOptionsButton, setShowOptionsButton] = useState(true);
   const isFirstRender = useRef(true);
 
   useEffect(() => {
@@ -75,6 +76,36 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDate, viewMode]);
+
+  // Scroll detection for options button visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      // Get scroll position from main-content or window
+      const mainContent = document.querySelector('.main-content');
+      const scrollPosition = mainContent
+        ? mainContent.scrollTop
+        : (window.scrollY || document.documentElement.scrollTop);
+
+      // Show button only when at the very top (scroll position = 0)
+      if (scrollPosition === 0) {
+        setShowOptionsButton(true);
+      } else {
+        setShowOptionsButton(false);
+      }
+    };
+
+    // Try to attach scroll listener to main-content first, fallback to window
+    const mainContent = document.querySelector('.main-content');
+    const scrollElement = mainContent || window;
+
+    scrollElement.addEventListener('scroll', handleScroll);
+
+    // Check initial scroll position
+    handleScroll();
+
+    // Cleanup
+    return () => scrollElement.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navigatePrevious = () => {
     const newDate = new Date(currentDate);
@@ -184,9 +215,9 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
 
   return (
     <div className="time-navigator">
-      {/* Mobile Menu Button */}
+      {/* Mobile Menu Button - positioned above timeline */}
       <button
-        className="mobile-menu-toggle"
+        className={`mobile-menu-toggle ${showOptionsButton ? 'visible' : 'hidden'}`}
         onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(!isMobileMenuOpen)}
         aria-label="Toggle menu"
       >
