@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import ReceiptUpload from './components/ReceiptUpload';
@@ -32,7 +32,8 @@ function App() {
   const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'expenses', 'categories', 'upload', 'manual'
   const [showSummary, setShowSummary] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showOptionsButton, setShowOptionsButton] = useState(true);
+  const [showOptionsButton, setShowOptionsButton] = useState(false);
+  const scrollListenerAttached = useRef(false);
 
   // Shared timeline state for all sections
   const [sharedTimelineState, setSharedTimelineState] = useState({
@@ -147,10 +148,16 @@ function App() {
 
   // Scroll detection for options button visibility
   useEffect(() => {
+    // Skip if listener already attached (prevents double-attach in React Strict Mode)
+    if (scrollListenerAttached.current) {
+      console.log('⚠️ Scroll listener already attached, skipping');
+      return;
+    }
+
     let previousScrollPosition = 0;
     let isAtTop = true; // Track if we're currently at the top
     let hasStartedScrolling = false; // Track if user has started scrolling from top
-    let buttonVisible = showOptionsButton; // Local copy to avoid triggering re-renders
+    let buttonVisible = false; // Start hidden
 
     const handleScroll = () => {
       const mainContent = document.querySelector('.main-content');
@@ -170,22 +177,22 @@ function App() {
 
       // State machine for Option B behavior:
       // 1. Start at top (button hidden)
-      // 2. User scrolls down slightly -> show button
-      // 3. User continues scrolling -> hide button
+      // 2. User scrolls down slightly (1-50px) -> show button
+      // 3. User continues scrolling (50+px) -> hide button
       // 4. Button stays hidden until user returns to top AND scrolls down again
 
       if (scrollPosition === 0) {
         // We're at the top
         if (!isAtTop) {
-          // Just returned to top - reset state
-          console.log('🔄 RESET: Returned to top');
+          // Just returned to top - reset state but keep button hidden
+          console.log('🔄 RESET: Returned to top, ready for next scroll');
           isAtTop = true;
           hasStartedScrolling = false;
         }
       } else if (scrollPosition > 0 && scrollPosition < 50) {
-        // Scrolled down slightly (0-50px) - show button
+        // Scrolled down slightly (1-50px) - show button
         if (isAtTop && scrollingDown && !hasStartedScrolling) {
-          console.log('✅ SHOWING BUTTON: Started scrolling from top');
+          console.log('✅ SHOWING BUTTON: Started scrolling from top (pos:', scrollPosition, ')');
           setShowOptionsButton(true);
           buttonVisible = true;
           hasStartedScrolling = true;
@@ -194,7 +201,7 @@ function App() {
       } else if (scrollPosition >= 50) {
         // Scrolled down more than 50px - hide button
         if (buttonVisible) {
-          console.log('❌ HIDING BUTTON: Scrolled past threshold');
+          console.log('❌ HIDING BUTTON: Scrolled past 50px threshold (pos:', scrollPosition, ')');
           setShowOptionsButton(false);
           buttonVisible = false;
         }
@@ -216,6 +223,7 @@ function App() {
 
       console.log('📡 Attaching scroll listener to: main-content');
       mainContent.addEventListener('scroll', handleScroll);
+      scrollListenerAttached.current = true;
 
       // Check initial scroll position
       handleScroll();
@@ -227,9 +235,10 @@ function App() {
     // Cleanup
     return () => {
       const mainContent = document.querySelector('.main-content');
-      if (mainContent) {
+      if (mainContent && scrollListenerAttached.current) {
         console.log('🧹 Cleaning up scroll listener');
         mainContent.removeEventListener('scroll', handleScroll);
+        scrollListenerAttached.current = false;
       }
     };
   }, []); // Empty dependency array - only run once on mount
