@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import ReceiptUpload from './components/ReceiptUpload';
@@ -33,7 +33,12 @@ function App() {
   const [showSummary, setShowSummary] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showOptionsButton, setShowOptionsButton] = useState(true);
-  const scrollListenerAttached = useRef(false);
+  const scrollStateRef = useRef({
+    isAtTop: true,
+    hasScrolledAwayOnce: false,
+    buttonVisible: true,
+    previousScrollPosition: 0
+  });
 
   // Shared timeline state for all sections
   const [sharedTimelineState, setSharedTimelineState] = useState({
@@ -146,105 +151,81 @@ function App() {
     setDateRange(range);
   };
 
-  // Scroll detection for options button visibility
-  useEffect(() => {
-    // Skip if listener already attached (prevents double-attach in React Strict Mode)
-    if (scrollListenerAttached.current) {
-      console.log('⚠️ Scroll listener already attached, skipping');
-      return;
+  // Scroll handler using useCallback for stable reference
+  const handleScroll = useCallback(() => {
+    const mainContent = document.querySelector('.main-content');
+    if (!mainContent) return;
+
+    const state = scrollStateRef.current;
+    const scrollPosition = mainContent.scrollTop;
+    const scrollingDown = scrollPosition > state.previousScrollPosition;
+
+    console.log('📊 Scroll:', scrollPosition, 'px | Down:', scrollingDown, '| AtTop:', state.isAtTop, '| HasScrolled:', state.hasScrolledAwayOnce, '| BtnVisible:', state.buttonVisible);
+
+    // Option B: Button visible initially, hides on scroll, reappears only when returning to top and scrolling again
+
+    if (scrollPosition === 0) {
+      // At the very top
+      if (!state.isAtTop) {
+        console.log('🔄 Back to top - ready for next scroll');
+        state.isAtTop = true;
+        state.hasScrolledAwayOnce = true;
+      }
+    } else if (scrollPosition > 0 && scrollPosition <= 20) {
+      // Just started scrolling from top (0-20px)
+      if (state.isAtTop && scrollingDown) {
+        if (state.hasScrolledAwayOnce) {
+          // Subsequent scroll from top - show button
+          console.log('✅ SHOW button (scrolling from top again)');
+          setShowOptionsButton(true);
+          state.buttonVisible = true;
+        } else {
+          // First scroll ever - hide button
+          console.log('❌ HIDE button (first scroll)');
+          setShowOptionsButton(false);
+          state.buttonVisible = false;
+        }
+      }
+      state.isAtTop = false;
+    } else if (scrollPosition > 20) {
+      // Scrolled past threshold - ensure button is hidden
+      if (state.buttonVisible) {
+        console.log('❌ HIDE button (past threshold)');
+        setShowOptionsButton(false);
+        state.buttonVisible = false;
+      }
+      state.isAtTop = false;
     }
 
-    let previousScrollPosition = 0;
-    let isAtTop = true;
-    let hasScrolledAwayOnce = false; // Track if user has scrolled away at least once
-    let buttonVisible = true; // Button starts visible
+    state.previousScrollPosition = scrollPosition;
+  }, []);
 
-    const handleScroll = () => {
-      const mainContent = document.querySelector('.main-content');
-      if (!mainContent) return;
+  // Attach scroll listener
+  useEffect(() => {
+    const mainContent = document.querySelector('.main-content');
 
-      const scrollPosition = mainContent.scrollTop;
-      const scrollingDown = scrollPosition > previousScrollPosition;
-
-      console.log('Scroll event:', {
-        scrollPosition,
-        previousScrollPosition,
-        scrollingDown,
-        isAtTop,
-        hasScrolledAwayOnce,
-        buttonVisible
-      });
-
-      // State machine for Option B behavior:
-      // 1. Start: button visible, at top
-      // 2. Scroll down (any amount) -> hide button
-      // 3. Return to top -> button stays hidden
-      // 4. Scroll down from top again -> show button briefly
-      // 5. Continue scrolling -> hide button again
-
-      if (scrollPosition === 0) {
-        // At the top
-        if (!isAtTop) {
-          // Just returned to top after scrolling away
-          console.log('🔄 RESET: Returned to top, button stays hidden until scroll down');
-          isAtTop = true;
-          hasScrolledAwayOnce = true; // Mark that we've been away once
+    if (!mainContent) {
+      console.log('⚠️ main-content not ready, waiting...');
+      const timer = setTimeout(() => {
+        const mc = document.querySelector('.main-content');
+        if (mc) {
+          console.log('📡 Attaching scroll listener');
+          mc.addEventListener('scroll', handleScroll, { passive: true });
+          handleScroll(); // Check initial position
         }
-      } else if (scrollPosition > 0 && scrollPosition < 10) {
-        // Started scrolling from top (0-10px range)
-        if (isAtTop && scrollingDown) {
-          if (hasScrolledAwayOnce) {
-            // This is a subsequent scroll from top - show button
-            console.log('✅ SHOWING BUTTON: Started scrolling from top again (pos:', scrollPosition, ')');
-            setShowOptionsButton(true);
-            buttonVisible = true;
-          }
-        }
-        isAtTop = false;
-      } else if (scrollPosition >= 10) {
-        // Scrolled past 10px - hide button
-        if (buttonVisible) {
-          console.log('❌ HIDING BUTTON: Scrolled past 10px threshold (pos:', scrollPosition, ')');
-          setShowOptionsButton(false);
-          buttonVisible = false;
-        }
-        isAtTop = false;
-      }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
 
-      previousScrollPosition = scrollPosition;
-    };
+    console.log('📡 Attaching scroll listener immediately');
+    mainContent.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Check initial position
 
-    // Wait for DOM to be ready, then attach scroll listener
-    const attachListener = () => {
-      const mainContent = document.querySelector('.main-content');
-
-      if (!mainContent) {
-        console.log('⚠️ main-content not found, retrying in 100ms...');
-        setTimeout(attachListener, 100);
-        return;
-      }
-
-      console.log('📡 Attaching scroll listener to: main-content');
-      mainContent.addEventListener('scroll', handleScroll);
-      scrollListenerAttached.current = true;
-
-      // Check initial scroll position
-      handleScroll();
-    };
-
-    // Start attaching listener
-    attachListener();
-
-    // Cleanup
     return () => {
-      const mainContent = document.querySelector('.main-content');
-      if (mainContent && scrollListenerAttached.current) {
-        console.log('🧹 Cleaning up scroll listener');
-        mainContent.removeEventListener('scroll', handleScroll);
-        scrollListenerAttached.current = false;
-      }
+      console.log('🧹 Cleanup scroll listener');
+      mainContent.removeEventListener('scroll', handleScroll);
     };
-  }, []); // Empty dependency array - only run once on mount
+  }, [handleScroll]);
 
   // Close expense details when navigating away from upload/manual views
   useEffect(() => {
