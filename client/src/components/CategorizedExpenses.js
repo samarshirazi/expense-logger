@@ -10,14 +10,6 @@ import {
 } from '../services/apiService';
 import './CategorizedExpenses.css';
 
-// Helper function to format date in local timezone (avoids timezone shift)
-const toLocalDateString = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
 const CATEGORIES = [
   { id: 'Food', name: 'Food', icon: '🍔', color: '#ff6b6b' },
   { id: 'Transport', name: 'Transport', icon: '🚗', color: '#4ecdc4' },
