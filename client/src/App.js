@@ -149,6 +149,7 @@ function App() {
   useEffect(() => {
     let previousScrollPosition = 0;
     let wasAtTop = true;
+    let hasScrolledDown = false;
 
     const handleScroll = () => {
       // Get scroll position from main-content or window
@@ -161,24 +162,39 @@ function App() {
       const scrollingDown = scrollPosition > previousScrollPosition;
       const currentlyAtTop = scrollPosition === 0;
 
-      console.log('Scroll event:', { scrollPosition, scrollingDown, currentlyAtTop, showOptionsButton, wasAtTop });
+      console.log('Scroll event:', {
+        scrollPosition,
+        previousScrollPosition,
+        scrollingDown,
+        currentlyAtTop,
+        showOptionsButton,
+        wasAtTop,
+        hasScrolledDown
+      });
 
-      // Option B: Show button when at top AND starting to scroll down
-      if (currentlyAtTop && scrollingDown && wasAtTop && !showOptionsButton) {
-        // User is at top and starting to scroll down - show the button
-        console.log('✅ Showing button: at top and scrolling down');
+      // State machine for Option B behavior
+      if (currentlyAtTop && !hasScrolledDown) {
+        // At top, haven't started scrolling down yet
+        wasAtTop = true;
+        console.log('📍 State: At top, ready to scroll down');
+      } else if (currentlyAtTop && scrollingDown && wasAtTop) {
+        // Starting to scroll down from top - show button
+        console.log('✅ SHOWING BUTTON: at top and starting to scroll down');
         setShowOptionsButton(true);
-      } else if (scrollPosition > 0) {
-        // User has scrolled away from top - hide the button
+        hasScrolledDown = true;
+      } else if (scrollPosition > 0 && !currentlyAtTop) {
+        // Scrolled away from top - hide button
         if (showOptionsButton) {
-          console.log('❌ Hiding button: scrolled away from top');
+          console.log('❌ HIDING BUTTON: scrolled away from top');
           setShowOptionsButton(false);
         }
         wasAtTop = false;
-      } else if (currentlyAtTop && !scrollingDown) {
-        // User scrolled back to top (scrolling up)
+        hasScrolledDown = false;
+      } else if (currentlyAtTop && !scrollingDown && !hasScrolledDown) {
+        // Returned to top (scrolling up) - reset state
         wasAtTop = true;
-        console.log('📍 At top, waiting for scroll down');
+        hasScrolledDown = false;
+        console.log('🔄 RESET: Returned to top, waiting for scroll down');
       }
 
       previousScrollPosition = scrollPosition;
@@ -188,13 +204,17 @@ function App() {
     const mainContent = document.querySelector('.main-content');
     const scrollElement = mainContent || window;
 
+    console.log('📡 Attaching scroll listener to:', scrollElement === mainContent ? 'main-content' : 'window');
     scrollElement.addEventListener('scroll', handleScroll);
 
     // Check initial scroll position
     handleScroll();
 
     // Cleanup
-    return () => scrollElement.removeEventListener('scroll', handleScroll);
+    return () => {
+      console.log('🧹 Cleaning up scroll listener');
+      scrollElement.removeEventListener('scroll', handleScroll);
+    };
   }, [showOptionsButton]);
 
   // Close expense details when navigating away from upload/manual views
