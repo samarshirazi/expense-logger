@@ -258,15 +258,6 @@ function App() {
 
   return (
     <div className="app-layout">
-      {/* Options Button - positioned above timeline navigation */}
-      <button
-        className={`options-toggle-btn ${showOptionsButton ? 'visible' : 'hidden'}`}
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        aria-label="Toggle options menu"
-      >
-        <span className="options-icon">{isMobileMenuOpen ? '✕' : '⚙️'}</span>
-      </button>
-
       <Sidebar
         activeView={activeView}
         onViewChange={setActiveView}
@@ -294,6 +285,15 @@ function App() {
         {/* Shared TimeNavigator for Dashboard, Expenses, Categories, and Manage */}
         {['dashboard', 'expenses', 'categories', 'manage'].includes(activeView) && (
           <div className={`shared-timeline-container ${showOptionsButton ? 'with-button' : 'without-button'}`}>
+            {/* Options Button - inside timeline container, positioned above TimeNavigator */}
+            <button
+              className={`options-toggle-btn ${showOptionsButton ? 'visible' : 'hidden'}`}
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle options menu"
+            >
+              <span className="options-icon">{isMobileMenuOpen ? '✕' : '⚙️'}</span>
+            </button>
+
             <TimeNavigator
               onRangeChange={handleDateRangeChange}
               expenses={expenses}

@@ -21,12 +21,12 @@ body {
   position: relative;
 }
 
-/* Options Toggle Button - positioned above timeline */
+/* Options Toggle Button - inside timeline container */
 .options-toggle-btn {
-  position: fixed;
-  top: 15px;
-  left: 295px;
-  z-index: 1100;
+  position: absolute;
+  top: -60px;
+  left: 30px;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -38,23 +38,28 @@ body {
   border-radius: 12px;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+  transition: all 0.3s ease;
 }
 
 .options-toggle-btn.visible {
-  transform: translateY(0);
   opacity: 1;
+  transform: translateY(0);
   pointer-events: auto;
 }
 
 .options-toggle-btn.hidden {
-  transform: translateY(-80px);
   opacity: 0;
+  transform: translateY(-20px);
   pointer-events: none;
 }
 
 .options-toggle-btn:hover {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.options-toggle-btn.hidden:hover {
+  transform: translateY(-20px);
 }
 
 .options-icon {
@@ -74,23 +79,24 @@ body {
 
 .shared-timeline-container {
   position: fixed;
+  top: 0;
   left: 280px;
   right: 0;
   z-index: 1050;
   background: #f5f7fa;
-  padding: 20px 30px 10px 30px;
+  padding: 80px 30px 10px 30px;
   margin: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border-radius: 0;
-  transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: padding-top 0.3s ease;
 }
 
 .shared-timeline-container.with-button {
-  top: 75px;
+  padding-top: 80px;
 }
 
 .shared-timeline-container.without-button {
-  top: 0;
+  padding-top: 20px;
 }
 
 .view-container {
@@ -147,6 +153,7 @@ body {
 @media (max-width: 768px) {
   .options-toggle-btn {
     left: 15px;
+    top: -60px;
   }
 
   .main-content {
@@ -156,19 +163,20 @@ body {
 
   .shared-timeline-container {
     position: fixed;
+    top: 0;
     left: 0;
     right: 0;
-    padding: 15px;
+    padding: 70px 15px 10px 15px;
     margin: 0;
     border-radius: 0;
   }
 
   .shared-timeline-container.with-button {
-    top: 75px;
+    padding-top: 70px;
   }
 
   .shared-timeline-container.without-button {
-    top: 0;
+    padding-top: 15px;
   }
 
   .view-container {
