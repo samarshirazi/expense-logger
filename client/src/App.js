@@ -150,6 +150,7 @@ function App() {
     let previousScrollPosition = 0;
     let wasAtTop = true;
     let hasScrolledDown = false;
+    let currentButtonState = showOptionsButton;
 
     const handleScroll = () => {
       // Get scroll position from main-content or window
@@ -167,7 +168,7 @@ function App() {
         previousScrollPosition,
         scrollingDown,
         currentlyAtTop,
-        showOptionsButton,
+        currentButtonState,
         wasAtTop,
         hasScrolledDown
       });
@@ -181,12 +182,14 @@ function App() {
         // Starting to scroll down from top - show button
         console.log('✅ SHOWING BUTTON: at top and starting to scroll down');
         setShowOptionsButton(true);
+        currentButtonState = true;
         hasScrolledDown = true;
       } else if (scrollPosition > 0 && !currentlyAtTop) {
         // Scrolled away from top - hide button
-        if (showOptionsButton) {
+        if (currentButtonState) {
           console.log('❌ HIDING BUTTON: scrolled away from top');
           setShowOptionsButton(false);
+          currentButtonState = false;
         }
         wasAtTop = false;
         hasScrolledDown = false;
@@ -200,22 +203,35 @@ function App() {
       previousScrollPosition = scrollPosition;
     };
 
-    // Try to attach scroll listener to main-content first, fallback to window
-    const mainContent = document.querySelector('.main-content');
-    const scrollElement = mainContent || window;
+    // Wait for DOM to be ready, then attach scroll listener
+    const attachListener = () => {
+      const mainContent = document.querySelector('.main-content');
 
-    console.log('📡 Attaching scroll listener to:', scrollElement === mainContent ? 'main-content' : 'window');
-    scrollElement.addEventListener('scroll', handleScroll);
+      if (!mainContent) {
+        console.log('⚠️ main-content not found, retrying in 100ms...');
+        setTimeout(attachListener, 100);
+        return;
+      }
 
-    // Check initial scroll position
-    handleScroll();
+      console.log('📡 Attaching scroll listener to: main-content');
+      mainContent.addEventListener('scroll', handleScroll);
+
+      // Check initial scroll position
+      handleScroll();
+    };
+
+    // Start attaching listener
+    attachListener();
 
     // Cleanup
     return () => {
-      console.log('🧹 Cleaning up scroll listener');
-      scrollElement.removeEventListener('scroll', handleScroll);
+      const mainContent = document.querySelector('.main-content');
+      if (mainContent) {
+        console.log('🧹 Cleaning up scroll listener');
+        mainContent.removeEventListener('scroll', handleScroll);
+      }
     };
-  }, [showOptionsButton]);
+  }, []); // Empty dependency array - only run once on mount
 
   // Close expense details when navigating away from upload/manual views
   useEffect(() => {
