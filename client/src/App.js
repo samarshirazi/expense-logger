@@ -148,56 +148,57 @@ function App() {
   // Scroll detection for options button visibility
   useEffect(() => {
     let previousScrollPosition = 0;
-    let wasAtTop = true;
-    let hasScrolledDown = false;
-    let currentButtonState = showOptionsButton;
+    let isAtTop = true; // Track if we're currently at the top
+    let hasStartedScrolling = false; // Track if user has started scrolling from top
+    let buttonVisible = showOptionsButton; // Local copy to avoid triggering re-renders
 
     const handleScroll = () => {
-      // Get scroll position from main-content or window
       const mainContent = document.querySelector('.main-content');
-      const scrollPosition = mainContent
-        ? mainContent.scrollTop
-        : (window.scrollY || document.documentElement.scrollTop);
+      if (!mainContent) return;
 
-      // Determine scroll direction
+      const scrollPosition = mainContent.scrollTop;
       const scrollingDown = scrollPosition > previousScrollPosition;
-      const currentlyAtTop = scrollPosition === 0;
 
       console.log('Scroll event:', {
         scrollPosition,
         previousScrollPosition,
         scrollingDown,
-        currentlyAtTop,
-        currentButtonState,
-        wasAtTop,
-        hasScrolledDown
+        isAtTop,
+        hasStartedScrolling,
+        buttonVisible
       });
 
-      // State machine for Option B behavior
-      if (currentlyAtTop && !hasScrolledDown) {
-        // At top, haven't started scrolling down yet
-        wasAtTop = true;
-        console.log('📍 State: At top, ready to scroll down');
-      } else if (currentlyAtTop && scrollingDown && wasAtTop) {
-        // Starting to scroll down from top - show button
-        console.log('✅ SHOWING BUTTON: at top and starting to scroll down');
-        setShowOptionsButton(true);
-        currentButtonState = true;
-        hasScrolledDown = true;
-      } else if (scrollPosition > 0 && !currentlyAtTop) {
-        // Scrolled away from top - hide button
-        if (currentButtonState) {
-          console.log('❌ HIDING BUTTON: scrolled away from top');
-          setShowOptionsButton(false);
-          currentButtonState = false;
+      // State machine for Option B behavior:
+      // 1. Start at top (button hidden)
+      // 2. User scrolls down slightly -> show button
+      // 3. User continues scrolling -> hide button
+      // 4. Button stays hidden until user returns to top AND scrolls down again
+
+      if (scrollPosition === 0) {
+        // We're at the top
+        if (!isAtTop) {
+          // Just returned to top - reset state
+          console.log('🔄 RESET: Returned to top');
+          isAtTop = true;
+          hasStartedScrolling = false;
         }
-        wasAtTop = false;
-        hasScrolledDown = false;
-      } else if (currentlyAtTop && !scrollingDown && !hasScrolledDown) {
-        // Returned to top (scrolling up) - reset state
-        wasAtTop = true;
-        hasScrolledDown = false;
-        console.log('🔄 RESET: Returned to top, waiting for scroll down');
+      } else if (scrollPosition > 0 && scrollPosition < 50) {
+        // Scrolled down slightly (0-50px) - show button
+        if (isAtTop && scrollingDown && !hasStartedScrolling) {
+          console.log('✅ SHOWING BUTTON: Started scrolling from top');
+          setShowOptionsButton(true);
+          buttonVisible = true;
+          hasStartedScrolling = true;
+        }
+        isAtTop = false;
+      } else if (scrollPosition >= 50) {
+        // Scrolled down more than 50px - hide button
+        if (buttonVisible) {
+          console.log('❌ HIDING BUTTON: Scrolled past threshold');
+          setShowOptionsButton(false);
+          buttonVisible = false;
+        }
+        isAtTop = false;
       }
 
       previousScrollPosition = scrollPosition;
