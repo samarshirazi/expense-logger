@@ -45,16 +45,44 @@
   position: relative;
 }
 
-.view-mode-selector {
-  display: flex;
-  gap: 8px;
-  background: #f8f9fa;
-  padding: 4px;
-  border-radius: 10px;
+.adjust-btn-container {
+  position: relative;
 }
 
-.view-mode-selector button {
+.adjust-btn {
   padding: 10px 20px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-width: 100px;
+}
+
+.adjust-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+}
+
+.view-mode-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  min-width: 150px;
+  animation: slideDown 0.2s ease;
+}
+
+.view-mode-menu button {
+  width: 100%;
+  padding: 10px 16px;
   background: transparent;
   border: none;
   border-radius: 8px;
@@ -63,13 +91,19 @@
   font-weight: 600;
   color: #2c3e50;
   transition: all 0.3s ease;
+  text-align: left;
+  margin-bottom: 4px;
 }
 
-.view-mode-selector button:hover {
+.view-mode-menu button:last-child {
+  margin-bottom: 0;
+}
+
+.view-mode-menu button:hover {
   background: rgba(102, 126, 234, 0.1);
 }
 
-.view-mode-selector button.active {
+.view-mode-menu button.active {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
@@ -131,23 +165,6 @@
   font-size: 15px;
   font-weight: 700;
   color: #667eea;
-}
-
-.today-btn {
-  padding: 10px 20px;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.today-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
 }
 
 .calendar-popup {
@@ -431,14 +448,6 @@
     padding-left: 60px; /* Space for menu button */
   }
 
-  .view-mode-selector {
-    width: 100%;
-  }
-
-  .view-mode-selector button {
-    flex: 1;
-  }
-
   .period-controls {
     width: 100%;
   }
@@ -448,8 +457,17 @@
     flex: 1;
   }
 
-  .today-btn {
+  .adjust-btn-container {
     width: 100%;
+  }
+
+  .adjust-btn {
+    width: 100%;
+  }
+
+  .view-mode-menu {
+    left: 0;
+    right: 0;
   }
 
   .calendar-popup {

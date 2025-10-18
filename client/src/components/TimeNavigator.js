@@ -34,6 +34,7 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
   };
 
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showViewModeMenu, setShowViewModeMenu] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => initialDate || new Date());
   const isFirstRender = useRef(true);
 
@@ -97,10 +98,6 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
       newDate.setDate(newDate.getDate() + 1);
     }
     setCurrentDate(newDate);
-  };
-
-  const goToToday = () => {
-    setCurrentDate(new Date());
   };
 
   const formatCurrentPeriod = () => {
@@ -197,27 +194,6 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
       </button>
 
       <div className="navigator-header">
-        <div className="view-mode-selector">
-          <button
-            className={viewMode === 'month' ? 'active' : ''}
-            onClick={() => setViewMode('month')}
-          >
-            📅 Month
-          </button>
-          <button
-            className={viewMode === 'week' ? 'active' : ''}
-            onClick={() => setViewMode('week')}
-          >
-            📆 Week
-          </button>
-          <button
-            className={viewMode === 'day' ? 'active' : ''}
-            onClick={() => setViewMode('day')}
-          >
-            📆 Day
-          </button>
-        </div>
-
         <div className="period-controls">
           <button className="nav-btn" onClick={navigatePrevious} title="Previous">
             ◀
@@ -233,9 +209,43 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
           </button>
         </div>
 
-        <button className="today-btn" onClick={goToToday}>
-          Today
-        </button>
+        <div className="adjust-btn-container">
+          <button className="adjust-btn" onClick={() => setShowViewModeMenu(!showViewModeMenu)}>
+            Adjust
+          </button>
+
+          {showViewModeMenu && (
+            <div className="view-mode-menu">
+              <button
+                className={viewMode === 'month' ? 'active' : ''}
+                onClick={() => {
+                  setViewMode('month');
+                  setShowViewModeMenu(false);
+                }}
+              >
+                📅 Month
+              </button>
+              <button
+                className={viewMode === 'week' ? 'active' : ''}
+                onClick={() => {
+                  setViewMode('week');
+                  setShowViewModeMenu(false);
+                }}
+              >
+                📆 Week
+              </button>
+              <button
+                className={viewMode === 'day' ? 'active' : ''}
+                onClick={() => {
+                  setViewMode('day');
+                  setShowViewModeMenu(false);
+                }}
+              >
+                📆 Day
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {showCalendar && (
