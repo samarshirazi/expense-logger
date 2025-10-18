@@ -199,12 +199,14 @@ function App() {
         {/* Shared TimeNavigator for Dashboard, Expenses, Categories, and Manage */}
         {['dashboard', 'expenses', 'categories', 'manage'].includes(activeView) && (
           <div className="shared-timeline-container">
-            <TimeNavigator
-              onRangeChange={handleDateRangeChange}
-              expenses={expenses}
-              timelineState={sharedTimelineState}
-              onTimelineStateChange={setSharedTimelineState}
-            />
+            <div className="timeline-content">
+              <TimeNavigator
+                onRangeChange={handleDateRangeChange}
+                expenses={expenses}
+                timelineState={sharedTimelineState}
+                onTimelineStateChange={setSharedTimelineState}
+              />
+            </div>
           </div>
         )}
 

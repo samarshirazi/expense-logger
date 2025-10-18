@@ -29,9 +29,18 @@ body {
 }
 
 .shared-timeline-container {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
   background: #f5f7fa;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.timeline-content {
   padding: 20px 30px 10px 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .view-container {
@@ -87,16 +96,23 @@ body {
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0;
-    padding-top: 0; /* Remove padding from main-content */
+    padding-top: 0;
   }
 
   .shared-timeline-container {
-    padding: 15px;
+    position: sticky;
     top: 0;
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .timeline-content {
+    padding: 15px 15px 15px 70px; /* Left padding for menu button */
   }
 
   .view-container {
-    padding: 20px 15px; /* Reduced top padding since timeline is sticky */
+    padding: 20px 15px;
   }
 
   .view-header {
