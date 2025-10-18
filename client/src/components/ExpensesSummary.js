@@ -269,12 +269,12 @@ function ExpensesSummary({ expenses, dateRange }) {
     }
 
     // Use the maximum budget as the Y-axis max value
-    const maxValue = Math.max(totalMonth1Budget, totalMonth2Budget, month1Running, month2Running, 1);
+    const maxValue = Math.max(totalMonth1Budget, totalMonth2Budget, month1Running, month2Running, 100);
 
     // Create SVG points for line graph
     const width = 600;
     const height = 300;
-    const padding = 40;
+    const padding = 50;
     const graphWidth = width - (padding * 2);
     const graphHeight = height - (padding * 2);
 
@@ -354,18 +354,42 @@ function ExpensesSummary({ expenses, dateRange }) {
 
             {/* Y-axis labels */}
             <g className="y-axis-labels">
-              {[0, 0.25, 0.5, 0.75, 1].map(ratio => (
-                <text
-                  key={ratio}
-                  x={padding - 10}
-                  y={padding + graphHeight * (1 - ratio) + 5}
-                  textAnchor="end"
-                  fontSize="12"
-                  fill="#666"
-                >
-                  {formatCurrency(maxValue * ratio)}
-                </text>
-              ))}
+              {[0, 0.25, 0.5, 0.75, 1].map(ratio => {
+                const value = maxValue * ratio;
+                return (
+                  <text
+                    key={ratio}
+                    x={padding - 5}
+                    y={padding + graphHeight * (1 - ratio) + 4}
+                    textAnchor="end"
+                    fontSize="11"
+                    fill="#666"
+                    fontWeight="500"
+                  >
+                    ${Math.round(value).toLocaleString()}
+                  </text>
+                );
+              })}
+            </g>
+
+            {/* X-axis day labels */}
+            <g className="x-axis-labels">
+              {[1, 5, 10, 15, 20, 25, 31].map(day => {
+                const x = padding + ((day - 1) / (maxDay - 1)) * graphWidth;
+                return (
+                  <text
+                    key={day}
+                    x={x}
+                    y={height - padding + 20}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fill="#666"
+                    fontWeight="500"
+                  >
+                    {day}
+                  </text>
+                );
+              })}
             </g>
 
             {/* Month 1 line */}

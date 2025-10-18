@@ -191,7 +191,7 @@
   display: none;
   position: fixed;
   top: 15px;
-  left: 15px;
+  right: 15px;
   z-index: 1100;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -243,16 +243,15 @@
     width: 280px;
     height: 100vh;
     position: fixed;
-    right: -280px;
-    left: auto;
+    left: -280px;
     top: 0;
     border-radius: 0;
-    transition: right 0.3s ease;
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+    transition: left 0.3s ease;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
   }
 
   .sidebar.mobile-open {
-    right: 0;
+    left: 0;
   }
 
   .sidebar-header {

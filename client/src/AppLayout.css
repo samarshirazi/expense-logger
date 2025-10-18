@@ -29,9 +29,6 @@ body {
 }
 
 .shared-timeline-container {
-  position: sticky;
-  top: 0;
-  z-index: 100;
   background: #f5f7fa;
   padding: 20px 30px 10px 30px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
