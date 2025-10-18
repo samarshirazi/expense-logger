@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import TimeNavigator from './TimeNavigator';
 import './BudgetManage.css';
 
 // Helper function to format date in local timezone
@@ -39,18 +38,7 @@ const DEFAULT_BUDGET = {
   Other: 100
 };
 
-function BudgetManage({ expenses, timelineState, onTimelineStateChange }) {
-  const [dateRange, setDateRange] = useState(() => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const startOfMonth = new Date(year, month, 1);
-    const endOfMonth = new Date(year, month + 1, 0);
-    return {
-      startDate: toLocalDateString(startOfMonth),
-      endDate: toLocalDateString(endOfMonth)
-    };
-  });
+function BudgetManage({ expenses, dateRange }) {
 
   // Per-month budgets stored as { "2024-01": { Food: 500, ... }, "2024-02": { ... } }
   const [monthlyBudgets, setMonthlyBudgets] = useState(() => {
@@ -68,7 +56,7 @@ function BudgetManage({ expenses, timelineState, onTimelineStateChange }) {
   const [viewMode, setViewMode] = useState('overview'); // 'overview', 'pie'
 
   // Get current month based on selected date range
-  const currentMonth = getMonthKey(dateRange.startDate);
+  const currentMonth = getMonthKey(dateRange?.startDate || toLocalDateString(new Date()));
 
   // Get budget for current month (or default if not set)
   const currentBudget = monthlyBudgets[currentMonth] || { ...DEFAULT_BUDGET };
@@ -112,7 +100,7 @@ function BudgetManage({ expenses, timelineState, onTimelineStateChange }) {
     const monthStartDate = currentMonth + '-01';
     const filteredExpenses = expenses.filter(expense => {
       if (!expense.date) return false;
-      if (!dateRange.startDate || !dateRange.endDate) return true;
+      if (!dateRange?.startDate || !dateRange?.endDate) return true;
       // Filter from start of month to selected end date for cumulative totals
       return expense.date >= monthStartDate && expense.date <= dateRange.endDate;
     });
@@ -139,10 +127,6 @@ function BudgetManage({ expenses, timelineState, onTimelineStateChange }) {
 
     setRangeSpending(rangeTotals);
   }, [expenses, dateRange, currentMonth]);
-
-  const handleDateRangeChange = (range) => {
-    setDateRange(range);
-  };
 
   const handleSaveBudgets = () => {
     const updatedBudgets = {
@@ -204,7 +188,7 @@ function BudgetManage({ expenses, timelineState, onTimelineStateChange }) {
   monthEndDate.setMonth(monthEndDate.getMonth() + 1);
   monthEndDate.setDate(0);
   const monthEnd = toLocalDateString(monthEndDate);
-  const isViewingFullMonth = dateRange.startDate === monthStart && dateRange.endDate === monthEnd;
+  const isViewingFullMonth = dateRange?.startDate === monthStart && dateRange?.endDate === monthEnd;
 
   // For overview display: use range spending for daily/weekly views, month spending for full month
   const displaySpending = isViewingFullMonth ? totalMonthSpending : totalRangeSpending;
@@ -301,13 +285,6 @@ function BudgetManage({ expenses, timelineState, onTimelineStateChange }) {
           Set monthly budgets and track your spending - {currentMonth}
         </p>
       </div>
-
-      <TimeNavigator
-        onRangeChange={handleDateRangeChange}
-        expenses={expenses}
-        timelineState={timelineState}
-        onTimelineStateChange={onTimelineStateChange}
-      />
 
       {/* View Mode Toggle */}
       <div className="view-mode-selector">

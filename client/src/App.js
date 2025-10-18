@@ -10,9 +10,18 @@ import BudgetManage from './components/BudgetManage';
 import SpendingSummary from './components/SpendingSummary';
 import Auth from './components/Auth';
 import NotificationPrompt from './components/NotificationPrompt';
+import TimeNavigator from './components/TimeNavigator';
 import { getExpenses } from './services/apiService';
 import authService from './services/authService';
 import './AppLayout.css';
+
+// Helper function to format date in local timezone
+const toLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 function App() {
   const [expenses, setExpenses] = useState([]);
@@ -23,12 +32,23 @@ function App() {
   const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'expenses', 'categories', 'upload', 'manual'
   const [showSummary, setShowSummary] = useState(false);
 
-  // Separate timeline states for each section
-  const [timelineStates, setTimelineStates] = useState({
-    dashboard: { viewMode: 'month', currentDate: new Date() },
-    expenses: { viewMode: 'month', currentDate: new Date() },
-    categories: { viewMode: 'month', currentDate: new Date() },
-    manage: { viewMode: 'month', currentDate: new Date() }
+  // Shared timeline state for all sections
+  const [sharedTimelineState, setSharedTimelineState] = useState({
+    viewMode: 'month',
+    currentDate: new Date()
+  });
+
+  // Shared date range for all sections
+  const [dateRange, setDateRange] = useState(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const startOfMonth = new Date(year, month, 1);
+    const endOfMonth = new Date(year, month + 1, 0);
+    return {
+      startDate: toLocalDateString(startOfMonth),
+      endDate: toLocalDateString(endOfMonth)
+    };
   });
 
   useEffect(() => {
@@ -119,12 +139,8 @@ function App() {
     }
   };
 
-  // Handler to update timeline state for a specific section
-  const handleTimelineStateChange = (section, newState) => {
-    setTimelineStates(prev => ({
-      ...prev,
-      [section]: newState
-    }));
+  const handleDateRangeChange = (range) => {
+    setDateRange(range);
   };
 
   // Close expense details when navigating away from upload/manual views
@@ -180,11 +196,22 @@ function App() {
           />
         )}
 
+        {/* Shared TimeNavigator for Dashboard, Expenses, Categories, and Manage */}
+        {['dashboard', 'expenses', 'categories', 'manage'].includes(activeView) && (
+          <div className="shared-timeline-container">
+            <TimeNavigator
+              onRangeChange={handleDateRangeChange}
+              expenses={expenses}
+              timelineState={sharedTimelineState}
+              onTimelineStateChange={setSharedTimelineState}
+            />
+          </div>
+        )}
+
         {activeView === 'dashboard' && (
           <Dashboard
             expenses={expenses}
-            timelineState={timelineStates.dashboard}
-            onTimelineStateChange={(newState) => handleTimelineStateChange('dashboard', newState)}
+            dateRange={dateRange}
           />
         )}
 
@@ -192,8 +219,7 @@ function App() {
           <div className="view-container">
             <ExpensesSummary
               expenses={expenses}
-              timelineState={timelineStates.expenses}
-              onTimelineStateChange={(newState) => handleTimelineStateChange('expenses', newState)}
+              dateRange={dateRange}
             />
           </div>
         )}
@@ -205,8 +231,7 @@ function App() {
               onExpenseSelect={handleExpenseSelect}
               onCategoryUpdate={handleCategoryUpdate}
               onRefresh={loadExpenses}
-              timelineState={timelineStates.categories}
-              onTimelineStateChange={(newState) => handleTimelineStateChange('categories', newState)}
+              dateRange={dateRange}
             />
           </div>
         )}
@@ -215,8 +240,7 @@ function App() {
           <div className="view-container">
             <BudgetManage
               expenses={expenses}
-              timelineState={timelineStates.manage}
-              onTimelineStateChange={(newState) => handleTimelineStateChange('manage', newState)}
+              dateRange={dateRange}
             />
           </div>
         )}

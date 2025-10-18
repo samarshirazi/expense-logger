@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import authService from '../services/authService';
-import TimeNavigator from './TimeNavigator';
 import './Dashboard.css';
 
 // Helper function to format date in local timezone (avoids timezone shift)
@@ -12,21 +11,9 @@ const toLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-function Dashboard({ expenses, timelineState, onTimelineStateChange }) {
+function Dashboard({ expenses, dateRange }) {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState(() => {
-    // Default to this month
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const startOfMonth = new Date(year, month, 1);
-    const endOfMonth = new Date(year, month + 1, 0);
-    return {
-      startDate: toLocalDateString(startOfMonth),
-      endDate: toLocalDateString(endOfMonth)
-    };
-  });
 
   const loadSummary = useCallback(async () => {
     try {
@@ -37,8 +24,8 @@ function Dashboard({ expenses, timelineState, onTimelineStateChange }) {
         : 'http://localhost:5000/api';
 
       const params = new URLSearchParams();
-      if (dateRange.startDate) params.append('startDate', dateRange.startDate);
-      if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+      if (dateRange?.startDate) params.append('startDate', dateRange.startDate);
+      if (dateRange?.endDate) params.append('endDate', dateRange.endDate);
 
       const response = await axios.get(`${API_BASE_URL}/expenses/summary?${params}`, {
         headers: {
@@ -52,15 +39,11 @@ function Dashboard({ expenses, timelineState, onTimelineStateChange }) {
     } finally {
       setLoading(false);
     }
-  }, [dateRange.startDate, dateRange.endDate]);
+  }, [dateRange]);
 
   useEffect(() => {
     loadSummary();
   }, [loadSummary]);
-
-  const handleDateRangeChange = (range) => {
-    setDateRange(range);
-  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -88,7 +71,7 @@ function Dashboard({ expenses, timelineState, onTimelineStateChange }) {
 
   // Filter expenses by date range for recent expenses section
   const filteredExpenses = expenses.filter(expense => {
-    if (!dateRange.startDate || !dateRange.endDate) return true;
+    if (!dateRange?.startDate || !dateRange?.endDate) return true;
     // Compare dates as strings to avoid timezone issues
     return expense.date >= dateRange.startDate && expense.date <= dateRange.endDate;
   });
@@ -99,13 +82,6 @@ function Dashboard({ expenses, timelineState, onTimelineStateChange }) {
         <h1>Dashboard</h1>
         <p>Overview of your spending</p>
       </div>
-
-      <TimeNavigator
-        onRangeChange={handleDateRangeChange}
-        expenses={expenses}
-        timelineState={timelineState}
-        onTimelineStateChange={onTimelineStateChange}
-      />
 
       <div className="stats-grid">
         <div className="stat-card total">

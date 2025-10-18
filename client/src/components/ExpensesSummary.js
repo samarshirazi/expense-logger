@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import TimeNavigator from './TimeNavigator';
 import './ExpensesSummary.css';
 
 // Helper function to format date in local timezone (avoids timezone shift)
@@ -31,21 +30,8 @@ const getPreviousMonthKey = (monthKey) => {
   return `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
 };
 
-function ExpensesSummary({ expenses, timelineState, onTimelineStateChange }) {
+function ExpensesSummary({ expenses, dateRange }) {
   const [viewMode, setViewMode] = useState('summary'); // 'summary' or 'linegraph'
-
-  const [dateRange, setDateRange] = useState(() => {
-    // Default to this month
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const startOfMonth = new Date(year, month, 1);
-    const endOfMonth = new Date(year, month + 1, 0);
-    return {
-      startDate: toLocalDateString(startOfMonth),
-      endDate: toLocalDateString(endOfMonth)
-    };
-  });
 
   // Month selectors for line graph
   const currentMonth = getMonthKey(toLocalDateString(new Date()));
@@ -60,7 +46,7 @@ function ExpensesSummary({ expenses, timelineState, onTimelineStateChange }) {
   // Group items by date and category
   useEffect(() => {
     const filteredExpenses = expenses.filter(expense => {
-      if (!dateRange.startDate || !dateRange.endDate) return true;
+      if (!dateRange?.startDate || !dateRange?.endDate) return true;
       return expense.date >= dateRange.startDate && expense.date <= dateRange.endDate;
     });
 
@@ -121,10 +107,6 @@ function ExpensesSummary({ expenses, timelineState, onTimelineStateChange }) {
 
     setTableData({ byDate, categoryTotals });
   }, [expenses, dateRange]);
-
-  const handleDateRangeChange = (range) => {
-    setDateRange(range);
-  };
 
   const formatCurrency = (amount, currency = 'USD') => {
     return new Intl.NumberFormat('en-US', {
@@ -412,15 +394,6 @@ function ExpensesSummary({ expenses, timelineState, onTimelineStateChange }) {
           📈 Line Graph
         </button>
       </div>
-
-      {viewMode === 'summary' && (
-        <TimeNavigator
-          onRangeChange={handleDateRangeChange}
-          expenses={expenses}
-          timelineState={timelineState}
-          onTimelineStateChange={onTimelineStateChange}
-        />
-      )}
 
       {viewMode === 'linegraph' && <MonthLineGraph />}
 

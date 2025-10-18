@@ -28,6 +28,15 @@ body {
   overflow-y: auto;
 }
 
+.shared-timeline-container {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #f5f7fa;
+  padding: 20px 30px 10px 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
 .view-container {
   padding: 30px;
   max-width: 1400px;
@@ -84,8 +93,13 @@ body {
     padding-top: 0; /* Remove padding from main-content */
   }
 
+  .shared-timeline-container {
+    padding: 15px;
+    top: 0;
+  }
+
   .view-container {
-    padding: 90px 15px 20px 15px; /* Add top padding to clear menu button */
+    padding: 20px 15px; /* Reduced top padding since timeline is sticky */
   }
 
   .view-header {

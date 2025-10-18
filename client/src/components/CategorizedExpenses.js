@@ -8,7 +8,6 @@ import {
   updateExpense,
   updateExpenseItem
 } from '../services/apiService';
-import TimeNavigator from './TimeNavigator';
 import './CategorizedExpenses.css';
 
 // Helper function to format date in local timezone (avoids timezone shift)
@@ -27,7 +26,7 @@ const CATEGORIES = [
   { id: 'Other', name: 'Other', icon: '📦', color: '#95afc0' }
 ];
 
-function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRefresh, timelineState, onTimelineStateChange }) {
+function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRefresh, dateRange }) {
   const [categorizedExpenses, setCategorizedExpenses] = useState({});
   const [error, setError] = useState(null);
   const isUpdatingRef = useRef(false); // Use ref instead of state to prevent recalculation
@@ -45,22 +44,9 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     currency: 'USD'
   });
 
-  const [dateRange, setDateRange] = useState(() => {
-    // Default to this month
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const startOfMonth = new Date(year, month, 1);
-    const endOfMonth = new Date(year, month + 1, 0);
-    return {
-      startDate: toLocalDateString(startOfMonth),
-      endDate: toLocalDateString(endOfMonth)
-    };
-  });
-
   // Filter expenses by date range
   const filteredExpenses = expenses.filter(expense => {
-    if (!dateRange.startDate || !dateRange.endDate) return true;
+    if (!dateRange?.startDate || !dateRange?.endDate) return true;
     // Compare dates as strings to avoid timezone issues
     // expense.date is in format "YYYY-MM-DD"
     return expense.date >= dateRange.startDate && expense.date <= dateRange.endDate;
@@ -314,10 +300,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     ) || 0;
   };
 
-  const handleDateRangeChange = (range) => {
-    setDateRange(range);
-  };
-
   const handleDeleteConfirm = async () => {
     if (!actionItem) return;
 
@@ -394,13 +376,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
           Each product is displayed separately. Drag items to recategorize them
         </p>
       </div>
-
-      <TimeNavigator
-        onRangeChange={handleDateRangeChange}
-        expenses={expenses}
-        timelineState={timelineState}
-        onTimelineStateChange={onTimelineStateChange}
-      />
 
       {error && (
         <div className="error-message">
