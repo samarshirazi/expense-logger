@@ -23,6 +23,14 @@ function App() {
   const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'expenses', 'categories', 'upload', 'manual'
   const [showSummary, setShowSummary] = useState(false);
 
+  // Separate timeline states for each section
+  const [timelineStates, setTimelineStates] = useState({
+    dashboard: { viewMode: 'month', currentDate: new Date() },
+    expenses: { viewMode: 'month', currentDate: new Date() },
+    categories: { viewMode: 'month', currentDate: new Date() },
+    manage: { viewMode: 'month', currentDate: new Date() }
+  });
+
   useEffect(() => {
     // Initialize auth state
     const initAuth = async () => {
@@ -111,6 +119,14 @@ function App() {
     }
   };
 
+  // Handler to update timeline state for a specific section
+  const handleTimelineStateChange = (section, newState) => {
+    setTimelineStates(prev => ({
+      ...prev,
+      [section]: newState
+    }));
+  };
+
   // Close expense details when navigating away from upload/manual views
   useEffect(() => {
     if (activeView !== 'upload' && activeView !== 'manual') {
@@ -165,12 +181,20 @@ function App() {
         )}
 
         {activeView === 'dashboard' && (
-          <Dashboard expenses={expenses} />
+          <Dashboard
+            expenses={expenses}
+            timelineState={timelineStates.dashboard}
+            onTimelineStateChange={(newState) => handleTimelineStateChange('dashboard', newState)}
+          />
         )}
 
         {activeView === 'expenses' && (
           <div className="view-container">
-            <ExpensesSummary expenses={expenses} />
+            <ExpensesSummary
+              expenses={expenses}
+              timelineState={timelineStates.expenses}
+              onTimelineStateChange={(newState) => handleTimelineStateChange('expenses', newState)}
+            />
           </div>
         )}
 
@@ -181,13 +205,19 @@ function App() {
               onExpenseSelect={handleExpenseSelect}
               onCategoryUpdate={handleCategoryUpdate}
               onRefresh={loadExpenses}
+              timelineState={timelineStates.categories}
+              onTimelineStateChange={(newState) => handleTimelineStateChange('categories', newState)}
             />
           </div>
         )}
 
         {activeView === 'manage' && (
           <div className="view-container">
-            <BudgetManage expenses={expenses} />
+            <BudgetManage
+              expenses={expenses}
+              timelineState={timelineStates.manage}
+              onTimelineStateChange={(newState) => handleTimelineStateChange('manage', newState)}
+            />
           </div>
         )}
 

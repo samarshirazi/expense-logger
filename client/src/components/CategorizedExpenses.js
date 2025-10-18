@@ -27,7 +27,7 @@ const CATEGORIES = [
   { id: 'Other', name: 'Other', icon: '📦', color: '#95afc0' }
 ];
 
-function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRefresh }) {
+function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRefresh, timelineState, onTimelineStateChange }) {
   const [categorizedExpenses, setCategorizedExpenses] = useState({});
   const [error, setError] = useState(null);
   const isUpdatingRef = useRef(false); // Use ref instead of state to prevent recalculation
@@ -395,7 +395,12 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         </p>
       </div>
 
-      <TimeNavigator onRangeChange={handleDateRangeChange} expenses={expenses} />
+      <TimeNavigator
+        onRangeChange={handleDateRangeChange}
+        expenses={expenses}
+        timelineState={timelineState}
+        onTimelineStateChange={onTimelineStateChange}
+      />
 
       {error && (
         <div className="error-message">

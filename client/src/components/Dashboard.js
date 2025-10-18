@@ -12,7 +12,7 @@ const toLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-function Dashboard({ expenses }) {
+function Dashboard({ expenses, timelineState, onTimelineStateChange }) {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState(() => {
@@ -100,7 +100,12 @@ function Dashboard({ expenses }) {
         <p>Overview of your spending</p>
       </div>
 
-      <TimeNavigator onRangeChange={handleDateRangeChange} expenses={expenses} />
+      <TimeNavigator
+        onRangeChange={handleDateRangeChange}
+        expenses={expenses}
+        timelineState={timelineState}
+        onTimelineStateChange={onTimelineStateChange}
+      />
 
       <div className="stats-grid">
         <div className="stat-card total">

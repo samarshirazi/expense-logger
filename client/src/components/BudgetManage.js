@@ -39,7 +39,7 @@ const DEFAULT_BUDGET = {
   Other: 100
 };
 
-function BudgetManage({ expenses }) {
+function BudgetManage({ expenses, timelineState, onTimelineStateChange }) {
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
     const year = today.getFullYear();
@@ -302,7 +302,12 @@ function BudgetManage({ expenses }) {
         </p>
       </div>
 
-      <TimeNavigator onRangeChange={handleDateRangeChange} expenses={expenses} />
+      <TimeNavigator
+        onRangeChange={handleDateRangeChange}
+        expenses={expenses}
+        timelineState={timelineState}
+        onTimelineStateChange={onTimelineStateChange}
+      />
 
       {/* View Mode Toggle */}
       <div className="view-mode-selector">

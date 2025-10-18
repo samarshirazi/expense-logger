@@ -9,9 +9,30 @@ const toLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-function TimeNavigator({ onRangeChange, expenses = [], initialDate }) {
-  const [viewMode, setViewMode] = useState('month'); // 'month', 'week', or 'day'
-  const [currentDate, setCurrentDate] = useState(() => initialDate || new Date());
+function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineState, onTimelineStateChange }) {
+  // Use external state if provided, otherwise use internal state
+  const [internalViewMode, setInternalViewMode] = useState('month');
+  const [internalCurrentDate, setInternalCurrentDate] = useState(() => initialDate || new Date());
+
+  const viewMode = timelineState?.viewMode || internalViewMode;
+  const currentDate = timelineState?.currentDate || internalCurrentDate;
+
+  const setViewMode = (mode) => {
+    if (onTimelineStateChange) {
+      onTimelineStateChange({ ...timelineState, viewMode: mode });
+    } else {
+      setInternalViewMode(mode);
+    }
+  };
+
+  const setCurrentDate = (date) => {
+    if (onTimelineStateChange) {
+      onTimelineStateChange({ ...timelineState, currentDate: date });
+    } else {
+      setInternalCurrentDate(date);
+    }
+  };
+
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => initialDate || new Date());
   const isFirstRender = useRef(true);

@@ -31,7 +31,7 @@ const getPreviousMonthKey = (monthKey) => {
   return `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
 };
 
-function ExpensesSummary({ expenses }) {
+function ExpensesSummary({ expenses, timelineState, onTimelineStateChange }) {
   const [viewMode, setViewMode] = useState('summary'); // 'summary' or 'linegraph'
 
   const [dateRange, setDateRange] = useState(() => {
@@ -413,7 +413,14 @@ function ExpensesSummary({ expenses }) {
         </button>
       </div>
 
-      {viewMode === 'summary' && <TimeNavigator onRangeChange={handleDateRangeChange} expenses={expenses} />}
+      {viewMode === 'summary' && (
+        <TimeNavigator
+          onRangeChange={handleDateRangeChange}
+          expenses={expenses}
+          timelineState={timelineState}
+          onTimelineStateChange={onTimelineStateChange}
+        />
+      )}
 
       {viewMode === 'linegraph' && <MonthLineGraph />}
 
