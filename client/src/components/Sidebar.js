@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import './Sidebar.css';
 
-function Sidebar({ activeView, onViewChange, onSignOut, userName }) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOpen, setIsMobileMenuOpen }) {
   const menuItems = [
     { id: 'dashboard', icon: '📊', label: 'Dashboard', description: 'Overview & Stats' },
     { id: 'expenses', icon: '💰', label: 'Expenses', description: 'View all expenses' },
@@ -19,14 +18,6 @@ function Sidebar({ activeView, onViewChange, onSignOut, userName }) {
 
   return (
     <>
-      <button
-        className="mobile-menu-toggle"
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        aria-label="Toggle menu"
-      >
-        <span className="menu-icon">{isMobileMenuOpen ? '✕' : '⚙️'}</span>
-      </button>
-
       <div className={`sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
         <div className="sidebar-logo">

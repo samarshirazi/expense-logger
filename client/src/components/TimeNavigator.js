@@ -9,7 +9,7 @@ const toLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineState, onTimelineStateChange }) {
+function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineState, onTimelineStateChange, isMobileMenuOpen, setIsMobileMenuOpen }) {
   // Use external state if provided, otherwise use internal state
   const [internalViewMode, setInternalViewMode] = useState('month');
   const [internalCurrentDate, setInternalCurrentDate] = useState(() => initialDate || new Date());
@@ -187,6 +187,15 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
 
   return (
     <div className="time-navigator">
+      {/* Mobile Menu Button */}
+      <button
+        className="mobile-menu-toggle"
+        onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(!isMobileMenuOpen)}
+        aria-label="Toggle menu"
+      >
+        <span className="menu-icon">{isMobileMenuOpen ? '✕' : '⚙️'}</span>
+      </button>
+
       <div className="navigator-header">
         <div className="view-mode-selector">
           <button

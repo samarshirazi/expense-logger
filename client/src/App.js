@@ -31,6 +31,7 @@ function App() {
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'expenses', 'categories', 'upload', 'manual'
   const [showSummary, setShowSummary] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Shared timeline state for all sections
   const [sharedTimelineState, setSharedTimelineState] = useState({
@@ -179,6 +180,8 @@ function App() {
         onViewChange={setActiveView}
         onSignOut={handleSignOut}
         userName={authService.getUserDisplayName()}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
       <main className="main-content">
@@ -199,14 +202,14 @@ function App() {
         {/* Shared TimeNavigator for Dashboard, Expenses, Categories, and Manage */}
         {['dashboard', 'expenses', 'categories', 'manage'].includes(activeView) && (
           <div className="shared-timeline-container">
-            <div className="timeline-content">
-              <TimeNavigator
-                onRangeChange={handleDateRangeChange}
-                expenses={expenses}
-                timelineState={sharedTimelineState}
-                onTimelineStateChange={setSharedTimelineState}
-              />
-            </div>
+            <TimeNavigator
+              onRangeChange={handleDateRangeChange}
+              expenses={expenses}
+              timelineState={sharedTimelineState}
+              onTimelineStateChange={setSharedTimelineState}
+              isMobileMenuOpen={isMobileMenuOpen}
+              setIsMobileMenuOpen={setIsMobileMenuOpen}
+            />
           </div>
         )}
 
