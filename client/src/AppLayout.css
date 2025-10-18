@@ -74,7 +74,6 @@ body {
 
 .shared-timeline-container {
   position: fixed;
-  top: 75px;
   left: 280px;
   right: 0;
   z-index: 1050;
@@ -83,6 +82,15 @@ body {
   margin: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border-radius: 0;
+  transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shared-timeline-container.with-button {
+  top: 75px;
+}
+
+.shared-timeline-container.without-button {
+  top: 0;
 }
 
 .view-container {
@@ -148,12 +156,19 @@ body {
 
   .shared-timeline-container {
     position: fixed;
-    top: 75px;
     left: 0;
     right: 0;
     padding: 15px;
     margin: 0;
     border-radius: 0;
+  }
+
+  .shared-timeline-container.with-button {
+    top: 75px;
+  }
+
+  .shared-timeline-container.without-button {
+    top: 0;
   }
 
   .view-container {

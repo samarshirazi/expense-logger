@@ -33,6 +33,8 @@ function App() {
   const [showSummary, setShowSummary] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showOptionsButton, setShowOptionsButton] = useState(true);
+  const [isAtTop, setIsAtTop] = useState(true);
+  const [lastScrollDirection, setLastScrollDirection] = useState(null);
 
   // Shared timeline state for all sections
   const [sharedTimelineState, setSharedTimelineState] = useState({
@@ -147,6 +149,8 @@ function App() {
 
   // Scroll detection for options button visibility
   useEffect(() => {
+    let previousScrollPosition = 0;
+
     const handleScroll = () => {
       // Get scroll position from main-content or window
       const mainContent = document.querySelector('.main-content');
@@ -154,12 +158,26 @@ function App() {
         ? mainContent.scrollTop
         : (window.scrollY || document.documentElement.scrollTop);
 
-      // Show button only when at the very top (scroll position = 0)
-      if (scrollPosition === 0) {
+      // Determine scroll direction
+      const scrollingDown = scrollPosition > previousScrollPosition;
+      const scrollingUp = scrollPosition < previousScrollPosition;
+
+      // Update states
+      const currentlyAtTop = scrollPosition === 0;
+      setIsAtTop(currentlyAtTop);
+
+      // Option B: Show button when at top AND scrolling down
+      if (currentlyAtTop && scrollingDown && !showOptionsButton) {
+        // User is at top and starting to scroll down - show the button
         setShowOptionsButton(true);
-      } else {
+        setLastScrollDirection('down');
+      } else if (scrollPosition > 0 && showOptionsButton) {
+        // User has scrolled away from top - hide the button
         setShowOptionsButton(false);
+        setLastScrollDirection(scrollingDown ? 'down' : 'up');
       }
+
+      previousScrollPosition = scrollPosition;
     };
 
     // Try to attach scroll listener to main-content first, fallback to window
@@ -173,7 +191,7 @@ function App() {
 
     // Cleanup
     return () => scrollElement.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [showOptionsButton]);
 
   // Close expense details when navigating away from upload/manual views
   useEffect(() => {
@@ -241,7 +259,7 @@ function App() {
 
         {/* Shared TimeNavigator for Dashboard, Expenses, Categories, and Manage */}
         {['dashboard', 'expenses', 'categories', 'manage'].includes(activeView) && (
-          <div className="shared-timeline-container">
+          <div className={`shared-timeline-container ${showOptionsButton ? 'with-button' : 'without-button'}`}>
             <TimeNavigator
               onRangeChange={handleDateRangeChange}
               expenses={expenses}
