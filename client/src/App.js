@@ -191,7 +191,11 @@ function App() {
       const timer = setTimeout(() => {
         const mc = document.querySelector('.main-content');
         if (mc) {
-          console.log('📡 Attaching scroll listener');
+          console.log('📡 Attaching scroll listener to main-content');
+          console.log('   Element:', mc);
+          console.log('   ScrollTop:', mc.scrollTop);
+          console.log('   ScrollHeight:', mc.scrollHeight);
+          console.log('   ClientHeight:', mc.clientHeight);
           mc.addEventListener('scroll', handleScroll, { passive: true });
           handleScroll(); // Check initial position
         }
@@ -199,13 +203,24 @@ function App() {
       return () => clearTimeout(timer);
     }
 
-    console.log('📡 Attaching scroll listener immediately');
+    console.log('📡 Attaching scroll listener to main-content immediately');
+    console.log('   Element:', mainContent);
+    console.log('   ScrollTop:', mainContent.scrollTop);
+    console.log('   ScrollHeight:', mainContent.scrollHeight);
+    console.log('   ClientHeight:', mainContent.clientHeight);
     mainContent.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll(); // Check initial position
+
+    // TEST: Add a simple scroll event to see if it fires at all
+    const testScroll = () => {
+      console.log('🔥 SCROLL EVENT FIRED! ScrollTop:', mainContent.scrollTop);
+    };
+    mainContent.addEventListener('scroll', testScroll, { passive: true });
 
     return () => {
       console.log('🧹 Cleanup scroll listener');
       mainContent.removeEventListener('scroll', handleScroll);
+      mainContent.removeEventListener('scroll', testScroll);
     };
   }, [handleScroll]);
 
