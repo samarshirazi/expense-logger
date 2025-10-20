@@ -6,7 +6,7 @@ const path = require('path');
 // Load environment variables from root .env
 require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: true });
 
-const { processReceiptWithAI, parseManualEntry } = require('../server/services/aiService');
+const { processReceiptWithAI, parseManualEntry, generateCoachInsights } = require('../server/services/aiService');
 const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('../server/services/googleDriveService');
 const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable, updateExpenseCategory, updateItemCategory, updateExpense } = require('../server/services/supabaseService');
 const { signUp, signIn, signOut, requireAuth } = require('../server/services/authService');
@@ -178,6 +178,41 @@ app.post('/api/notifications/test', requireAuth, async (req, res) => {
     console.error('Test notification error:', error);
     res.status(500).json({
       error: 'Failed to send test notification',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/ai/coach', requireAuth, async (req, res) => {
+  try {
+    const { conversation, analysis } = req.body || {};
+
+    if (!analysis) {
+      return res.status(400).json({ error: 'Analysis data is required' });
+    }
+
+    const authHeader = req.headers.authorization;
+    const userToken = authHeader ? authHeader.substring(7) : null;
+
+    const result = await generateCoachInsights({
+      conversation,
+      analysis: {
+        ...analysis,
+        userId: req.user?.id || null,
+        generatedAt: new Date().toISOString(),
+        token: userToken || null
+      }
+    });
+
+    res.json({
+      success: true,
+      message: result.message,
+      usage: result.usage || null
+    });
+  } catch (error) {
+    console.error('AI coach error:', error);
+    res.status(500).json({
+      error: 'Failed to generate AI coach insights',
       details: error.message
     });
   }
