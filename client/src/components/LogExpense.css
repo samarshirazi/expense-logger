@@ -1,0 +1,35 @@
+.log-expense {
+  display: grid;
+  gap: 24px;
+}
+
+.log-expense-panel {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+@media (min-width: 992px) {
+  .log-expense {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .log-expense-panel {
+    padding: 18px;
+  }
+
+  .log-expense {
+    gap: 18px;
+  }
+}
+
+.log-expense-panel .manual-entry {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  margin-bottom: 0;
+}

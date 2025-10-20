@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
-import ReceiptUpload from './components/ReceiptUpload';
-import ManualEntry from './components/ManualEntry';
+import LogExpense from './components/LogExpense';
 import ExpenseDetails from './components/ExpenseDetails';
 import CategorizedExpenses from './components/CategorizedExpenses';
 import ExpensesSummary from './components/ExpensesSummary';
@@ -29,7 +28,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
-  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'expenses', 'categories', 'upload', 'manual'
+  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'expenses', 'categories', 'manage', 'log'
   const [showSummary, setShowSummary] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showOptionsButton, setShowOptionsButton] = useState(true);
@@ -101,7 +100,7 @@ function App() {
     // Add to local state for immediate feedback
     setExpenses(prev => [newExpense, ...prev]);
     // Only show the expense details if in upload or manual entry view
-    if (activeView === 'upload' || activeView === 'manual') {
+    if (activeView === 'log') {
       setSelectedExpense(newExpense);
     }
     // Refresh expenses from server immediately to ensure data is in sync
@@ -299,9 +298,9 @@ function App() {
     }
   }, [activeView, getWindowScrollPosition, updateButtonVisibility]);
 
-  // Close expense details when navigating away from upload/manual views
+  // Close expense details when navigating away from logging view
   useEffect(() => {
-    if (activeView !== 'upload' && activeView !== 'manual') {
+    if (activeView !== 'log') {
       setSelectedExpense(null);
     }
   }, [activeView]);
@@ -365,7 +364,7 @@ function App() {
           />
         )}
 
-        {selectedExpense && (activeView === 'upload' || activeView === 'manual') && (
+        {selectedExpense && activeView === 'log' && (
           <ExpenseDetails
             expense={selectedExpense}
             onClose={() => setSelectedExpense(null)}
@@ -425,25 +424,14 @@ function App() {
           </div>
         )}
 
-        {activeView === 'upload' && (
+        {activeView === 'log' && (
           <div className="view-container no-timeline">
             {renderOptionsToggleButton('inline')}
             <div className="view-header">
-              <h1>Upload Receipt</h1>
-              <p>Upload a photo of your receipt to extract data with AI</p>
+              <h1>Log Expense</h1>
+              <p>Upload receipts or add expenses manually</p>
             </div>
-            <ReceiptUpload onExpenseAdded={handleExpenseAdded} />
-          </div>
-        )}
-
-        {activeView === 'manual' && (
-          <div className="view-container no-timeline">
-            {renderOptionsToggleButton('inline')}
-            <div className="view-header">
-              <h1>Manual Entry</h1>
-              <p>Quickly add expenses by typing naturally</p>
-            </div>
-            <ManualEntry onExpensesAdded={handleExpenseAdded} />
+            <LogExpense onExpenseAdded={handleExpenseAdded} />
           </div>
         )}
 

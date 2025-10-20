@@ -7,8 +7,7 @@ function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOp
     { id: 'expenses', icon: '💰', label: 'Expenses', description: 'View all expenses' },
     { id: 'categories', icon: '📂', label: 'Categories', description: 'Organize by category' },
     { id: 'manage', icon: '🎯', label: 'Manage', description: 'Budgets & Goals' },
-    { id: 'upload', icon: '📤', label: 'Upload', description: 'Add new receipt' },
-    { id: 'manual', icon: '✍️', label: 'Manual Entry', description: 'Quick add' }
+    { id: 'log', icon: '🧾', label: 'Log Expense', description: 'Upload or type quickly' }
   ];
 
   const handleMenuItemClick = (id) => {
