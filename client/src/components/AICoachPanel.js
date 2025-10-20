@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { requestCoachInsights } from '../services/apiService';
 import './AICoachPanel.css';
 
@@ -33,13 +33,13 @@ function AICoachPanel({
     if (isOpen && needsRefresh) {
       void fetchInsights({ mode: 'auto' });
     }
-  }, [isOpen, needsRefresh]);
+  }, [isOpen, needsRefresh, fetchInsights]);
 
   useEffect(() => {
     if (isOpen && messages.length === 0 && analysisData) {
       void fetchInsights({ mode: 'auto' });
     }
-  }, [isOpen, analysisData, messages.length]);
+  }, [isOpen, analysisData, messages.length, fetchInsights]);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -54,7 +54,7 @@ function AICoachPanel({
 
   const hasConversation = useMemo(() => messages.length > 0, [messages.length]);
 
-  const fetchInsights = async ({ mode, userMessage } = {}) => {
+  const fetchInsights = useCallback(async ({ mode, userMessage } = {}) => {
     if (!analysisData) {
       return;
     }
@@ -108,7 +108,7 @@ function AICoachPanel({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [analysisData, analysisKey, messages, onAssistantMessage, onRefreshHandled]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
