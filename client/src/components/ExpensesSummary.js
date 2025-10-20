@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import SummaryMetrics from './SummaryMetrics';
 import { updateExpenseItem, updateExpense } from '../services/apiService';
 import './ExpensesSummary.css';
@@ -52,12 +52,6 @@ function ExpensesSummary({ expenses, dateRange }) {
   const [tableData, setTableData] = useState({
     byDate: {}, // { 'YYYY-MM-DD': { Food: [], Transport: [], ... } }
     categoryTotals: { Food: 0, Transport: 0, Shopping: 0, Bills: 0, Other: 0 }
-  });
-  const [lineVisibility, setLineVisibility] = useState({
-    month1: true,
-    month2: true,
-    budget1: true,
-    budget2: true
   });
   const [selectedMobileDate, setSelectedMobileDate] = useState(null);
   const mobileDetailRef = useRef(null);
@@ -291,13 +285,6 @@ function ExpensesSummary({ expenses, dateRange }) {
     const monthlyBudgets = JSON.parse(localStorage.getItem('monthlyBudgets') || '{}');
     const month1Budget = monthlyBudgets[selectedMonth1] || DEFAULT_BUDGET;
     const month2Budget = monthlyBudgets[selectedMonth2] || DEFAULT_BUDGET;
-
-    const toggleLine = useCallback((key) => {
-      setLineVisibility(prev => ({
-        ...prev,
-        [key]: !prev[key]
-      }));
-    }, []);
 
     // Calculate total budget for each month
     const totalMonth1Budget = Object.values(month1Budget).reduce((sum, val) => sum + val, 0);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './TimeNavigator.css';
 
 // Helper function to format date in local timezone (avoids timezone shift)
@@ -24,7 +24,7 @@ function TimeNavigator({
   const viewMode = adjustEnabled ? (timelineState?.viewMode || internalViewMode) : 'month';
   const currentDate = timelineState?.currentDate || internalCurrentDate;
 
-  const setViewMode = (mode) => {
+  const setViewMode = useCallback((mode) => {
     if (onTimelineStateChange) {
       onTimelineStateChange(prevState => ({
         ...(prevState || timelineState || {}),
@@ -33,7 +33,7 @@ function TimeNavigator({
     } else {
       setInternalViewMode(mode);
     }
-  };
+  }, [onTimelineStateChange, timelineState]);
 
   const setCurrentDate = (date) => {
     if (onTimelineStateChange) {
@@ -58,7 +58,7 @@ function TimeNavigator({
         setViewMode('month');
       }
     }
-  }, [adjustEnabled, timelineState?.viewMode]);
+  }, [adjustEnabled, setViewMode, timelineState?.viewMode]);
 
   const effectiveViewMode = adjustEnabled ? viewMode : 'month';
 
