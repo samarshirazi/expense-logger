@@ -6,7 +6,7 @@ const path = require('path');
 // Load environment variables from root .env
 require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: true });
 
-const { processReceiptWithAI, parseManualEntry, generateCoachInsights, smartCategorize } = require('../server/services/aiService');
+const { processReceiptWithAI, parseManualEntry, generateCoachInsights } = require('../server/services/aiService');
 const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('../server/services/googleDriveService');
 const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable, updateExpenseCategory, updateItemCategory, updateExpense } = require('../server/services/supabaseService');
 const { signUp, signIn, signOut, requireAuth } = require('../server/services/authService');
@@ -858,7 +858,7 @@ function fallbackManualEntry(textEntry) {
       description = 'Manual item';
     }
 
-    const category = smartCategorize(description);
+    const category = categorizeDescription(description);
 
     items.push({
       description,
@@ -884,12 +884,51 @@ function fallbackManualEntry(textEntry) {
     date: todayDateStr,
     totalAmount: parseFloat(totalAmount.toFixed(2)),
     currency: 'USD',
-    category: items.length === 1 ? items[0].category : smartCategorize(merchantName, items),
+    category: determineOverallCategory(merchantName, items),
     items,
     paymentMethod: 'Manual Entry',
     taxAmount: null,
     tipAmount: null
   }];
+}
+
+function categorizeDescription(description) {
+  const text = (description || '').toLowerCase();
+
+  const keywordGroups = {
+    Food: ['coffee', 'lunch', 'dinner', 'breakfast', 'meal', 'grocer', 'restaurant', 'cafe', 'snack', 'pizza', 'burger', 'taco', 'salad'],
+    Transport: ['uber', 'lyft', 'gas', 'fuel', 'parking', 'toll', 'metro', 'bus', 'train', 'ride'],
+    Shopping: ['amazon', 'shop', 'store', 'mall', 'clothes', 'electronics', 'gift', 'appliance', 'retail', 'purchase'],
+    Bills: ['bill', 'utility', 'internet', 'phone', 'subscription', 'rent', 'electric', 'water', 'insurance']
+  };
+
+  for (const [category, keywords] of Object.entries(keywordGroups)) {
+    if (keywords.some(keyword => text.includes(keyword))) {
+      return category;
+    }
+  }
+
+  return 'Other';
+}
+
+function determineOverallCategory(merchantName, items) {
+  const counts = {
+    Food: 0,
+    Transport: 0,
+    Shopping: 0,
+    Bills: 0,
+    Other: 0
+  };
+
+  items.forEach(item => {
+    const key = item.category || categorizeDescription(item.description) || 'Other';
+    counts[key] = (counts[key] || 0) + 1;
+  });
+
+  const merchantCategory = categorizeDescription(merchantName);
+  counts[merchantCategory] = (counts[merchantCategory] || 0) + 1;
+
+  return Object.entries(counts).reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0] || 'Other';
 }
 
 module.exports = app;
