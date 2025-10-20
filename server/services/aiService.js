@@ -898,8 +898,8 @@ Goals:
   const analysisPayload = truncateMessageContent(JSON.stringify(analysis));
   const moodPreference = analysis?.preferences?.mood || 'motivator_serious';
   const moodInstructions = {
-    motivator_roast: 'Keep the motivation high but sprinkle in playful, good-natured roasts when you call out spending patterns.',
-    motivator_serious: 'Blend motivating energy with professional, accountable guidance—keep things direct and constructive.'
+    motivator_roast: 'Tone: playful, sarcastic, meme-friendly. Purpose: entertain first, educate second. Lean into bold one-liners (e.g., “$87 on coffee? You investing in Starbucks?”) while still pointing out what matters.',
+    motivator_serious: 'Blend motivating energy with professional, accountable guidance—keep things direct, constructive, and grounded in the numbers.'
   };
   const personaInstruction = moodInstructions[moodPreference] || moodInstructions.motivator_serious;
 
@@ -911,9 +911,22 @@ Goals:
     const merchantBlurb = topMerchant
       ? ` Most of that is flowing to ${topMerchant.name} (~$${Number(topMerchant.total ?? 0).toFixed(2)} across ${topMerchant.count} visits).`
       : '';
+    const roastClosingLines = [
+      "Keep hustling—but maybe cool it on the $6 cold brew flex 😅",
+      "Your budget's on life support. Time to bench that 'treat yo self' for a hot minute 🔥",
+      "Go off, big spender—but let your wallet breathe this week, yeah? 💸"
+    ];
+
+    const seriousClosingLines = [
+      "Stay steady and keep logging; I'll keep the insights sharp.",
+      "Nice momentum—let's keep decisions data-driven and intentional.",
+      "You're building great habits; keep the discipline strong and the receipts coming."
+    ];
+
+    const pickClosing = (list) => list[Math.floor(Math.random() * list.length)];
     const closingLine = moodPreference === 'motivator_roast'
-      ? 'Keep hustling—and maybe let that third dessert stay on the shelf next time 😄'
-      : "Stay steady and keep logging; I'll keep the insights sharp.";
+      ? pickClosing(roastClosingLines)
+      : pickClosing(seriousClosingLines);
 
     return {
       message: `Here's what I'm seeing right now: your total spending this period is $${analysis?.totals?.spending?.toFixed?.(2) ?? '—'}, with ${analysis?.expenseCount ?? 'no'} logged purchases. You're still sitting on $${analysis?.totals?.remaining?.toFixed?.(2) ?? '—'} of buffer overall.
