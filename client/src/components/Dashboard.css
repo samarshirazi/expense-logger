@@ -7,10 +7,21 @@
 
 .dashboard-header {
   margin-bottom: 30px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dashboard-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .dashboard-header h1 {
-  margin: 0 0 8px 0;
+  margin: 0;
   font-size: 32px;
   color: #2c3e50;
 }
@@ -19,6 +30,55 @@
   margin: 0;
   font-size: 16px;
   color: #7f8c8d;
+}
+
+.coach-toggle {
+  position: relative;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.coach-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(102, 126, 234, 0.4);
+}
+
+.coach-toggle--active {
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
+}
+
+.coach-toggle__icon {
+  font-size: 18px;
+}
+
+.coach-toggle__label {
+  line-height: 1;
+}
+
+.coach-toggle__indicator {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 10px;
+  height: 10px;
+  background: #f97316;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.coach-toggle--alert {
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.25);
 }
 
 .date-filter-section {
@@ -325,10 +385,17 @@
   .dashboard-header {
     text-align: center;
     margin-bottom: 20px;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .dashboard-header h1 {
     font-size: 26px;
+  }
+
+  .coach-toggle {
+    width: 100%;
+    justify-content: center;
   }
 
   .dashboard-section {

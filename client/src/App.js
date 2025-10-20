@@ -32,6 +32,8 @@ function App() {
   const [showSummary, setShowSummary] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showOptionsButton, setShowOptionsButton] = useState(true);
+  const [isCoachOpen, setIsCoachOpen] = useState(false);
+  const [coachHasUnread, setCoachHasUnread] = useState(false);
   const mainContentRef = useRef(null);
   const scrollStateRef = useRef({
     buttonVisible: true,
@@ -125,6 +127,16 @@ function App() {
       setSelectedExpense({ ...selectedExpense, category: newCategory });
     }
   };
+
+  const handleCoachToggle = useCallback((valueOrUpdater) => {
+    setIsCoachOpen(prev => {
+      const next = typeof valueOrUpdater === 'function' ? valueOrUpdater(prev) : valueOrUpdater;
+      if (next) {
+        setCoachHasUnread(false);
+      }
+      return next;
+    });
+  }, [setCoachHasUnread]);
 
   const handleAuthSuccess = () => {
     // Auth service will automatically trigger the subscriber
@@ -354,6 +366,8 @@ function App() {
         userName={authService.getUserDisplayName()}
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
+        onCoachToggle={handleCoachToggle}
+        coachHasUnread={coachHasUnread}
       />
 
       <main className="main-content" ref={mainContentRef}>
@@ -391,6 +405,10 @@ function App() {
           <Dashboard
             expenses={expenses}
             dateRange={dateRange}
+            isCoachOpen={isCoachOpen}
+            onCoachToggle={handleCoachToggle}
+            coachHasUnread={coachHasUnread}
+            onCoachUnreadChange={setCoachHasUnread}
           />
         )}
 

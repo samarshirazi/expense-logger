@@ -5,7 +5,7 @@ const path = require('path');
 
 require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: true });
 
-const { processReceiptWithAI, parseManualEntry } = require('./services/aiService');
+const { processReceiptWithAI, parseManualEntry, generateCoachInsights } = require('./services/aiService');
 const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('./services/googleDriveService');
 const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable, updateExpenseCategory, updateItemCategory, updateExpense } = require('./services/supabaseService');
 const { signUp, signIn, signOut, requireAuth } = require('./services/authService');
@@ -218,6 +218,37 @@ app.post('/api/manual-entry', requireAuth, async (req, res) => {
     console.error('Error processing manual entry:', error);
     res.status(500).json({
       error: 'Failed to process manual entry',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/ai/coach', requireAuth, async (req, res) => {
+  try {
+    const { conversation, analysis } = req.body || {};
+
+    if (!analysis) {
+      return res.status(400).json({ error: 'Analysis data is required' });
+    }
+
+    const result = await generateCoachInsights({
+      conversation,
+      analysis: {
+        ...analysis,
+        userId: req.user?.id || null,
+        generatedAt: new Date().toISOString()
+      }
+    });
+
+    res.json({
+      success: true,
+      message: result.message,
+      usage: result.usage || null
+    });
+  } catch (error) {
+    console.error('AI coach error:', error);
+    res.status(500).json({
+      error: 'Failed to generate AI coach insights',
       details: error.message
     });
   }

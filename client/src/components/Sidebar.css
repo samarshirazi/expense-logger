@@ -62,6 +62,7 @@
   transition: all 0.3s ease;
   color: white;
   text-align: left;
+  position: relative;
 }
 
 .nav-item:hover {
@@ -278,4 +279,25 @@
   .sidebar-footer {
     padding: 15px;
   }
+}
+
+
+.nav-indicator {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  width: 10px;
+  height: 10px;
+  background: #fbbf24;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.25);
+}
+
+.nav-item-coach {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.nav-item-coach:hover {
+  background: rgba(255, 255, 255, 0.2);
 }

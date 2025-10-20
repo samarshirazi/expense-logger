@@ -850,7 +850,176 @@ Rules:
   }
 }
 
+function truncateMessageContent(content, maxLength = 4000) {
+  if (typeof content !== 'string') {
+    return '';
+  }
+
+  if (content.length <= maxLength) {
+    return content;
+  }
+
+  return `${content.slice(0, maxLength)}…`;
+}
+
+async function generateCoachInsights({ conversation = [], analysis }) {
+  const provider = resolveProvider();
+
+  if (!provider) {
+    throw new Error('No AI provider configured. Please set OPENAI_API_KEY, DEEPSEEK_API_KEY, or AI_PROVIDER=stub.');
+  }
+
+  if (!analysis) {
+    throw new Error('Analysis payload is required for coach insights.');
+  }
+
+  const sanitizedConversation = Array.isArray(conversation)
+    ? conversation
+        .filter(message => message && typeof message.content === 'string')
+        .slice(-10)
+        .map(message => ({
+          role: message.role === 'assistant' ? 'assistant' : 'user',
+          content: truncateMessageContent(message.content)
+        }))
+    : [];
+
+  const systemPrompt = `You are "Finch", an empathetic financial coach living inside a budgeting app.
+You study the provided JSON snapshot of the user's current expense data and offer concise, supportive insights.
+Goals:
+- Highlight notable changes in spending versus prior periods (weeks or months) when data is available.
+- Surface category-level overages, savings opportunities, and budget adherence.
+- Encourage the user with actionable, present-focused suggestions.
+- Never claim certainty about the future or make forecasts; focus on observed trends.
+- Keep responses under 180 words. Use short paragraphs or bullet lists for readability.
+- Avoid generic financial advice or disclaimers. Sound like a friendly, expert coach.`;
+
+  const analysisPayload = truncateMessageContent(JSON.stringify(analysis));
+
+  if (provider === AI_PROVIDERS.STUB) {
+    return {
+      message: `Here is a quick snapshot based on your latest data:
+- Total spending this period: $${analysis?.totals?.spending?.toFixed?.(2) ?? '—'}
+- Biggest category: ${analysis?.categorySummary?.[0]?.categoryName ?? 'N/A'}
+- Remaining budget overall: $${analysis?.totals?.remaining?.toFixed?.(2) ?? '—'}
+
+Focus on categories that are approaching their budgets and celebrate the ones running under budget. Keep logging expenses so I can keep guiding you!`,
+      usage: null
+    };
+  }
+
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    {
+      role: 'user',
+      content: `Here is the latest expense snapshot in JSON format:
+\`\`\`json
+${analysisPayload}
+\`\`\`
+Please use it for all of your guidance.`
+    },
+    ...sanitizedConversation
+  ];
+
+  if (provider === AI_PROVIDERS.OPENAI) {
+    const openaiClient = initOpenAI();
+    if (!openaiClient) {
+      throw new Error('OpenAI API key not configured.');
+    }
+
+    const model = process.env.OPENAI_COACH_MODEL || 'gpt-4o-mini';
+    const response = await openaiClient.chat.completions.create({
+      model,
+      messages,
+      temperature: 0.7,
+      max_tokens: 600,
+    });
+
+    const content = response.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error('AI coach response was empty.');
+    }
+
+    return {
+      message: content.trim(),
+      usage: response.usage || null
+    };
+  }
+
+  if (provider === AI_PROVIDERS.DEEPSEEK) {
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) {
+      throw new Error('DeepSeek API key not configured.');
+    }
+
+    const model = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
+    const baseUrl = process.env.DEEPSEEK_API_BASE || 'https://api.deepseek.com';
+    const url = new URL('/v1/chat/completions', baseUrl);
+    const payload = JSON.stringify({
+      model,
+      messages,
+      temperature: 0.7,
+      max_tokens: 600
+    });
+
+    const responseText = await new Promise((resolve, reject) => {
+      const request = https.request(
+        {
+          hostname: url.hostname,
+          path: `${url.pathname}${url.search}`,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Length': Buffer.byteLength(payload),
+          },
+        },
+        (response) => {
+          let data = '';
+
+          response.on('data', (chunk) => {
+            data += chunk;
+          });
+
+          response.on('end', () => {
+            if (response.statusCode < 200 || response.statusCode >= 300) {
+              reject(new Error(`DeepSeek API error (${response.statusCode}): ${data}`));
+              return;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              const extracted = parsed.choices?.[0]?.message?.content;
+              if (!extracted) {
+                reject(new Error('DeepSeek response did not contain any content'));
+                return;
+              }
+              resolve(extracted.trim());
+            } catch (parseError) {
+              reject(new Error(`Failed to parse DeepSeek response: ${parseError.message}`));
+            }
+          });
+        }
+      );
+
+      request.on('error', (error) => {
+        reject(new Error(`DeepSeek request failed: ${error.message}`));
+      });
+
+      request.write(payload);
+      request.end();
+    });
+
+    return {
+      message: responseText,
+      usage: null
+    };
+  }
+
+  throw new Error(`Unsupported AI provider: ${provider}`);
+}
+
 module.exports = {
   processReceiptWithAI,
-  parseManualEntry
+  parseManualEntry,
+  generateCoachInsights
 };

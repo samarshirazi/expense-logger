@@ -1,17 +1,31 @@
 import React from 'react';
 import './Sidebar.css';
 
-function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOpen, setIsMobileMenuOpen }) {
+function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOpen, setIsMobileMenuOpen, onCoachToggle, coachHasUnread }) {
   const menuItems = [
     { id: 'dashboard', icon: '📊', label: 'Dashboard', description: 'Overview & Stats' },
     { id: 'expenses', icon: '💰', label: 'Expenses', description: 'View all expenses' },
     { id: 'categories', icon: '📂', label: 'Categories', description: 'Organize by category' },
     { id: 'manage', icon: '🎯', label: 'Manage', description: 'Budgets & Goals' },
-    { id: 'log', icon: '🧾', label: 'Log Expense', description: 'Upload or type quickly' }
+    { id: 'log', icon: '🧾', label: 'Log Expense', description: 'Upload or type quickly' },
+    { id: 'coach', icon: '🤖', label: 'AI Coach', description: 'Insights & advice', isCoach: true }
   ];
 
-  const handleMenuItemClick = (id) => {
-    onViewChange(id);
+  const handleMenuItemClick = (item) => {
+    if (item.id === 'coach') {
+      if (onViewChange && activeView !== 'dashboard') {
+        onViewChange('dashboard');
+      }
+      if (onCoachToggle) {
+        onCoachToggle(true);
+      }
+      setIsMobileMenuOpen(false);
+      return;
+    }
+
+    if (onViewChange) {
+      onViewChange(item.id);
+    }
     setIsMobileMenuOpen(false);
   };
 
@@ -29,19 +43,25 @@ function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOp
       </div>
 
       <nav className="sidebar-nav">
-        {menuItems.map(item => (
-          <button
-            key={item.id}
-            className={`nav-item ${activeView === item.id ? 'active' : ''}`}
-            onClick={() => handleMenuItemClick(item.id)}
-          >
-            <span className="nav-icon">{item.icon}</span>
-            <div className="nav-content">
-              <span className="nav-label">{item.label}</span>
-              <span className="nav-description">{item.description}</span>
-            </div>
-          </button>
-        ))}
+        {menuItems.map(item => {
+          const isActive = item.id !== 'coach' && activeView === item.id;
+          return (
+            <button
+              key={item.id}
+              className={`nav-item ${isActive ? 'active' : ''} ${item.id === 'coach' ? 'nav-item-coach' : ''}`}
+              onClick={() => handleMenuItemClick(item)}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              <div className="nav-content">
+                <span className="nav-label">{item.label}</span>
+                <span className="nav-description">{item.description}</span>
+              </div>
+              {item.id === 'coach' && coachHasUnread && (
+                <span className="nav-indicator" aria-hidden="true"></span>
+              )}
+            </button>
+          );
+        })}
       </nav>
 
       <div className="sidebar-footer">

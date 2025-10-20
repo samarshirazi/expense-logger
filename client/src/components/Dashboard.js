@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import axios from 'axios';
 import authService from '../services/authService';
 import './Dashboard.css';
+import AICoachPanel from './AICoachPanel';
 
 const CATEGORIES = [
   { id: 'Food', name: 'Food', icon: '🍔', color: '#ff6b6b' },
@@ -80,6 +81,29 @@ const getMonthBounds = (monthKey) => {
   };
 };
 
+const getPreviousDateRange = (range) => {
+  if (!range?.startDate || !range?.endDate) {
+    return null;
+  }
+
+  const start = new Date(range.startDate);
+  const end = new Date(range.endDate);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return null;
+  }
+
+  const millisecondsPerDay = 24 * 60 * 60 * 1000;
+  const spanDays = Math.max(1, Math.round((end - start) / millisecondsPerDay) + 1);
+  const previousEnd = new Date(start.getTime() - millisecondsPerDay);
+  const previousStart = new Date(previousEnd.getTime() - (spanDays - 1) * millisecondsPerDay);
+
+  return {
+    startDate: toLocalDateString(previousStart),
+    endDate: toLocalDateString(previousEnd)
+  };
+};
+
 const ensureBudgetShape = (candidate) => {
   const shaped = {};
 
@@ -127,10 +151,12 @@ const getEffectiveBudgetForMonth = (monthKey) => {
   return ensureBudgetShape(DEFAULT_BUDGET);
 };
 
-function Dashboard({ dateRange }) {
+function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggle = () => {}, coachHasUnread = false, onCoachUnreadChange = () => {} }) {
   const [summary, setSummary] = useState(null);
   const [progressSummary, setProgressSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [comparisonSummary, setComparisonSummary] = useState(null);
+  const summaryInitializedRef = useRef(false);
 
   const loadSummary = useCallback(async () => {
     try {
@@ -149,6 +175,22 @@ function Dashboard({ dateRange }) {
           Authorization: `Bearer ${token}`
         }
       });
+
+      const previousRange = getPreviousDateRange(dateRange);
+
+      let comparisonRequest = null;
+      if (previousRange?.startDate && previousRange?.endDate) {
+        const comparisonParams = new URLSearchParams();
+        comparisonParams.append('startDate', previousRange.startDate);
+        comparisonParams.append('endDate', previousRange.endDate);
+        comparisonRequest = axios.get(`${API_BASE_URL}/expenses/summary?${comparisonParams}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+      } else {
+        setComparisonSummary(null);
+      }
 
       const referenceDateStr = dateRange?.endDate || dateRange?.startDate || toLocalDateString(new Date());
       const referenceMonthKey = getMonthKey(referenceDateStr) || getMonthKey(toLocalDateString(new Date()));
@@ -192,13 +234,18 @@ function Dashboard({ dateRange }) {
           })
         : Promise.resolve(null);
 
-      const [rangeResponse, progressResponse] = await Promise.all([
+      const [rangeResponse, progressResponse, comparisonResponse] = await Promise.all([
         summaryRequest,
-        safeProgressPromise
+        safeProgressPromise,
+        comparisonRequest ? comparisonRequest.catch(error => {
+          console.error('Failed to load comparison summary:', error);
+          return null;
+        }) : Promise.resolve(null)
       ]);
 
       setSummary(rangeResponse.data);
       setProgressSummary(progressResponse?.data || rangeResponse.data);
+      setComparisonSummary(comparisonResponse?.data || null);
     } catch (error) {
       console.error('Failed to load summary:', error);
       setProgressSummary(null);
@@ -210,6 +257,26 @@ function Dashboard({ dateRange }) {
   useEffect(() => {
     loadSummary();
   }, [loadSummary]);
+
+  useEffect(() => {
+    if (!summary) {
+      return;
+    }
+
+    if (summaryInitializedRef.current) {
+      if (!isCoachOpen) {
+        onCoachUnreadChange(true);
+      }
+    }
+
+    summaryInitializedRef.current = true;
+  }, [summary, isCoachOpen, onCoachUnreadChange]);
+
+  useEffect(() => {
+    if (isCoachOpen) {
+      onCoachUnreadChange(false);
+    }
+  }, [isCoachOpen, onCoachUnreadChange]);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -224,7 +291,10 @@ function Dashboard({ dateRange }) {
     return getMonthKey(toLocalDateString(new Date()));
   }, [dateRange]);
 
+  const previousMonthKey = useMemo(() => getPreviousMonthKey(monthKey), [monthKey]);
+
   const monthBounds = useMemo(() => getMonthBounds(monthKey), [monthKey]);
+  const previousRange = useMemo(() => getPreviousDateRange(dateRange), [dateRange]);
 
   const isFullMonthView = useMemo(() => {
     if (!monthBounds) return false;
@@ -233,6 +303,7 @@ function Dashboard({ dateRange }) {
   }, [dateRange, monthBounds]);
 
   const categoryBudget = useMemo(() => getEffectiveBudgetForMonth(monthKey), [monthKey]);
+  const previousCategoryBudget = useMemo(() => previousMonthKey ? getEffectiveBudgetForMonth(previousMonthKey) : null, [previousMonthKey]);
 
   const categoryDetails = useMemo(() => {
     const baseSummary = progressSummary || summary;
@@ -295,6 +366,55 @@ function Dashboard({ dateRange }) {
   );
 
   const overallBudgetDelta = totalBudget - totalSpent;
+
+  const recentExpenses = useMemo(() => {
+    if (!Array.isArray(expenses)) {
+      return [];
+    }
+
+    return [...expenses]
+      .filter(expense => expense?.date)
+      .sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA;
+      })
+      .slice(0, 15)
+      .map(expense => ({
+        id: expense.id,
+        merchantName: expense.merchantName,
+        category: expense.category,
+        totalAmount: expense.totalAmount,
+        date: expense.date,
+        source: expense.source || 'unknown'
+      }));
+  }, [expenses]);
+
+  const dailyTotals = useMemo(() => {
+    const accumulator = {};
+
+    if (Array.isArray(summary?.detailedItems)) {
+      summary.detailedItems.forEach(item => {
+        if (!item) return;
+        const dateKey = item.date || summary.dateRange?.start;
+        if (!dateKey) return;
+        const amount = Number(item.totalPrice ?? item.unitPrice ?? 0);
+        if (!Number.isFinite(amount)) return;
+        accumulator[dateKey] = (accumulator[dateKey] || 0) + amount;
+      });
+    } else if (Array.isArray(expenses)) {
+      expenses.forEach(expense => {
+        if (!expense?.date) return;
+        const amount = Number(expense.totalAmount);
+        if (!Number.isFinite(amount)) return;
+        accumulator[expense.date] = (accumulator[expense.date] || 0) + amount;
+      });
+    }
+
+    return Object.entries(accumulator)
+      .map(([date, total]) => ({ date, total }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [summary, expenses]);
 
   const renderPieChart = () => {
     const remainingForChart = isFullMonthView ? totalRemaining : 0;
@@ -391,6 +511,107 @@ function Dashboard({ dateRange }) {
 
   const effectiveSummary = progressSummary || summary;
 
+  const totalEntries = effectiveSummary?.expenseCount || 0;
+  const totalSpendingValue = effectiveSummary?.totalSpending || 0;
+  const averageExpense = effectiveSummary?.averageExpense || 0;
+  const totalsSubtitle = isFullMonthView ? 'This month' : 'Month to date';
+
+  const analysisData = useMemo(() => {
+    if (!summary) {
+      return null;
+    }
+
+    const totals = {
+      spending: totalSpendingValue,
+      entries: totalEntries,
+      average: averageExpense,
+      budget: totalBudget,
+      remaining: totalRemaining,
+      deltaVsBudget: overallBudgetDelta
+    };
+
+    const categorySummaryPayload = categoryDetails.map(detail => ({
+      categoryId: detail.category.id,
+      categoryName: detail.category.name,
+      icon: detail.category.icon,
+      color: detail.category.color,
+      spent: detail.spent,
+      budget: detail.budget,
+      remaining: detail.remaining,
+      deltaVsBudget: detail.spent - (detail.budget || 0)
+    }));
+
+    const comparisonPayload = comparisonSummary ? {
+      dateRange: comparisonSummary.dateRange || previousRange,
+      totals: {
+        spending: comparisonSummary.totalSpending || 0,
+        entries: comparisonSummary.expenseCount || 0,
+        average: comparisonSummary.averageExpense || 0,
+        budget: previousCategoryBudget
+          ? Object.values(previousCategoryBudget).reduce((sum, value) => sum + (value || 0), 0)
+          : null
+      },
+      categorySummary: CATEGORIES.map(category => {
+        const spent = comparisonSummary.itemCategoryTotals?.[category.id] || 0;
+        const budget = previousCategoryBudget?.[category.id] ?? 0;
+        return {
+          categoryId: category.id,
+          categoryName: category.name,
+          icon: category.icon,
+          color: category.color,
+          spent,
+          budget,
+          deltaVsBudget: spent - budget
+        };
+      })
+    } : null;
+
+    return {
+      dateRange,
+      monthKey,
+      previousRange,
+      isFullMonthView,
+      totals,
+      categorySummary: categorySummaryPayload,
+      budgets: categoryBudget,
+      comparison: comparisonPayload,
+      recentExpenses,
+      dailyTotals,
+      expenseCount: totalEntries
+    };
+  }, [
+    summary,
+    categoryDetails,
+    categoryBudget,
+    comparisonSummary,
+    previousCategoryBudget,
+    dateRange,
+    monthKey,
+    previousRange,
+    isFullMonthView,
+    totalSpendingValue,
+    totalEntries,
+    averageExpense,
+    totalBudget,
+    totalRemaining,
+    overallBudgetDelta,
+    recentExpenses,
+    dailyTotals
+  ]);
+
+  const analysisKey = useMemo(() => {
+    if (!analysisData) {
+      return null;
+    }
+
+    return JSON.stringify({
+      dateRange: analysisData.dateRange,
+      totals: analysisData.totals,
+      categorySummary: analysisData.categorySummary,
+      comparisonTotals: analysisData.comparison?.totals || null,
+      recentExpenseIds: (analysisData.recentExpenses || []).map(item => item.id || `${item.date}:${item.merchantName}`)
+    });
+  }, [analysisData]);
   if (loading && !summary) {
     return (
       <div className="dashboard-loading">
@@ -400,15 +621,23 @@ function Dashboard({ dateRange }) {
     );
   }
 
-  const totalEntries = effectiveSummary?.expenseCount || 0;
-  const totalSpendingValue = effectiveSummary?.totalSpending || 0;
-  const totalsSubtitle = isFullMonthView ? 'This month' : 'Month to date';
 
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h1>Dashboard</h1>
-        <p>Overview of your spending</p>
+        <div className="dashboard-header-text">
+          <h1>Dashboard</h1>
+          <p>Overview of your spending</p>
+        </div>
+        <button
+          type="button"
+          className={`coach-toggle ${isCoachOpen ? 'coach-toggle--active' : ''} ${coachHasUnread ? 'coach-toggle--alert' : ''}`}
+          onClick={() => onCoachToggle(prev => !prev)}
+        >
+          <span className="coach-toggle__icon">🤖</span>
+          <span className="coach-toggle__label">AI Coach</span>
+          {coachHasUnread && <span className="coach-toggle__indicator" aria-hidden="true"></span>}
+        </button>
       </div>
 
       <div className="dashboard-section">
@@ -475,6 +704,23 @@ function Dashboard({ dateRange }) {
           )}
         </div>
       </div>
+
+      <AICoachPanel
+        isOpen={isCoachOpen}
+        onClose={() => onCoachToggle(false)}
+        analysisData={analysisData}
+        analysisKey={analysisKey}
+        onRefreshHandled={() => {
+          if (isCoachOpen) {
+            onCoachUnreadChange(false);
+          }
+        }}
+        onAssistantMessage={() => {
+          if (!isCoachOpen) {
+            onCoachUnreadChange(true);
+          }
+        }}
+      />
 
     </div>
   );

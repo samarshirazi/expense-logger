@@ -176,6 +176,18 @@ export const deleteExpenseItem = async (expenseId, itemIndex) => {
   }
 };
 
+export const requestCoachInsights = async ({ conversation = [], analysis }) => {
+  try {
+    const response = await api.post('/ai/coach', {
+      conversation,
+      analysis
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to generate AI coach response'));
+  }
+};
+
 export const checkServerHealth = async () => {
   try {
     const healthUrl = process.env.NODE_ENV === 'production'
