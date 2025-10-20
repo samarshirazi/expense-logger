@@ -896,6 +896,12 @@ Goals:
 - Wrap up with one encouraging note or a high-five for progress.`;
 
   const analysisPayload = truncateMessageContent(JSON.stringify(analysis));
+  const moodPreference = analysis?.preferences?.mood || 'motivator_serious';
+  const moodInstructions = {
+    motivator_roast: 'Keep the motivation high but sprinkle in playful, good-natured roasts when you call out spending patterns.',
+    motivator_serious: 'Blend motivating energy with professional, accountable guidance—keep things direct and constructive.'
+  };
+  const personaInstruction = moodInstructions[moodPreference] || moodInstructions.motivator_serious;
 
   if (provider === AI_PROVIDERS.STUB) {
       const topCategory = analysis?.categorySummary?.[0];
@@ -905,19 +911,23 @@ Goals:
     const merchantBlurb = topMerchant
       ? ` Most of that is flowing to ${topMerchant.name} (~$${Number(topMerchant.total ?? 0).toFixed(2)} across ${topMerchant.count} visits).`
       : '';
+    const closingLine = moodPreference === 'motivator_roast'
+      ? 'Keep hustling—and maybe let that third dessert stay on the shelf next time 😄'
+      : "Stay steady and keep logging; I'll keep the insights sharp.";
 
     return {
       message: `Here's what I'm seeing right now: your total spending this period is $${analysis?.totals?.spending?.toFixed?.(2) ?? '—'}, with ${analysis?.expenseCount ?? 'no'} logged purchases. You're still sitting on $${analysis?.totals?.remaining?.toFixed?.(2) ?? '—'} of buffer overall.
 
 The busiest category at the moment is ${topCategoryName}.${merchantBlurb}
 
-You're doing great—keep logging receipts and I'll keep nudging you toward the wins!`,
+${closingLine}`,
       usage: null
     };
   }
 
   const messages = [
     { role: 'system', content: systemPrompt },
+    { role: 'system', content: `Persona guidelines: ${personaInstruction}` },
     {
       role: 'user',
       content: `Here is the latest expense snapshot in JSON format:

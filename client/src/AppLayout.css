@@ -174,6 +174,127 @@ body {
   box-shadow: 0 6px 16px rgba(245, 87, 108, 0.4);
 }
 
+
+:root[data-theme='light'] body {
+  background: #f5f7fa;
+  color: #1f2937;
+}
+
+:root[data-theme='dark'] body {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+:root[data-theme='dark'] .main-content,
+:root[data-theme='dark'] .view-container,
+:root[data-theme='dark'] .dashboard,
+:root[data-theme='dark'] .settings {
+  background: transparent;
+  color: inherit;
+}
+
+:root[data-theme='dark'] .dashboard-section,
+:root[data-theme='dark'] .settings-section,
+:root[data-theme='dark'] .category-card,
+:root[data-theme='dark'] .total-card,
+:root[data-theme='dark'] .log-expense-panel,
+:root[data-theme='dark'] .ai-coach,
+:root[data-theme='dark'] .settings-theme-card,
+:root[data-theme='dark'] .settings-mood-card,
+:root[data-theme='dark'] .summary-metric-card,
+:root[data-theme='dark'] .total-card-highlight,
+:root[data-theme='dark'] .settings-theme-card.active,
+:root[data-theme='dark'] .settings-mood-card.active {
+  background: #1e293b;
+  border-color: rgba(148, 163, 184, 0.25);
+  color: #e2e8f0;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.35);
+}
+
+:root[data-theme='dark'] .dashboard-header h1,
+:root[data-theme='dark'] .view-header h1,
+:root[data-theme='dark'] .settings-section-header h2 {
+  color: #f8fafc;
+}
+
+:root[data-theme='dark'] .dashboard-header p,
+:root[data-theme='dark'] .view-header p,
+:root[data-theme='dark'] .settings-section-header p,
+:root[data-theme='dark'] .settings-hint,
+:root[data-theme='dark'] .settings-theme-description,
+:root[data-theme='dark'] .settings-mood-description {
+  color: #94a3b8;
+}
+
+:root[data-theme='dark'] .settings-action-button,
+:root[data-theme='dark'] .coach-toggle {
+  box-shadow: 0 14px 32px rgba(99, 102, 241, 0.35);
+}
+
+:root[data-theme='dark'] .nav-item {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+:root[data-theme='dark'] .nav-item:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+:root[data-theme='dark'] .nav-item.active {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+:root[data-theme='dark'] .settings-theme-card,
+:root[data-theme='dark'] .settings-mood-card {
+  background: rgba(30, 41, 59, 0.85);
+}
+
+:root[data-theme='dark'] .settings-theme-card input[type="radio"],
+:root[data-theme='dark'] .settings-mood-card input[type="radio"] {
+  accent-color: #6366f1;
+}
+
+:root[data-theme='dark'] .settings-theme-card.active,
+:root[data-theme='dark'] .settings-mood-card.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.18) 0%, rgba(76, 29, 149, 0.16) 100%);
+}
+
+:root[data-theme='dark'] .ai-coach__body,
+:root[data-theme='dark'] .ai-coach__message {
+  color: #e2e8f0;
+}
+
+:root[data-theme='dark'] .ai-coach__error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fecaca;
+}
+
+:root[data-theme='dark'] .ai-coach__form input {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(148, 163, 184, 0.4);
+  color: #f1f5f9;
+}
+
+:root[data-theme='dark'] .ai-coach__form input::placeholder {
+  color: #94a3b8;
+}
+
+:root[data-theme='dark'] .settings-hint,
+:root[data-theme='dark'] .settings-theme-card,
+:root[data-theme='dark'] .settings-mood-card {
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+:root[data-theme='dark'] .settings-theme-title,
+:root[data-theme='dark'] .settings-mood-title,
+:root[data-theme='dark'] .settings-toggle-label {
+  color: #f8fafc;
+}
+
+:root[data-theme='dark'] .settings-theme-card.active .settings-theme-description,
+:root[data-theme='dark'] .settings-mood-card.active .settings-mood-description {
+  color: #cbd5f5;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .options-toggle-btn {

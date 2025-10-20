@@ -151,7 +151,7 @@ const getEffectiveBudgetForMonth = (monthKey) => {
   return ensureBudgetShape(DEFAULT_BUDGET);
 };
 
-function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggle = () => {}, coachHasUnread = false, onCoachUnreadChange = () => {} }) {
+function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggle = () => {}, coachHasUnread = false, onCoachUnreadChange = () => {}, coachMood = "motivator_serious" }) {
   const [summary, setSummary] = useState(null);
   const [progressSummary, setProgressSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -683,6 +683,9 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
       budgets: categoryBudget,
       comparison: comparisonPayload,
       categoryLeaders,
+      preferences: {
+        mood: coachMood
+      },
       recentExpenses,
       dailyTotals,
       expenseCount: totalEntries
@@ -705,7 +708,8 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
     overallBudgetDelta,
     recentExpenses,
     dailyTotals,
-    categoryLeaders
+    categoryLeaders,
+    coachMood
   ]);
 
   const analysisKey = useMemo(() => {
@@ -719,6 +723,7 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
       categorySummary: analysisData.categorySummary,
       categoryLeaders: analysisData.categoryLeaders,
       comparisonTotals: analysisData.comparison?.totals || null,
+      mood: analysisData.preferences?.mood || null,
       recentExpenseIds: (analysisData.recentExpenses || []).map(item => item.id || `${item.date}:${item.merchantName}`)
     });
   }, [analysisData]);

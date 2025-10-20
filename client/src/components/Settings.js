@@ -8,25 +8,30 @@ const THEME_OPTIONS = [
   { id: 'dark', label: 'Dark' }
 ];
 
-const Settings = ({ onShowNotificationPrompt, onOpenCoach }) => {
+const MOOD_OPTIONS = [
+  {
+    id: 'motivator_roast',
+    title: 'Motivator + Roast',
+    description: 'Upbeat coaching with playful jabs to keep you accountable.'
+  },
+  {
+    id: 'motivator_serious',
+    title: 'Motivator + Serious',
+    description: 'Encouraging tone paired with straight-laced financial guidance.'
+  }
+];
+
+const Settings = ({
+  onShowNotificationPrompt,
+  onOpenCoach,
+  themePreference,
+  onThemeChange,
+  coachMood,
+  onCoachMoodChange,
+  coachAutoOpen,
+  onCoachAutoOpenChange
+}) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [coachAutoOpen, setCoachAutoOpen] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      return window.localStorage.getItem('coach:autoOpen') === 'true';
-    } catch (error) {
-      return false;
-    }
-  });
-  const [theme, setTheme] = useState(() => {
-    if (typeof window === 'undefined') return 'system';
-    try {
-      return window.localStorage.getItem('theme:preference') || 'system';
-    } catch (error) {
-      return 'system';
-    }
-  });
-  const [themeApplied, setThemeApplied] = useState(false);
 
   useEffect(() => {
     if (typeof Notification !== 'undefined') {
@@ -34,15 +39,8 @@ const Settings = ({ onShowNotificationPrompt, onOpenCoach }) => {
     }
   }, []);
 
-  useEffect(() => {
-    if (!themeApplied) {
-      applyTheme(theme);
-      setThemeApplied(true);
-    }
-  }, [theme, themeApplied]);
-
   const themeDescription = useMemo(() => {
-    switch (theme) {
+    switch (themePreference) {
       case 'light':
         return 'Bright layout with light background and dark text.';
       case 'dark':
@@ -50,21 +48,7 @@ const Settings = ({ onShowNotificationPrompt, onOpenCoach }) => {
       default:
         return 'Tracks your operating system setting automatically.';
     }
-  }, [theme]);
-
-  const applyTheme = (value) => {
-    if (typeof document === 'undefined') {
-      return;
-    }
-    const root = document.documentElement;
-    if (value === 'light') {
-      root.dataset.theme = 'light';
-    } else if (value === 'dark') {
-      root.dataset.theme = 'dark';
-    } else {
-      delete root.dataset.theme;
-    }
-  };
+  }, [themePreference]);
 
   const handleNotificationToggle = async () => {
     if (notificationsEnabled) {
@@ -102,28 +86,20 @@ const Settings = ({ onShowNotificationPrompt, onOpenCoach }) => {
   };
 
   const handleCoachAutoOpenToggle = () => {
-    setCoachAutoOpen(prev => {
-      const next = !prev;
-      if (typeof window !== 'undefined') {
-        try {
-          window.localStorage.setItem('coach:autoOpen', String(next));
-        } catch (error) {
-          console.warn('Failed to store coach preference:', error);
-        }
-      }
-      return next;
-    });
+    if (onCoachAutoOpenChange) {
+      onCoachAutoOpenChange(!coachAutoOpen);
+    }
   };
 
-  const handleThemeChange = (value) => {
-    setTheme(value);
-    applyTheme(value);
-    if (typeof window !== 'undefined') {
-      try {
-        window.localStorage.setItem('theme:preference', value);
-      } catch (error) {
-        console.warn('Failed to store theme preference:', error);
-      }
+  const handleMoodChange = (value) => {
+    if (onCoachMoodChange) {
+      onCoachMoodChange(value);
+    }
+  };
+
+  const handleThemeSelection = (value) => {
+    if (onThemeChange) {
+      onThemeChange(value);
     }
   };
 
@@ -187,6 +163,24 @@ const Settings = ({ onShowNotificationPrompt, onOpenCoach }) => {
         <div className="settings-hint">
           When enabled, Finch will pop in right after fresh data arrives.
         </div>
+        <div className="settings-mood-options">
+          {MOOD_OPTIONS.map(option => (
+            <label
+              key={option.id}
+              className={`settings-mood-card ${coachMood === option.id ? 'active' : ''}`}
+            >
+              <input
+                type="radio"
+                name="coach-mood"
+                value={option.id}
+                checked={coachMood === option.id}
+                onChange={() => handleMoodChange(option.id)}
+              />
+              <span className="settings-mood-title">{option.title}</span>
+              <span className="settings-mood-description">{option.description}</span>
+            </label>
+          ))}
+        </div>
       </section>
 
       <section className="settings-section">
@@ -198,17 +192,20 @@ const Settings = ({ onShowNotificationPrompt, onOpenCoach }) => {
         </header>
         <div className="settings-theme-options">
           {THEME_OPTIONS.map(option => (
-            <label key={option.id} className={`settings-theme-card ${theme === option.id ? 'active' : ''}`}>
+            <label
+              key={option.id}
+              className={`settings-theme-card ${themePreference === option.id ? 'active' : ''}`}
+            >
               <input
                 type="radio"
                 name="theme"
                 value={option.id}
-                checked={theme === option.id}
-                onChange={() => handleThemeChange(option.id)}
+                checked={themePreference === option.id}
+                onChange={() => handleThemeSelection(option.id)}
               />
               <span className="settings-theme-title">{option.label}</span>
               <span className="settings-theme-description">
-                {option.id === theme ? themeDescription : ''}
+                {option.id === themePreference ? themeDescription : ''}
               </span>
             </label>
           ))}

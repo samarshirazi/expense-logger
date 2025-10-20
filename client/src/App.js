@@ -35,6 +35,33 @@ function App() {
   const [showOptionsButton, setShowOptionsButton] = useState(true);
   const [isCoachOpen, setIsCoachOpen] = useState(false);
   const [coachHasUnread, setCoachHasUnread] = useState(false);
+  const [themePreference, setThemePreference] = useState(() => {
+    if (typeof window === 'undefined') return 'system';
+    try {
+      return window.localStorage.getItem('theme:preference') || 'system';
+    } catch (error) {
+      console.warn('Failed to read theme preference:', error);
+      return 'system';
+    }
+  });
+  const [coachMood, setCoachMood] = useState(() => {
+    if (typeof window === 'undefined') return 'motivator_serious';
+    try {
+      return window.localStorage.getItem('coach:mood') || 'motivator_serious';
+    } catch (error) {
+      console.warn('Failed to read coach mood preference:', error);
+      return 'motivator_serious';
+    }
+  });
+  const [coachAutoOpen, setCoachAutoOpen] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return window.localStorage.getItem('coach:autoOpen') === 'true';
+    } catch (error) {
+      console.warn('Failed to read coach auto-open preference:', error);
+      return false;
+    }
+  });
   const mainContentRef = useRef(null);
   const scrollStateRef = useRef({
     buttonVisible: true,
@@ -129,6 +156,58 @@ function App() {
     }
   };
 
+  const applyTheme = useCallback((value) => {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    if (value === 'light') {
+      root.dataset.theme = 'light';
+      root.style.colorScheme = 'light';
+    } else if (value === 'dark') {
+      root.dataset.theme = 'dark';
+      root.style.colorScheme = 'dark';
+    } else {
+      root.removeAttribute('data-theme');
+      root.style.colorScheme = '';
+    }
+  }, []);
+
+  useEffect(() => {
+    applyTheme(themePreference);
+  }, [themePreference, applyTheme]);
+
+  const handleThemeChange = useCallback((value) => {
+    setThemePreference(value);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('theme:preference', value);
+      } catch (error) {
+        console.warn('Failed to store theme preference:', error);
+      }
+    }
+  }, []);
+
+  const handleCoachMoodChange = useCallback((value) => {
+    setCoachMood(value);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('coach:mood', value);
+      } catch (error) {
+        console.warn('Failed to store coach mood:', error);
+      }
+    }
+  }, []);
+
+  const handleCoachAutoOpenChange = useCallback((value) => {
+    setCoachAutoOpen(value);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('coach:autoOpen', String(value));
+      } catch (error) {
+        console.warn('Failed to store coach auto-open preference:', error);
+      }
+    }
+  }, []);
+
   const handleCoachToggle = useCallback((valueOrUpdater) => {
     setIsCoachOpen(prev => {
       const next = typeof valueOrUpdater === 'function' ? valueOrUpdater(prev) : valueOrUpdater;
@@ -137,7 +216,13 @@ function App() {
       }
       return next;
     });
-  }, [setCoachHasUnread]);
+  }, []);
+
+  useEffect(() => {
+    if (coachAutoOpen && coachHasUnread && !isCoachOpen) {
+      handleCoachToggle(true);
+    }
+  }, [coachAutoOpen, coachHasUnread, isCoachOpen, handleCoachToggle]);
 
   const handleAuthSuccess = () => {
     // Auth service will automatically trigger the subscriber
@@ -410,6 +495,7 @@ function App() {
             onCoachToggle={handleCoachToggle}
             coachHasUnread={coachHasUnread}
             onCoachUnreadChange={setCoachHasUnread}
+            coachMood={coachMood}
           />
         )}
 
@@ -464,6 +550,12 @@ function App() {
             <Settings
               onShowNotificationPrompt={() => setShowNotificationPrompt(true)}
               onOpenCoach={() => handleCoachToggle(true)}
+              themePreference={themePreference}
+              onThemeChange={handleThemeChange}
+              coachMood={coachMood}
+              onCoachMoodChange={handleCoachMoodChange}
+              coachAutoOpen={coachAutoOpen}
+              onCoachAutoOpenChange={handleCoachAutoOpenChange}
             />
           </div>
         )}
