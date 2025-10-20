@@ -20,40 +20,6 @@ function AICoachPanel({
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
-  useEffect(() => {
-    if (!analysisKey) {
-      return;
-    }
-    if (analysisKey !== lastAnalysisKeyRef.current) {
-      setNeedsRefresh(true);
-    }
-  }, [analysisKey]);
-
-  useEffect(() => {
-    if (isOpen && needsRefresh) {
-      void fetchInsights({ mode: 'auto' });
-    }
-  }, [isOpen, needsRefresh, fetchInsights]);
-
-  useEffect(() => {
-    if (isOpen && messages.length === 0 && analysisData) {
-      void fetchInsights({ mode: 'auto' });
-    }
-  }, [isOpen, analysisData, messages.length, fetchInsights]);
-
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isOpen, messages.length]);
-
-  useEffect(() => {
-    if (!listRef.current) return;
-    listRef.current.scrollTop = listRef.current.scrollHeight;
-  }, [messages, isLoading]);
-
-  const hasConversation = useMemo(() => messages.length > 0, [messages.length]);
-
   const fetchInsights = useCallback(async ({ mode, userMessage } = {}) => {
     if (!analysisData) {
       return;
@@ -109,6 +75,40 @@ function AICoachPanel({
       setIsLoading(false);
     }
   }, [analysisData, analysisKey, messages, onAssistantMessage, onRefreshHandled]);
+
+  useEffect(() => {
+    if (!analysisKey) {
+      return;
+    }
+    if (analysisKey !== lastAnalysisKeyRef.current) {
+      setNeedsRefresh(true);
+    }
+  }, [analysisKey]);
+
+  useEffect(() => {
+    if (isOpen && needsRefresh) {
+      void fetchInsights({ mode: 'auto' });
+    }
+  }, [isOpen, needsRefresh, fetchInsights]);
+
+  useEffect(() => {
+    if (isOpen && messages.length === 0 && analysisData) {
+      void fetchInsights({ mode: 'auto' });
+    }
+  }, [isOpen, analysisData, messages.length, fetchInsights]);
+
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen, messages.length]);
+
+  useEffect(() => {
+    if (!listRef.current) return;
+    listRef.current.scrollTop = listRef.current.scrollHeight;
+  }, [messages, isLoading]);
+
+  const hasConversation = useMemo(() => messages.length > 0, [messages.length]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
