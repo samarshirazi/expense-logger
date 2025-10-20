@@ -6,7 +6,7 @@ const path = require('path');
 // Load environment variables from root .env
 require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: true });
 
-const { processReceiptWithAI, parseManualEntry, generateCoachInsights } = require('../server/services/aiService');
+const { processReceiptWithAI, parseManualEntry, generateCoachInsights, smartCategorize } = require('../server/services/aiService');
 const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('../server/services/googleDriveService');
 const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable, updateExpenseCategory, updateItemCategory, updateExpense } = require('../server/services/supabaseService');
 const { signUp, signIn, signOut, requireAuth } = require('../server/services/authService');
@@ -227,7 +227,12 @@ app.post('/api/manual-entry', requireAuth, async (req, res) => {
     }
 
     console.log('Processing manual entry...');
-    const parsedExpenses = await parseManualEntry(textEntry);
+    let parsedExpenses = await parseManualEntry(textEntry);
+
+    if (!parsedExpenses || !parsedExpenses.length) {
+      console.warn('Manual entry parsing returned no data; attempting fallback parser.');
+      parsedExpenses = fallbackManualEntry(textEntry);
+    }
 
     const authHeader = req.headers.authorization;
     const userToken = authHeader ? authHeader.substring(7) : null;
@@ -822,5 +827,69 @@ app.use(async (req, res, next) => {
   }
   next();
 });
+
+
+function fallbackManualEntry(textEntry) {
+  if (!textEntry || typeof textEntry !== 'string') {
+    return null;
+  }
+
+  const segments = textEntry
+    .split(/\n+|,|;/)
+    .map(part => part.trim())
+    .filter(Boolean);
+
+  const items = [];
+
+  segments.forEach(segment => {
+    const amountMatch = segment.match(/(-?\$?\d+(?:\.\d+)?)/);
+    if (!amountMatch) {
+      return;
+    }
+
+    const rawAmount = amountMatch[0].replace(/\$/g, '');
+    const amount = parseFloat(rawAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return;
+    }
+
+    let description = segment.replace(amountMatch[0], '').replace(/\$/g, '').trim();
+    if (!description) {
+      description = 'Manual item';
+    }
+
+    const category = smartCategorize(description);
+
+    items.push({
+      description,
+      quantity: 1,
+      unitPrice: amount,
+      totalPrice: amount,
+      category
+    });
+  });
+
+  if (!items.length) {
+    return null;
+  }
+
+  const totalAmount = items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+  const merchantName = items.length === 1 ? items[0].description : 'Manual Entry';
+
+  const now = new Date();
+  const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  return [{
+    merchantName,
+    date: todayDateStr,
+    totalAmount: parseFloat(totalAmount.toFixed(2)),
+    currency: 'USD',
+    category: items.length === 1 ? items[0].category : smartCategorize(merchantName, items),
+    items,
+    paymentMethod: 'Manual Entry',
+    taxAmount: null,
+    tipAmount: null
+  }];
+}
 
 module.exports = app;
