@@ -14,6 +14,7 @@
   background: linear-gradient(180deg, #f8f7ff 0%, #ffffff 40%);
   min-height: 100vh;
   position: relative;
+  overflow-x: hidden;
 }
 
 .expenses-header {
@@ -136,10 +137,11 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .range-field .range-inputs input {
-  flex: 1 1 50%;
+  flex: 1 1 160px;
   min-width: 0;
 }
 
@@ -148,6 +150,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-secondary);
+  flex: 0 0 auto;
 }
 
 @media (max-width: 960px) {
@@ -628,6 +631,38 @@
   }
 
   .filter-actions {
-    align-items: flex-start;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .filter-summary {
+    width: 100%;
+  }
+
+  .filter-chip {
+    white-space: normal;
+  }
+
+  .expenses-btn {
+    width: 100%;
+  }
+
+  .range-field .range-inputs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .range-field .range-inputs input {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .range-field .range-inputs .range-separator {
+    order: -1;
+    align-self: flex-start;
+    font-size: 10px;
+    letter-spacing: 0.2em;
   }
 }
