@@ -157,6 +157,8 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
   const [loading, setLoading] = useState(true);
   const [comparisonSummary, setComparisonSummary] = useState(null);
   const summaryInitializedRef = useRef(false);
+  const summarySignatureRef = useRef(null);
+  const isCoachOpenRef = useRef(isCoachOpen);
 
   const loadSummary = useCallback(async () => {
     try {
@@ -263,14 +265,26 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
       return;
     }
 
+    const signature = JSON.stringify({
+      total: summary?.totalSpending ?? null,
+      count: summary?.expenseCount ?? null,
+      updated: summary?.dateRange ?? null
+    });
+
+    if (summarySignatureRef.current === signature) {
+      return;
+    }
+
+    summarySignatureRef.current = signature;
+
     if (summaryInitializedRef.current) {
-      if (!isCoachOpen) {
+      if (!isCoachOpenRef.current) {
         onCoachUnreadChange(true);
       }
     }
 
     summaryInitializedRef.current = true;
-  }, [summary, isCoachOpen, onCoachUnreadChange]);
+  }, [summary, onCoachUnreadChange]);
 
   useEffect(() => {
     if (isCoachOpen) {
@@ -278,7 +292,11 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
     }
   }, [isCoachOpen, onCoachUnreadChange]);
 
-  const formatCurrency = (amount) => {
+  
+  useEffect(() => {
+    isCoachOpenRef.current = isCoachOpen;
+  }, [isCoachOpen]);
+const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
@@ -822,7 +840,10 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
 
       <AICoachPanel
         isOpen={isCoachOpen}
-        onClose={() => onCoachToggle(false)}
+        onClose={() => {
+          onCoachToggle(false);
+          onCoachUnreadChange(false);
+        }}
         analysisData={analysisData}
         analysisKey={analysisKey}
         onRefreshHandled={() => {
