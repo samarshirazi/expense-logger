@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import LogExpense from './components/LogExpense';
+import Settings from './components/Settings';
 import ExpenseDetails from './components/ExpenseDetails';
 import CategorizedExpenses from './components/CategorizedExpenses';
 import ExpensesSummary from './components/ExpensesSummary';
@@ -28,7 +29,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
-  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'expenses', 'categories', 'manage', 'log'
+  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'expenses', 'categories', 'manage', 'log', 'settings'
   const [showSummary, setShowSummary] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showOptionsButton, setShowOptionsButton] = useState(true);
@@ -450,6 +451,20 @@ function App() {
               <p>Upload receipts or add expenses manually</p>
             </div>
             <LogExpense onExpenseAdded={handleExpenseAdded} />
+          </div>
+        )}
+
+        {activeView === 'settings' && (
+          <div className="view-container no-timeline">
+            {renderOptionsToggleButton('inline')}
+            <div className="view-header">
+              <h1>Settings</h1>
+              <p>Control notifications, the AI Coach, and theme preferences</p>
+            </div>
+            <Settings
+              onShowNotificationPrompt={() => setShowNotificationPrompt(true)}
+              onOpenCoach={() => handleCoachToggle(true)}
+            />
           </div>
         )}
 

@@ -8,6 +8,7 @@ function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOp
     { id: 'categories', icon: '📂', label: 'Categories', description: 'Organize by category' },
     { id: 'manage', icon: '🎯', label: 'Manage', description: 'Budgets & Goals' },
     { id: 'log', icon: '🧾', label: 'Log Expense', description: 'Upload or type quickly' },
+    { id: 'settings', icon: '⚙️', label: 'Settings', description: 'Notifications & preferences' },
     { id: 'coach', icon: '🤖', label: 'AI Coach', description: 'Insights & advice', isCoach: true }
   ];
 
