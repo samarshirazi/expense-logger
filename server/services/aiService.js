@@ -890,19 +890,28 @@ Goals:
 - Surface category-level overages, savings opportunities, and budget adherence.
 - Encourage the user with actionable, present-focused suggestions.
 - Never claim certainty about the future or make forecasts; focus on observed trends.
-- Keep responses under 180 words. Use short paragraphs or bullet lists for readability.
-- Avoid generic financial advice or disclaimers. Sound like a friendly, expert coach.`;
+- Keep responses under 180 words. Favor a conversational voice over rigid bullet lists; mix short paragraphs with a couple of quick highlights when helpful.
+- Speak like a supportive friend who remembers the user's habits—naturally weave in numbers instead of listing them.
+- Avoid generic financial disclaimers.
+- Wrap up with one encouraging note or a high-five for progress.`;
 
   const analysisPayload = truncateMessageContent(JSON.stringify(analysis));
 
   if (provider === AI_PROVIDERS.STUB) {
-    return {
-      message: `Here is a quick snapshot based on your latest data:
-- Total spending this period: $${analysis?.totals?.spending?.toFixed?.(2) ?? '—'}
-- Biggest category: ${analysis?.categorySummary?.[0]?.categoryName ?? 'N/A'}
-- Remaining budget overall: $${analysis?.totals?.remaining?.toFixed?.(2) ?? '—'}
+      const topCategory = analysis?.categorySummary?.[0];
+    const topCategoryName = topCategory?.categoryName ?? 'one of your tracked buckets';
+    const leaderSummary = topCategory?.categoryId ? analysis?.categoryLeaders?.[topCategory.categoryId] : null;
+    const topMerchant = leaderSummary?.topMerchants?.[0];
+    const merchantBlurb = topMerchant
+      ? ` Most of that is flowing to ${topMerchant.name} (~$${Number(topMerchant.total ?? 0).toFixed(2)} across ${topMerchant.count} visits).`
+      : '';
 
-Focus on categories that are approaching their budgets and celebrate the ones running under budget. Keep logging expenses so I can keep guiding you!`,
+    return {
+      message: `Here's what I'm seeing right now: your total spending this period is $${analysis?.totals?.spending?.toFixed?.(2) ?? '—'}, with ${analysis?.expenseCount ?? 'no'} logged purchases. You're still sitting on $${analysis?.totals?.remaining?.toFixed?.(2) ?? '—'} of buffer overall.
+
+The busiest category at the moment is ${topCategoryName}.${merchantBlurb}
+
+You're doing great—keep logging receipts and I'll keep nudging you toward the wins!`,
       usage: null
     };
   }

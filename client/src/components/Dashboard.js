@@ -416,6 +416,113 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
       .sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [summary, expenses]);
 
+  const categoryLeaders = useMemo(() => {
+    const merchantMap = new Map();
+    const itemMap = new Map();
+
+    const sourceItems = Array.isArray(summary?.detailedItems) && summary.detailedItems.length
+      ? summary.detailedItems
+      : Array.isArray(expenses)
+        ? expenses.flatMap(expense => {
+            if (!expense) return [];
+            if (Array.isArray(expense.items) && expense.items.length) {
+              return expense.items.map(item => ({
+                date: expense.date,
+                category: item.category || expense.category,
+                merchantName: expense.merchantName,
+                description: item.description,
+                totalPrice: item.totalPrice ?? item.unitPrice ?? 0
+              }));
+            }
+            return [{
+              date: expense.date,
+              category: expense.category,
+              merchantName: expense.merchantName,
+              description: expense.merchantName,
+              totalPrice: expense.totalAmount
+            }];
+          })
+        : [];
+
+    const recordEntry = (map, categoryId, key, amount) => {
+      if (!key) {
+        key = 'Other';
+      }
+      const normalizedCategory = categoryId && CATEGORIES.some(cat => cat.id === categoryId)
+        ? categoryId
+        : 'Other';
+      if (!map.has(normalizedCategory)) {
+        map.set(normalizedCategory, new Map());
+      }
+      const bucket = map.get(normalizedCategory);
+      const trimmedKey = key.trim() || 'Other';
+      const entry = bucket.get(trimmedKey) || { name: trimmedKey, total: 0, count: 0 };
+      entry.total += amount;
+      entry.count += 1;
+      bucket.set(trimmedKey, entry);
+    };
+
+    sourceItems.forEach(item => {
+      if (!item) {
+        return;
+      }
+      const categoryId = item.category || 'Other';
+      const merchantName = item.merchantName || item.merchant || item.description || 'Other';
+      const description = item.description || merchantName || 'Item';
+      const amountCandidates = [item.totalPrice, item.unitPrice, item.totalAmount];
+      let amount = 0;
+      for (const candidate of amountCandidates) {
+        const numeric = Number(candidate);
+        if (Number.isFinite(numeric) && numeric > 0) {
+          amount = numeric;
+          break;
+        }
+      }
+      if (!amount && item.quantity && item.unitPrice) {
+        const product = Number(item.quantity) * Number(item.unitPrice);
+        if (Number.isFinite(product) && product > 0) {
+          amount = product;
+        }
+      }
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return;
+      }
+
+      recordEntry(merchantMap, categoryId, merchantName, amount);
+      recordEntry(itemMap, categoryId, description, amount);
+    });
+
+    const toSortedArray = (map) => {
+      if (!map) {
+        return [];
+      }
+      return Array.from(map.values())
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5)
+        .map(entry => ({
+          name: entry.name,
+          total: Number(entry.total.toFixed(2)),
+          count: entry.count
+        }));
+    };
+
+    const result = {};
+    CATEGORIES.forEach(category => {
+      const catId = category.id;
+      result[catId] = {
+        topMerchants: toSortedArray(merchantMap.get(catId)),
+        topItems: toSortedArray(itemMap.get(catId))
+      };
+    });
+
+    result.Other = result.Other || {
+      topMerchants: toSortedArray(merchantMap.get('Other')),
+      topItems: toSortedArray(itemMap.get('Other'))
+    };
+
+    return result;
+  }, [summary, expenses]);
+
   const renderPieChart = () => {
     const remainingForChart = isFullMonthView ? totalRemaining : 0;
     const chartTotal = chartTotalSpent + remainingForChart;
@@ -575,6 +682,7 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
       categorySummary: categorySummaryPayload,
       budgets: categoryBudget,
       comparison: comparisonPayload,
+      categoryLeaders,
       recentExpenses,
       dailyTotals,
       expenseCount: totalEntries
@@ -596,7 +704,8 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
     totalRemaining,
     overallBudgetDelta,
     recentExpenses,
-    dailyTotals
+    dailyTotals,
+    categoryLeaders
   ]);
 
   const analysisKey = useMemo(() => {
@@ -608,6 +717,7 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
       dateRange: analysisData.dateRange,
       totals: analysisData.totals,
       categorySummary: analysisData.categorySummary,
+      categoryLeaders: analysisData.categoryLeaders,
       comparisonTotals: analysisData.comparison?.totals || null,
       recentExpenseIds: (analysisData.recentExpenses || []).map(item => item.id || `${item.date}:${item.merchantName}`)
     });
