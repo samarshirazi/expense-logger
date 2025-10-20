@@ -9,17 +9,27 @@ const toLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineState, onTimelineStateChange }) {
+function TimeNavigator({
+  onRangeChange,
+  expenses = [],
+  initialDate,
+  timelineState,
+  onTimelineStateChange,
+  adjustEnabled = true
+}) {
   // Use external state if provided, otherwise use internal state
   const [internalViewMode, setInternalViewMode] = useState('month');
   const [internalCurrentDate, setInternalCurrentDate] = useState(() => initialDate || new Date());
 
-  const viewMode = timelineState?.viewMode || internalViewMode;
+  const viewMode = adjustEnabled ? (timelineState?.viewMode || internalViewMode) : 'month';
   const currentDate = timelineState?.currentDate || internalCurrentDate;
 
   const setViewMode = (mode) => {
     if (onTimelineStateChange) {
-      onTimelineStateChange({ ...timelineState, viewMode: mode });
+      onTimelineStateChange(prevState => ({
+        ...(prevState || timelineState || {}),
+        viewMode: mode
+      }));
     } else {
       setInternalViewMode(mode);
     }
@@ -27,7 +37,10 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
 
   const setCurrentDate = (date) => {
     if (onTimelineStateChange) {
-      onTimelineStateChange({ ...timelineState, currentDate: date });
+      onTimelineStateChange(prevState => ({
+        ...(prevState || timelineState || {}),
+        currentDate: date
+      }));
     } else {
       setInternalCurrentDate(date);
     }
@@ -37,6 +50,17 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
   const [showViewModeMenu, setShowViewModeMenu] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => initialDate || new Date());
   const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (!adjustEnabled) {
+      setShowViewModeMenu(false);
+      if (timelineState?.viewMode !== 'month') {
+        setViewMode('month');
+      }
+    }
+  }, [adjustEnabled, timelineState?.viewMode]);
+
+  const effectiveViewMode = adjustEnabled ? viewMode : 'month';
 
   useEffect(() => {
     // Skip the first render to prevent resetting the date on mount
@@ -49,14 +73,14 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
     const month = currentDate.getMonth();
     const day = currentDate.getDate();
 
-    if (viewMode === 'month') {
+    if (effectiveViewMode === 'month') {
       const startOfMonth = new Date(year, month, 1);
       const endOfMonth = new Date(year, month + 1, 0);
       onRangeChange({
         startDate: toLocalDateString(startOfMonth),
         endDate: toLocalDateString(endOfMonth)
       });
-    } else if (viewMode === 'week') {
+    } else if (effectiveViewMode === 'week') {
       // Week view (Sunday to Saturday)
       const dayOfWeek = currentDate.getDay();
       const startOfWeek = new Date(year, month, day - dayOfWeek);
@@ -65,7 +89,7 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
         startDate: toLocalDateString(startOfWeek),
         endDate: toLocalDateString(endOfWeek)
       });
-    } else if (viewMode === 'day') {
+    } else if (effectiveViewMode === 'day') {
       // Single day view
       const selectedDay = new Date(year, month, day);
       onRangeChange({
@@ -74,15 +98,15 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDate, viewMode]);
+  }, [currentDate, effectiveViewMode]);
 
   const navigatePrevious = () => {
     const newDate = new Date(currentDate);
-    if (viewMode === 'month') {
+    if (effectiveViewMode === 'month') {
       newDate.setMonth(newDate.getMonth() - 1);
-    } else if (viewMode === 'week') {
+    } else if (effectiveViewMode === 'week') {
       newDate.setDate(newDate.getDate() - 7);
-    } else if (viewMode === 'day') {
+    } else if (effectiveViewMode === 'day') {
       newDate.setDate(newDate.getDate() - 1);
     }
     setCurrentDate(newDate);
@@ -90,20 +114,20 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
 
   const navigateNext = () => {
     const newDate = new Date(currentDate);
-    if (viewMode === 'month') {
+    if (effectiveViewMode === 'month') {
       newDate.setMonth(newDate.getMonth() + 1);
-    } else if (viewMode === 'week') {
+    } else if (effectiveViewMode === 'week') {
       newDate.setDate(newDate.getDate() + 7);
-    } else if (viewMode === 'day') {
+    } else if (effectiveViewMode === 'day') {
       newDate.setDate(newDate.getDate() + 1);
     }
     setCurrentDate(newDate);
   };
 
   const formatCurrentPeriod = () => {
-    if (viewMode === 'month') {
+    if (effectiveViewMode === 'month') {
       return currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    } else if (viewMode === 'week') {
+    } else if (effectiveViewMode === 'week') {
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
       const day = currentDate.getDate();
@@ -112,7 +136,7 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
       const endOfWeek = new Date(year, month, day + (6 - dayOfWeek));
 
       return `${startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-    } else if (viewMode === 'day') {
+    } else if (effectiveViewMode === 'day') {
       return currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
     }
   };
@@ -155,8 +179,12 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
 
   const handleDateClick = (date) => {
     setCurrentDate(new Date(date));
-    setViewMode('day'); // Switch to day view when a specific date is clicked
-    setShowCalendar(false);
+    if (adjustEnabled) {
+      setViewMode('day');
+      setShowCalendar(false);
+    } else {
+      setShowCalendar(false);
+    }
   };
 
   const navigateCalendarMonth = (direction) => {
@@ -201,40 +229,44 @@ function TimeNavigator({ onRangeChange, expenses = [], initialDate, timelineStat
         </div>
 
         <div className="adjust-btn-container">
-          <button className="adjust-btn" onClick={() => setShowViewModeMenu(!showViewModeMenu)}>
-            Adjust
-          </button>
+          {adjustEnabled && (
+            <>
+              <button className="adjust-btn" onClick={() => setShowViewModeMenu(!showViewModeMenu)}>
+                Adjust
+              </button>
 
-          {showViewModeMenu && (
-            <div className="view-mode-menu">
-              <button
-                className={viewMode === 'month' ? 'active' : ''}
-                onClick={() => {
-                  setViewMode('month');
-                  setShowViewModeMenu(false);
-                }}
-              >
-                📅 Month
-              </button>
-              <button
-                className={viewMode === 'week' ? 'active' : ''}
-                onClick={() => {
-                  setViewMode('week');
-                  setShowViewModeMenu(false);
-                }}
-              >
-                📆 Week
-              </button>
-              <button
-                className={viewMode === 'day' ? 'active' : ''}
-                onClick={() => {
-                  setViewMode('day');
-                  setShowViewModeMenu(false);
-                }}
-              >
-                📆 Day
-              </button>
-            </div>
+              {showViewModeMenu && (
+                <div className="view-mode-menu">
+                  <button
+                    className={viewMode === 'month' ? 'active' : ''}
+                    onClick={() => {
+                      setViewMode('month');
+                      setShowViewModeMenu(false);
+                    }}
+                  >
+                    📅 Month
+                  </button>
+                  <button
+                    className={viewMode === 'week' ? 'active' : ''}
+                    onClick={() => {
+                      setViewMode('week');
+                      setShowViewModeMenu(false);
+                    }}
+                  >
+                    📆 Week
+                  </button>
+                  <button
+                    className={viewMode === 'day' ? 'active' : ''}
+                    onClick={() => {
+                      setViewMode('day');
+                      setShowViewModeMenu(false);
+                    }}
+                  >
+                    📆 Day
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

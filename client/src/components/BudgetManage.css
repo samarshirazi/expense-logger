@@ -21,6 +21,37 @@
   margin: 0;
 }
 
+.budget-summary-metrics {
+  margin: 24px 0;
+}
+
+.budget-summary-metrics .summary-metric-card:nth-child(1) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+}
+
+.budget-summary-metrics .summary-metric-card:nth-child(1) .summary-metric-icon {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.budget-summary-metrics .summary-metric-card:nth-child(1) .summary-metric-title,
+.budget-summary-metrics .summary-metric-card:nth-child(1) .summary-metric-value,
+.budget-summary-metrics .summary-metric-card:nth-child(1) .summary-metric-note,
+.budget-summary-metrics .summary-metric-card:nth-child(1) .summary-metric-subtitle,
+.budget-summary-metrics .summary-metric-card:nth-child(1) .summary-metric-progress-label {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.budget-summary-metrics .summary-metric-card:nth-child(1) .summary-metric-progress {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.budget-summary-metrics .summary-metric-card:nth-child(1) .summary-metric-progress-bar {
+  background: rgba(255, 255, 255, 0.9);
+}
+
 /* Overall Budget Summary Card */
 .overall-budget-card {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

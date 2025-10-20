@@ -33,9 +33,11 @@ function App() {
   const [showSummary, setShowSummary] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showOptionsButton, setShowOptionsButton] = useState(true);
+  const mainContentRef = useRef(null);
   const scrollStateRef = useRef({
     buttonVisible: true,
-    previousScrollPosition: 0
+    previousScrollPosition: 0,
+    lastSource: 'element'
   });
 
   // Shared timeline state for all sections
@@ -149,25 +151,41 @@ function App() {
     setDateRange(range);
   };
 
-  // Scroll handler using useCallback for stable reference
-  const handleScroll = useCallback(() => {
-    const mainContent = document.querySelector('.main-content');
-    if (!mainContent) {
-      console.log('⚠️ handleScroll called but main-content not found');
+  // Update visibility of the options button based on scroll position
+  const updateButtonVisibility = useCallback((scrollPosition, source) => {
+    const state = scrollStateRef.current;
+
+    if (source && state.lastSource !== source) {
+      console.log('🔄 Switching scroll source to:', source);
+      state.lastSource = source;
+      state.previousScrollPosition = scrollPosition;
+    }
+
+    const previousPosition = state.previousScrollPosition ?? 0;
+    const delta = scrollPosition - previousPosition;
+    const absDelta = Math.abs(delta);
+    const scrollingDown = delta > 0;
+    const scrollingUp = delta < 0;
+    const nearTop = scrollPosition <= 8;
+
+    if (scrollPosition !== previousPosition) {
+      console.log('📊 Scroll:', scrollPosition, 'px | Prev:', previousPosition, '| Down:', scrollingDown, '| Up:', scrollingUp, '| BtnVisible:', state.buttonVisible);
+    }
+
+    if (nearTop) {
+      if (!state.buttonVisible) {
+        console.log('🔁 Show button near top');
+        state.buttonVisible = true;
+        setShowOptionsButton(true);
+      }
+      state.previousScrollPosition = scrollPosition;
       return;
     }
 
-    const state = scrollStateRef.current;
-    const scrollPosition = mainContent.scrollTop;
-    const scrollingDown = scrollPosition > state.previousScrollPosition;
-    const scrollingUp = scrollPosition < state.previousScrollPosition;
-
-    // Only log if there's actual movement
-    if (scrollPosition !== state.previousScrollPosition) {
-      console.log('📊 Scroll:', scrollPosition, 'px | Prev:', state.previousScrollPosition, '| Down:', scrollingDown, '| Up:', scrollingUp, '| BtnVisible:', state.buttonVisible);
+    if (absDelta < 5) {
+      state.previousScrollPosition = scrollPosition;
+      return;
     }
-
-    // Simple behavior: Hide button when scrolling down, show when scrolling up
 
     if (scrollingDown && state.buttonVisible) {
       console.log('❌ HIDE button (scrolling down)');
@@ -182,47 +200,104 @@ function App() {
     state.previousScrollPosition = scrollPosition;
   }, []);
 
-  // Attach scroll listener
-  useEffect(() => {
-    const mainContent = document.querySelector('.main-content');
-
-    if (!mainContent) {
-      console.log('⚠️ main-content not ready, waiting...');
-      const timer = setTimeout(() => {
-        const mc = document.querySelector('.main-content');
-        if (mc) {
-          console.log('📡 Attaching scroll listener to main-content');
-          console.log('   Element:', mc);
-          console.log('   ScrollTop:', mc.scrollTop);
-          console.log('   ScrollHeight:', mc.scrollHeight);
-          console.log('   ClientHeight:', mc.clientHeight);
-          mc.addEventListener('scroll', handleScroll, { passive: true });
-          handleScroll(); // Check initial position
-        }
-      }, 100);
-      return () => clearTimeout(timer);
+  const getWindowScrollPosition = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return 0;
     }
 
-    console.log('📡 Attaching scroll listener to main-content immediately');
-    console.log('   Element:', mainContent);
-    console.log('   ScrollTop:', mainContent.scrollTop);
-    console.log('   ScrollHeight:', mainContent.scrollHeight);
-    console.log('   ClientHeight:', mainContent.clientHeight);
-    mainContent.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); // Check initial position
+    if (typeof window.scrollY === 'number') {
+      return window.scrollY;
+    }
 
-    // TEST: Add a simple scroll event to see if it fires at all
-    const testScroll = () => {
-      console.log('🔥 SCROLL EVENT FIRED! ScrollTop:', mainContent.scrollTop);
+    if (typeof window.pageYOffset === 'number') {
+      return window.pageYOffset;
+    }
+
+    if (document?.documentElement?.scrollTop != null) {
+      return document.documentElement.scrollTop;
+    }
+
+    if (document?.body?.scrollTop != null) {
+      return document.body.scrollTop;
+    }
+
+    return 0;
+  }, []);
+
+  useEffect(() => {
+    const element = mainContentRef.current;
+
+    const handleElementScroll = () => {
+      if (!mainContentRef.current) {
+        return;
+      }
+      updateButtonVisibility(mainContentRef.current.scrollTop, 'element');
     };
-    mainContent.addEventListener('scroll', testScroll, { passive: true });
+
+    const handleWindowScroll = () => {
+      updateButtonVisibility(getWindowScrollPosition(), 'window');
+    };
+
+    if (element) {
+      console.log('📡 Attaching scroll listener to main-content element');
+      element.addEventListener('scroll', handleElementScroll, { passive: true });
+    } else {
+      console.log('⚠️ main-content ref missing for element scroll');
+    }
+
+    window.addEventListener('scroll', handleWindowScroll, { passive: true });
+
+    if (element && element.scrollHeight > element.clientHeight + 1) {
+      updateButtonVisibility(element.scrollTop, 'element');
+    } else {
+      handleWindowScroll();
+    }
 
     return () => {
-      console.log('🧹 Cleanup scroll listener');
-      mainContent.removeEventListener('scroll', handleScroll);
-      mainContent.removeEventListener('scroll', testScroll);
+      console.log('🧹 Cleanup scroll listeners');
+      if (element) {
+        element.removeEventListener('scroll', handleElementScroll);
+      }
+      window.removeEventListener('scroll', handleWindowScroll);
     };
-  }, [handleScroll]);
+  }, [getWindowScrollPosition, updateButtonVisibility]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      const isMobileView = window.innerWidth <= 768;
+      if (!isMobileView && !scrollStateRef.current.buttonVisible) {
+        scrollStateRef.current.buttonVisible = true;
+        setShowOptionsButton(true);
+      }
+
+      const element = mainContentRef.current;
+      if (element && element.scrollHeight > element.clientHeight + 1) {
+        updateButtonVisibility(element.scrollTop, 'element');
+      } else {
+        updateButtonVisibility(getWindowScrollPosition(), 'window');
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [getWindowScrollPosition, updateButtonVisibility]);
+
+  useEffect(() => {
+    const element = mainContentRef.current;
+    if (element && element.scrollHeight > element.clientHeight + 1) {
+      updateButtonVisibility(element.scrollTop, 'element');
+    } else {
+      updateButtonVisibility(getWindowScrollPosition(), 'window');
+    }
+  }, [activeView, getWindowScrollPosition, updateButtonVisibility]);
 
   // Close expense details when navigating away from upload/manual views
   useEffect(() => {
@@ -253,6 +328,24 @@ function App() {
     );
   }
 
+  const renderOptionsToggleButton = (variant = 'floating') => {
+    const variantClass = variant === 'inline' ? 'inline' : '';
+    const visibilityClass =
+      variant === 'floating'
+        ? (showOptionsButton ? 'visible' : 'hidden')
+        : (showOptionsButton ? 'inline-visible' : 'inline-hidden');
+
+    return (
+      <button
+        className={`options-toggle-btn ${variantClass} ${visibilityClass}`}
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        aria-label="Toggle options menu"
+      >
+        <span className="options-icon">{isMobileMenuOpen ? '✕' : '⚙️'}</span>
+      </button>
+    );
+  };
+
   return (
     <div className="app-layout">
       <Sidebar
@@ -264,7 +357,7 @@ function App() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      <main className="main-content">
+      <main className="main-content" ref={mainContentRef}>
         {showNotificationPrompt && (
           <NotificationPrompt
             user={user}
@@ -283,19 +376,14 @@ function App() {
         {['dashboard', 'expenses', 'categories', 'manage'].includes(activeView) && (
           <div className={`shared-timeline-container ${showOptionsButton ? 'with-button' : 'without-button'}`}>
             {/* Options Button - inside timeline container, positioned above TimeNavigator */}
-            <button
-              className={`options-toggle-btn ${showOptionsButton ? 'visible' : 'hidden'}`}
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              aria-label="Toggle options menu"
-            >
-              <span className="options-icon">{isMobileMenuOpen ? '✕' : '⚙️'}</span>
-            </button>
+            {renderOptionsToggleButton('floating')}
 
             <TimeNavigator
               onRangeChange={handleDateRangeChange}
               expenses={expenses}
               timelineState={sharedTimelineState}
               onTimelineStateChange={setSharedTimelineState}
+              adjustEnabled={activeView !== 'expenses'}
             />
           </div>
         )}
@@ -338,7 +426,8 @@ function App() {
         )}
 
         {activeView === 'upload' && (
-          <div className="view-container">
+          <div className="view-container no-timeline">
+            {renderOptionsToggleButton('inline')}
             <div className="view-header">
               <h1>Upload Receipt</h1>
               <p>Upload a photo of your receipt to extract data with AI</p>
@@ -348,7 +437,8 @@ function App() {
         )}
 
         {activeView === 'manual' && (
-          <div className="view-container">
+          <div className="view-container no-timeline">
+            {renderOptionsToggleButton('inline')}
             <div className="view-header">
               <h1>Manual Entry</h1>
               <p>Quickly add expenses by typing naturally</p>

@@ -410,16 +410,33 @@
   .navigator-header {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
     padding-left: 0;
   }
 
   .period-controls {
     width: 100%;
+    gap: 8px;
   }
 
   .current-period {
     min-width: auto;
     flex: 1;
+    padding: 10px 16px;
+  }
+
+  .period-icon {
+    font-size: 18px;
+  }
+
+  .period-text {
+    font-size: 14px;
+  }
+
+  .nav-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
   }
 
   .adjust-btn-container {
@@ -428,17 +445,41 @@
 
   .adjust-btn {
     width: 100%;
+    padding: 8px 14px;
+    font-size: 13px;
   }
 
   .view-mode-menu {
-    left: 0;
-    right: 0;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    min-width: 140px;
   }
 
   .calendar-popup {
     width: calc(100vw - 32px);
+    max-width: 360px;
     left: 16px;
     transform: none;
+    padding: 16px;
+  }
+
+  .calendar-header h3 {
+    font-size: 16px;
+  }
+
+  .cal-nav-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  .weekday {
+    font-size: 11px;
+  }
+
+  .day-number {
+    font-size: 13px;
   }
 
   @keyframes slideDown {
@@ -467,6 +508,23 @@
     width: calc(100vw - 24px);
     left: 12px;
     padding: 16px;
+  }
+
+  .navigator-header {
+    gap: 10px;
+  }
+
+  .nav-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .current-period {
+    padding: 8px 14px;
+  }
+
+  .adjust-btn {
+    font-size: 12px;
   }
 
   .calendar-day {

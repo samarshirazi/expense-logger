@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import SummaryMetrics from './SummaryMetrics';
 import { updateExpenseItem, updateExpense } from '../services/apiService';
 import './ExpensesSummary.css';
 
@@ -52,6 +53,14 @@ function ExpensesSummary({ expenses, dateRange }) {
     byDate: {}, // { 'YYYY-MM-DD': { Food: [], Transport: [], ... } }
     categoryTotals: { Food: 0, Transport: 0, Shopping: 0, Bills: 0, Other: 0 }
   });
+  const [lineVisibility, setLineVisibility] = useState({
+    month1: true,
+    month2: true,
+    budget1: true,
+    budget2: true
+  });
+  const [selectedMobileDate, setSelectedMobileDate] = useState(null);
+  const mobileDetailRef = useRef(null);
 
   // Group items by date and category
   useEffect(() => {
@@ -183,6 +192,89 @@ function ExpensesSummary({ expenses, dateRange }) {
 
   // Get sorted dates
   const sortedDates = Object.keys(tableData.byDate).sort();
+  const dayCells = useMemo(() => {
+    const referenceIso = dateRange?.startDate || sortedDates[0] || null;
+
+    if (!referenceIso) {
+      return [];
+    }
+
+    const referenceDate = new Date(referenceIso);
+    if (Number.isNaN(referenceDate.getTime())) {
+      return [];
+    }
+
+    const monthStart = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+    const monthEnd = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0);
+    monthStart.setHours(0, 0, 0, 0);
+    monthEnd.setHours(0, 0, 0, 0);
+
+    const days = [];
+    const cursor = new Date(monthStart);
+
+    while (cursor <= monthEnd) {
+      const iso = toLocalDateString(cursor);
+
+      const receiptIds = new Set();
+      const categoryEntries = CATEGORIES.map(category => {
+        const items = tableData.byDate?.[iso]?.[category.id] || [];
+        if (!items.length) return null;
+        items.forEach(item => {
+          if (item.expenseId != null) {
+            receiptIds.add(item.expenseId);
+          }
+        });
+        const total = items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+        return { category, items, total };
+      }).filter(Boolean);
+
+      const receiptsCount = receiptIds.size;
+      const totalAmount = categoryEntries.reduce((sum, entry) => sum + entry.total, 0);
+
+      days.push({
+        date: iso,
+        label: cursor.getDate(),
+        totalAmount,
+        receiptsCount,
+        categoryEntries
+      });
+
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    while (days.length < 35) {
+      days.push({
+        placeholder: true,
+        totalAmount: 0,
+        receiptsCount: 0,
+        categoryEntries: []
+      });
+    }
+
+    return days;
+  }, [sortedDates, tableData, dateRange]);
+
+  useEffect(() => {
+    const actionableDays = dayCells.filter(day => day.date);
+
+    if (!actionableDays.length) {
+      setSelectedMobileDate(null);
+      return;
+    }
+
+    setSelectedMobileDate(prev => {
+      if (prev && actionableDays.some(day => day.date === prev)) {
+        return prev;
+      }
+      const firstWithData = actionableDays.find(day => day.totalAmount > 0) || actionableDays[0];
+      return firstWithData.date;
+    });
+  }, [dayCells]);
+
+  useEffect(() => {
+    if (!mobileDetailRef.current) return;
+    mobileDetailRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [selectedMobileDate]);
   const totalSpending = Object.values(tableData.categoryTotals).reduce((sum, val) => sum + val, 0);
 
   // Line Graph Component for month comparison
@@ -199,6 +291,13 @@ function ExpensesSummary({ expenses, dateRange }) {
     const monthlyBudgets = JSON.parse(localStorage.getItem('monthlyBudgets') || '{}');
     const month1Budget = monthlyBudgets[selectedMonth1] || DEFAULT_BUDGET;
     const month2Budget = monthlyBudgets[selectedMonth2] || DEFAULT_BUDGET;
+
+    const toggleLine = useCallback((key) => {
+      setLineVisibility(prev => ({
+        ...prev,
+        [key]: !prev[key]
+      }));
+    }, []);
 
     // Calculate total budget for each month
     const totalMonth1Budget = Object.values(month1Budget).reduce((sum, val) => sum + val, 0);
@@ -483,25 +582,30 @@ function ExpensesSummary({ expenses, dateRange }) {
           </svg>
         </div>
 
-        {/* Totals */}
-        <div className="line-graph-totals">
-          <div className="total-box" style={{ borderColor: '#667eea' }}>
-            <div className="total-label">{month1Label} Spending</div>
-            <div className="total-amount">{formatCurrency(month1Running)}</div>
-            <div className="total-budget">Budget: {formatCurrency(totalMonth1Budget)}</div>
-            <div className={`total-status ${month1Running > totalMonth1Budget ? 'over-budget' : 'under-budget'}`}>
-              {month1Running > totalMonth1Budget ? '⚠️ Over Budget' : '✅ Under Budget'}
-            </div>
-          </div>
-          <div className="total-box" style={{ borderColor: '#f093fb' }}>
-            <div className="total-label">{month2Label} Spending</div>
-            <div className="total-amount">{formatCurrency(month2Running)}</div>
-            <div className="total-budget">Budget: {formatCurrency(totalMonth2Budget)}</div>
-            <div className={`total-status ${month2Running > totalMonth2Budget ? 'over-budget' : 'under-budget'}`}>
-              {month2Running > totalMonth2Budget ? '⚠️ Over Budget' : '✅ Under Budget'}
-            </div>
-          </div>
-        </div>
+        <SummaryMetrics
+          className="line-graph-summary"
+          columns="repeat(auto-fit, minmax(200px, 1fr))"
+          metrics={[
+            {
+              id: 'month1-total',
+              icon: '📅',
+              title: `${month1Label} Spending`,
+              value: formatCurrency(month1Running),
+              subtitle: `Budget: ${formatCurrency(totalMonth1Budget)}`,
+              valueColor: month1Running > totalMonth1Budget ? '#e74c3c' : '#2c3e50',
+              footnote: month1Running > totalMonth1Budget ? 'Over budget' : 'Within budget'
+            },
+            {
+              id: 'month2-total',
+              icon: '📊',
+              title: `${month2Label} Spending`,
+              value: formatCurrency(month2Running),
+              subtitle: `Budget: ${formatCurrency(totalMonth2Budget)}`,
+              valueColor: month2Running > totalMonth2Budget ? '#e74c3c' : '#2c3e50',
+              footnote: month2Running > totalMonth2Budget ? 'Over budget' : 'Within budget'
+            }
+          ]}
+        />
       </div>
     );
   };
@@ -533,10 +637,10 @@ function ExpensesSummary({ expenses, dateRange }) {
 
       {viewMode === 'linegraph' && <MonthLineGraph />}
 
-      {/* Mobile Card Layout */}
+      {/* Mobile Calendar Layout */}
       {viewMode === 'summary' && (
       <div className="mobile-expenses-view">
-        {sortedDates.length === 0 ? (
+        {dayCells.length === 0 ? (
           <div className="no-expenses-message">
             <div className="no-expenses-icon">📭</div>
             <h3>No expenses found</h3>
@@ -544,34 +648,68 @@ function ExpensesSummary({ expenses, dateRange }) {
           </div>
         ) : (
           <>
-            {sortedDates.map(date => {
-              // Calculate total for this date
-              const dateTotal = CATEGORIES.reduce((sum, category) => {
-                const items = tableData.byDate[date][category.id] || [];
-                return sum + items.reduce((catSum, item) => catSum + (item.totalPrice || 0), 0);
-              }, 0);
+            <div className="mobile-calendar-grid">
+              {dayCells.map((day, index) => {
+                if (!day.date) {
+                  return (
+                    <div key={`placeholder-${index}`} className="mobile-grid-cell placeholder" aria-hidden="true">
+                      <span className="mobile-grid-day placeholder-symbol">•</span>
+                    </div>
+                  );
+                }
+
+                const isSelected = day.date === selectedMobileDate;
+                return (
+                  <button
+                    type="button"
+                    key={day.date}
+                    className={`mobile-grid-cell ${isSelected ? 'selected' : ''} ${day.totalAmount > 0 ? 'has-data' : ''}`}
+                    onClick={() => setSelectedMobileDate(day.date)}
+                  >
+                    <span className="mobile-grid-day">{day.label}</span>
+                    <span className="mobile-grid-total">
+                      {day.totalAmount > 0 ? formatCurrency(day.totalAmount) : '—'}
+                    </span>
+                    <span className="mobile-grid-count">
+                      {day.receiptsCount} {day.receiptsCount === 1 ? 'receipt' : 'receipts'}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {selectedMobileDate && (() => {
+              const selectedDay = dayCells.find(day => day.date === selectedMobileDate);
+              if (!selectedDay) return null;
 
               return (
-                <div key={date} className="mobile-date-card">
-                  <div className="mobile-date-header">
-                    <span>{formatDate(date)}</span>
-                    <span className="mobile-date-total">{formatCurrency(dateTotal)}</span>
+                <div className="mobile-date-detail" ref={mobileDetailRef}>
+                  <div className="mobile-date-detail-header">
+                    <div className="mobile-date-detail-info">
+                      <span className="mobile-date-detail-label">{formatDate(selectedDay.date)}</span>
+                      <span className="mobile-date-detail-count">
+                        {selectedDay.receiptsCount} {selectedDay.receiptsCount === 1 ? 'receipt' : 'receipts'}
+                      </span>
+                    </div>
+                    <span className="mobile-date-total">{formatCurrency(selectedDay.totalAmount)}</span>
                   </div>
 
-                  {CATEGORIES.map(category => {
-                    const items = tableData.byDate[date][category.id] || [];
-                    if (items.length === 0) return null;
-
-                    return (
+                  {selectedDay.categoryEntries.length === 0 ? (
+                    <div className="mobile-empty-day">No receipts recorded on this day.</div>
+                  ) : (
+                    selectedDay.categoryEntries.map(({ category, items, total }) => (
                       <div key={category.id} className="mobile-category-section">
                         <div className="mobile-category-header" style={{ borderLeftColor: category.color }}>
-                          <span>{category.icon}</span>
-                          <span>{category.name}</span>
+                          <div className="mobile-category-header-left">
+                            <span className="mobile-category-icon">{category.icon}</span>
+                            <span>{category.name}</span>
+                          </div>
+                          <span className="mobile-category-total">{formatCurrency(total)}</span>
                         </div>
                         <div className="mobile-category-items">
-                          {items.map((item, index) => (
+                          {items.map((item, itemIndex) => (
                             <div
-                              key={`${item.expenseId}-${item.itemIndex}-${index}`}
+                              key={`${item.expenseId}-${item.itemIndex}-${itemIndex}`}
                               className="mobile-item"
                               onClick={() => handleItemClick(item)}
                               style={{ cursor: 'pointer' }}
@@ -587,11 +725,11 @@ function ExpensesSummary({ expenses, dateRange }) {
                           ))}
                         </div>
                       </div>
-                    );
-                  })}
+                    ))
+                  )}
                 </div>
               );
-            })}
+            })()}
 
             <div className="mobile-grand-total">
               <div className="mobile-grand-total-label">Grand Total</div>

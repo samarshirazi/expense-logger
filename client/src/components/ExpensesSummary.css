@@ -242,6 +242,177 @@
   display: none;
 }
 
+.mobile-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.mobile-grid-cell {
+  border: 1px solid rgba(102, 126, 234, 0.15);
+  border-radius: 14px;
+  background: white;
+  padding: 12px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 90px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.mobile-grid-cell:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
+}
+
+.mobile-grid-cell.placeholder {
+  border-style: dashed;
+  border-color: rgba(102, 126, 234, 0.15);
+  background: transparent;
+  box-shadow: none;
+  cursor: default;
+}
+
+.placeholder-symbol {
+  font-size: 18px;
+  color: rgba(102, 126, 234, 0.2);
+}
+
+.mobile-grid-cell.has-data {
+  border-color: rgba(102, 126, 234, 0.4);
+}
+
+.mobile-grid-cell.selected {
+  transform: translateY(-3px);
+  border-color: #667eea;
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.25);
+}
+
+.mobile-grid-day {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.mobile-grid-total {
+  font-size: 12px;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.mobile-grid-count {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #7f8c8d;
+}
+
+@media (max-width: 768px) {
+  .mobile-grid-cell {
+    min-height: 80px;
+    padding: 10px 6px;
+  }
+
+  .mobile-calendar-grid {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobile-grid-cell {
+    min-height: 72px;
+    padding: 9px 5px;
+  }
+
+  .mobile-calendar-grid {
+    gap: 6px;
+  }
+}
+
+.mobile-date-detail {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.mobile-date-detail-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-date-detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobile-date-detail-label {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.mobile-date-detail-count {
+  font-size: 11px;
+  opacity: 0.85;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mobile-empty-day {
+  padding: 18px;
+  text-align: center;
+  font-size: 13px;
+  color: #7f8c8d;
+}
+
+.mobile-category-section + .mobile-category-section {
+  border-top: 1px solid #edf1f5;
+}
+
+.mobile-category-header {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #2c3e50;
+  border-left: 4px solid;
+  background: #f8f9fa;
+}
+
+.mobile-category-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-category-icon {
+  font-size: 16px;
+}
+
+.mobile-category-total {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.mobile-category-items {
+  padding: 8px 14px 12px 14px;
+  background: #ffffff;
+}
+
 .mobile-date-card {
   background: white;
   border-radius: 12px;
