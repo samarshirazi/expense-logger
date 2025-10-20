@@ -642,6 +642,11 @@ async function parseManualEntry(textEntry) {
     console.log(`[AI] Parsing manual entry with provider: ${provider}`);
 
     if (!provider) {
+      console.warn('[AI] No provider configured; using fallback manual entry parser.');
+      const fallbackExpenses = fallbackManualEntry(textEntry);
+      if (fallbackExpenses) {
+        return fallbackExpenses;
+      }
       throw new Error('No AI provider configured');
     }
 
@@ -1049,6 +1054,70 @@ Please use it for all of your guidance.`
 
   throw new Error(`Unsupported AI provider: ${provider}`);
 }
+
+function fallbackManualEntry(textEntry) {
+  if (!textEntry || typeof textEntry !== 'string') {
+    return null;
+  }
+
+  const segments = textEntry
+    .split(/\n+|,|;/)
+    .map(part => part.trim())
+    .filter(Boolean);
+
+  const items = [];
+
+  segments.forEach(segment => {
+    const amountMatch = segment.match(/(-?\$?\d+(?:\.\d+)?)/);
+    if (!amountMatch) {
+      return;
+    }
+
+    const rawAmount = amountMatch[0].replace(/\$/g, '');
+    const amount = parseFloat(rawAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return;
+    }
+
+    let description = segment.replace(amountMatch[0], '').replace(/\$/g, '').trim();
+    if (!description) {
+      description = 'Manual item';
+    }
+
+    const category = smartCategorize(description);
+
+    items.push({
+      description,
+      quantity: 1,
+      unitPrice: amount,
+      totalPrice: amount,
+      category
+    });
+  });
+
+  if (!items.length) {
+    return null;
+  }
+
+  const totalAmount = items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+  const merchantName = items.length === 1 ? items[0].description : 'Manual Entry';
+
+  const now = new Date();
+  const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  return [{
+    merchantName,
+    date: todayDateStr,
+    totalAmount: parseFloat(totalAmount.toFixed(2)),
+    currency: 'USD',
+    category: items.length === 1 ? items[0].category : smartCategorize(merchantName, items),
+    items,
+    paymentMethod: 'Manual Entry',
+    taxAmount: null,
+    tipAmount: null
+  }];
+}
+
 
 module.exports = {
   processReceiptWithAI,
