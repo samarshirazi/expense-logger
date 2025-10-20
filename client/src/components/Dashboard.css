@@ -688,13 +688,14 @@
   }
 
   .summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+    grid-auto-flow: row dense;
     gap: 12px;
   }
 
   .summary-card {
     padding: 16px;
-    min-height: 120px;
+    min-height: 140px;
   }
 
   .summary-trend {
