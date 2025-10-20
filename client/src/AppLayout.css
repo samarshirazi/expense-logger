@@ -202,6 +202,10 @@ body {
 :root[data-theme='dark'] .settings-theme-card,
 :root[data-theme='dark'] .settings-mood-card,
 :root[data-theme='dark'] .summary-metric-card,
+:root[data-theme='dark'] .summary-card,
+:root[data-theme='dark'] .trend-card,
+:root[data-theme='dark'] .summary-insights,
+:root[data-theme='dark'] .summary-recent,
 :root[data-theme='dark'] .total-card-highlight,
 :root[data-theme='dark'] .settings-theme-card.active,
 :root[data-theme='dark'] .settings-mood-card.active {
@@ -222,12 +226,18 @@ body {
 :root[data-theme='dark'] .settings-section-header p,
 :root[data-theme='dark'] .settings-hint,
 :root[data-theme='dark'] .settings-theme-description,
-:root[data-theme='dark'] .settings-mood-description {
+:root[data-theme='dark'] .settings-mood-description,
+:root[data-theme='dark'] .summary-card-subtext,
+:root[data-theme='dark'] .summary-card-footnote,
+:root[data-theme='dark'] .summary-insights ul,
+:root[data-theme='dark'] .summary-recent-date,
+:root[data-theme='dark'] .summary-progress-meta {
   color: #94a3b8;
 }
 
 :root[data-theme='dark'] .settings-action-button,
-:root[data-theme='dark'] .coach-toggle {
+:root[data-theme='dark'] .coach-toggle,
+:root[data-theme='dark'] .summary-export-btn {
   box-shadow: 0 14px 32px rgba(99, 102, 241, 0.35);
 }
 

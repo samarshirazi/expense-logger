@@ -297,11 +297,27 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
     isCoachOpenRef.current = isCoachOpen;
   }, [isCoachOpen]);
 const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  }).format(amount);
+};
+
+const formatPercent = (value) => {
+  if (value == null || !Number.isFinite(value)) {
+    return '—';
+  }
+
+  const prefix = value > 0 ? '+' : '';
+  return `${prefix}${value.toFixed(1)}%`;
+};
+
+const formatDateDisplay = (iso) => {
+  if (!iso) return '—';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
 
   const monthKey = useMemo(() => {
     if (dateRange?.startDate) return getMonthKey(dateRange.startDate);
@@ -541,6 +557,191 @@ const formatCurrency = (amount) => {
     return result;
   }, [summary, expenses]);
 
+  const categoryLookup = useMemo(() => {
+    const map = {};
+    CATEGORIES.forEach(category => {
+      map[category.id] = category;
+    });
+    return map;
+  }, []);
+
+  const categorySpentMap = useMemo(() => {
+    const map = {};
+    categoryDetails.forEach(detail => {
+      map[detail.category.id] = detail;
+    });
+    return map;
+  }, [categoryDetails]);
+
+  const categoryComparisons = useMemo(() => {
+    const result = {};
+    if (!comparisonSummary) {
+      return result;
+    }
+
+    CATEGORIES.forEach(category => {
+      const current = categorySpentMap[category.id]?.spent || 0;
+      const previous = comparisonSummary.itemCategoryTotals?.[category.id] || 0;
+      const diff = current - previous;
+      let percent = null;
+
+      if (previous > 0) {
+        percent = (diff / previous) * 100;
+      } else if (previous === 0 && current > 0) {
+        percent = 100;
+      } else if (previous === 0 && current === 0) {
+        percent = 0;
+      }
+
+      result[category.id] = {
+        diff,
+        percent,
+        previous,
+        current
+      };
+    });
+
+    return result;
+  }, [comparisonSummary, categorySpentMap]);
+
+  const topCategoryDetail = useMemo(() => {
+    if (!categoryDetails.length) {
+      return null;
+    }
+
+    return categoryDetails.reduce((winner, detail) => {
+      if (!winner || detail.spent > winner.spent) {
+        return detail;
+      }
+      return winner;
+    }, null);
+  }, [categoryDetails]);
+
+  const topCategoryChange = topCategoryDetail
+    ? categoryComparisons[topCategoryDetail.category.id] || null
+    : null;
+
+  const mostActiveDay = useMemo(() => {
+    if (!dailyTotals.length) {
+      return null;
+    }
+
+    return dailyTotals.reduce((winner, entry) => {
+      if (!winner || entry.total > winner.total) {
+        return entry;
+      }
+      return winner;
+    }, null);
+  }, [dailyTotals]);
+
+  const totalBudgetUsed = useMemo(() => {
+    return Math.max(0, totalBudget - totalRemaining);
+  }, [totalBudget, totalRemaining]);
+
+  const budgetUsedPercent = useMemo(() => {
+    if (!totalBudget || !Number.isFinite(totalBudget) || totalBudget <= 0) {
+      return 0;
+    }
+    const usedRatio = totalBudgetUsed / totalBudget;
+    return Math.min(100, Math.max(0, usedRatio * 100));
+  }, [totalBudget, totalBudgetUsed]);
+
+  const budgetUsedPercentLabel = useMemo(() => {
+    return `${Math.round(budgetUsedPercent)}%`;
+  }, [budgetUsedPercent]);
+
+  const { points: trendPoints, max: trendMax } = useMemo(() => {
+    if (!dailyTotals.length) {
+      return { points: [], max: 0 };
+    }
+
+    const totals = dailyTotals.map(entry => entry.total);
+    const maxValue = Math.max(...totals);
+    const minValue = Math.min(...totals);
+    const range = maxValue - minValue || Math.max(maxValue, 1);
+    const points = dailyTotals.map((entry, index) => {
+      const x = dailyTotals.length === 1 ? 50 : (index / (dailyTotals.length - 1)) * 100;
+      const normalized = range === 0 ? 0.5 : (entry.total - minValue) / range;
+      const y = 100 - normalized * 100;
+      return {
+        x,
+        y,
+        total: entry.total,
+        date: entry.date
+      };
+    });
+
+    return { points, max: maxValue };
+  }, [dailyTotals]);
+
+  const trendSvgPoints = useMemo(() => {
+    if (!trendPoints.length) {
+      return "";
+    }
+    return trendPoints.map(point => `${point.x},${point.y}`).join(" ");
+  }, [trendPoints]);
+
+  const latestTrendTotal = useMemo(() => {
+    if (!trendPoints.length) {
+      return null;
+    }
+    return trendPoints[trendPoints.length - 1].total;
+  }, [trendPoints]);
+
+  const handleAskCoach = useCallback(() => {
+    onCoachUnreadChange(false);
+    onCoachToggle(true);
+  }, [onCoachToggle, onCoachUnreadChange]);
+
+  const exportToCSV = useCallback(() => {
+    const rows = [['Date', 'Merchant', 'Category', 'Amount']];
+    (expenses || []).forEach(expense => {
+      if (!expense) {
+        return;
+      }
+      const category = expense.category || 'Other';
+      const amount = Number(expense.totalAmount);
+      rows.push([
+        expense.date || '',
+        expense.merchantName || 'Unknown',
+        category,
+        Number.isFinite(amount) ? amount.toFixed(2) : ''
+      ]);
+    });
+
+    const csv = rows
+      .map(row =>
+        row
+          .map(value => `"${String(value).replace(/"/g, '""')}"`)
+          .join(',')
+      )
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'expense-report.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [expenses]);
+
+  const exportToPDF = useCallback(() => {
+    window.print();
+  }, []);
+
+  const budgetUsedLabel = formatCurrency(totalBudgetUsed);
+  const trendMaxLabel = Number.isFinite(trendMax) && trendMax > 0 ? formatCurrency(trendMax) : null;
+  const budgetRemainingLabel = formatCurrency(totalRemaining);
+  const topCategoryName = topCategoryDetail?.category?.name || '—';
+  const topCategoryIcon = topCategoryDetail?.category?.icon || '📂';
+  const topCategorySpent = topCategoryDetail ? formatCurrency(topCategoryDetail.spent) : '—';
+  const topCategoryChangeLabel = topCategoryChange?.percent != null ? formatPercent(topCategoryChange.percent) : null;
+  const mostActiveDayLabel = mostActiveDay ? formatDateDisplay(mostActiveDay.date) : '—';
+  const mostActiveDayAmount = mostActiveDay ? formatCurrency(mostActiveDay.total) : '—';
+  const trendLatestLabel = latestTrendTotal != null ? formatCurrency(latestTrendTotal) : '—';
+
   const renderPieChart = () => {
     const remainingForChart = isFullMonthView ? totalRemaining : 0;
     const chartTotal = chartTotalSpent + remainingForChart;
@@ -640,6 +841,87 @@ const formatCurrency = (amount) => {
   const totalSpendingValue = effectiveSummary?.totalSpending || 0;
   const averageExpense = effectiveSummary?.averageExpense || 0;
   const totalsSubtitle = isFullMonthView ? 'This month' : 'Month to date';
+
+  const percentChange = useMemo(() => {
+    if (!comparisonSummary || !Number.isFinite(comparisonSummary.totalSpending) || comparisonSummary.totalSpending <= 0) {
+      return null;
+    }
+    const diff = totalSpendingValue - comparisonSummary.totalSpending;
+    return (diff / comparisonSummary.totalSpending) * 100;
+  }, [comparisonSummary, totalSpendingValue]);
+
+  const percentChangeLabel = useMemo(() => {
+    return percentChange == null ? null : formatPercent(percentChange);
+  }, [percentChange]);
+
+  const coachInsightText = useMemo(() => {
+    const topName = topCategoryDetail?.category?.name;
+    const topSpent = topCategoryDetail ? formatCurrency(topCategoryDetail.spent) : null;
+    if (percentChange != null) {
+      if (percentChange > 2) {
+        return coachMood === 'motivator_roast'
+          ? `Spending climbed ${formatPercent(percentChange)}. Want me to call out the culprits?`
+          : `Spending is up ${formatPercent(percentChange)} versus last period. Let's dive into what changed.`;
+      }
+      if (percentChange < -2) {
+        return coachMood === 'motivator_roast'
+          ? `Flex alert: you trimmed ${formatPercent(Math.abs(percentChange))}. Want a victory lap breakdown?`
+          : `Nice work! Spending is down ${formatPercent(Math.abs(percentChange))}. Want to see where you saved the most?`;
+      }
+    }
+
+    if (topName && topSpent) {
+      return coachMood === 'motivator_roast'
+        ? `${topName} is eating the budget at ${topSpent}. Shall I roast the frequent flyers?`
+        : `${topName} is leading at ${topSpent}. Want a deeper breakdown?`;
+    }
+
+    return coachMood === 'motivator_roast'
+      ? "Want me to roast today's spending patterns? I've got zingers ready."
+      : "Ready when you are—ask me to highlight today's biggest moves.";
+  }, [coachMood, percentChange, topCategoryDetail]);
+
+  const coachButtonLabel = useMemo(() => {
+    return coachMood === 'motivator_roast' ? 'Roast my spending' : 'Ask AI Coach';
+  }, [coachMood]);
+
+  const recentTransactionsShort = useMemo(() => {
+    return recentExpenses.slice(0, 5);
+  }, [recentExpenses]);
+
+  const insightsList = useMemo(() => {
+    const items = [];
+
+    if (percentChange != null && Math.abs(percentChange) >= 0.5) {
+      if (percentChange > 0) {
+        items.push(`Overall spending up ${formatPercent(percentChange)} versus last period.`);
+      } else {
+        items.push(`Overall spending down ${formatPercent(Math.abs(percentChange))} versus last period.`);
+      }
+    }
+
+    const diffEntries = Object.entries(categoryComparisons)
+      .map(([categoryId, data]) => ({ categoryId, ...data }))
+      .filter(entry => entry.percent != null && Number.isFinite(entry.percent));
+
+    diffEntries.sort((a, b) => Math.abs(b.percent) - Math.abs(a.percent));
+
+    diffEntries.slice(0, 3).forEach(entry => {
+      const category = categoryLookup[entry.categoryId];
+      if (!category) {
+        return;
+      }
+      const direction = entry.percent >= 0 ? 'up' : 'down';
+      const magnitude = Math.abs(entry.percent).toFixed(1);
+      items.push(`${category.name} spending ${direction} ${magnitude}% versus last period.`);
+    });
+
+    if (!items.length) {
+      items.push('Keep logging expenses to unlock insight comparisons.');
+    }
+
+    return items;
+  }, [categoryComparisons, categoryLookup, percentChange]);
 
   const analysisData = useMemo(() => {
     if (!summary) {
@@ -771,6 +1053,129 @@ const formatCurrency = (amount) => {
           <span className="coach-toggle__label">AI Coach</span>
           {coachHasUnread && <span className="coach-toggle__indicator" aria-hidden="true"></span>}
         </button>
+      </div>
+
+      <div className="dashboard-summary">
+        <div className="summary-grid">
+          <div className="summary-card summary-card-total">
+            <div className="summary-card-label">Total Spending</div>
+            <div className="summary-card-value">{formatCurrency(totalSpendingValue)}</div>
+            <div className="summary-card-subtext">{totalsSubtitle}</div>
+            {percentChangeLabel && (
+              <div
+                className={`summary-card-delta ${percentChange > 0 ? 'summary-card-delta-negative' : percentChange < 0 ? 'summary-card-delta-positive' : ''}`}
+              >
+                {percentChange > 0 ? '▲' : percentChange < 0 ? '▼' : '━'} {percentChangeLabel}
+              </div>
+            )}
+            <div className="summary-card-footnote">Entries logged: {totalEntries}</div>
+          </div>
+
+          <div className="summary-card">
+            <div className="summary-card-label">Top Category</div>
+            <div className="summary-card-icon">{topCategoryIcon}</div>
+            <div className="summary-card-value">{topCategoryName}</div>
+            <div className="summary-card-subtext">{topCategorySpent}</div>
+            {topCategoryChangeLabel && (
+              <div
+                className={`summary-card-delta ${topCategoryChange?.percent >= 0 ? 'summary-card-delta-negative' : 'summary-card-delta-positive'}`}
+              >
+                {topCategoryChange?.percent >= 0 ? '▲' : '▼'} {formatPercent(Math.abs(topCategoryChange.percent))}
+              </div>
+            )}
+          </div>
+
+          <div className="summary-card">
+            <div className="summary-card-label">Most Active Day</div>
+            <div className="summary-card-value">{mostActiveDayLabel}</div>
+            <div className="summary-card-subtext">{mostActiveDayAmount}</div>
+            {trendLatestLabel && (
+              <div className="summary-card-footnote">Latest: {trendLatestLabel}</div>
+            )}
+          </div>
+
+          <div className="summary-card summary-card-ai">
+            <div className="summary-card-label">AI Coach Insight</div>
+            <p className="summary-card-text">{coachInsightText}</p>
+            <button type="button" className="summary-card-button" onClick={handleAskCoach}>
+              {coachButtonLabel}
+            </button>
+          </div>
+        </div>
+
+        <div className="summary-trend">
+          <div className="trend-card">
+            <div className="trend-card-header">
+              <h3>Spending trend</h3>
+              <span>{totalsSubtitle}</span>
+            </div>
+            {trendPoints.length ? (
+              <div className="trend-chart">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <polyline points={trendSvgPoints} />
+                </svg>
+                <div className="trend-chart-meta">
+                  <span>Latest: {trendLatestLabel}</span>
+                  {trendMaxLabel && <span>Peak: {trendMaxLabel}</span>}
+                </div>
+              </div>
+            ) : (
+              <div className="summary-empty">Log a few expenses to see your trend.</div>
+            )}
+          </div>
+
+          <div className="trend-card">
+            <div className="trend-card-header">
+              <h3>Budget progress</h3>
+              <span>{budgetUsedLabel} used</span>
+            </div>
+            <div className="summary-progress">
+              <div className="summary-progress-bar">
+                <div className="summary-progress-bar-fill" style={{ width: `${budgetUsedPercent}%` }} />
+              </div>
+              <div className="summary-progress-meta">
+                <span>{budgetUsedPercentLabel} used</span>
+                <span>Remaining {budgetRemainingLabel}</span>
+              </div>
+            </div>
+            <div className="summary-actions">
+              <button type="button" className="summary-export-btn" onClick={exportToCSV}>Export CSV</button>
+              <button type="button" className="summary-export-btn" onClick={exportToPDF}>Export PDF</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="summary-insights">
+          <h3>Quick insights</h3>
+          <ul>
+            {insightsList.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="summary-recent">
+          <h3>Recent transactions</h3>
+          {recentTransactionsShort.length ? (
+            <ul className="summary-recent-list">
+              {recentTransactionsShort.map(transaction => {
+                const category = categoryLookup[transaction.category] || {};
+                return (
+                  <li key={transaction.id || `${transaction.date}-${transaction.merchantName}`}>
+                    <span className="summary-recent-icon">{category.icon || '🧾'}</span>
+                    <div className="summary-recent-meta">
+                      <span className="summary-recent-merchant">{transaction.merchantName || 'Unknown'}</span>
+                      <span className="summary-recent-date">{formatDateDisplay(transaction.date)}</span>
+                    </div>
+                    <span className="summary-recent-amount">{formatCurrency(transaction.totalAmount || 0)}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="summary-empty">No recent transactions logged.</div>
+          )}
+        </div>
       </div>
 
       <div className="dashboard-section">
