@@ -54,6 +54,8 @@ function BudgetManage({ expenses, dateRange }) {
   const [isEditingBudgets, setIsEditingBudgets] = useState(false);
   const [tempBudgets, setTempBudgets] = useState({});
   const [viewMode, setViewMode] = useState('overview'); // 'overview', 'pie'
+  const [expandedCategory, setExpandedCategory] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Get current month based on selected date range
   const currentMonth = getMonthKey(dateRange?.startDate || toLocalDateString(new Date()));
@@ -66,6 +68,15 @@ function BudgetManage({ expenses, dateRange }) {
 
   // Calculate spending for selected date range only
   const [rangeSpending, setRangeSpending] = useState({});
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     // Calculate spending for entire month
@@ -176,6 +187,45 @@ function BudgetManage({ expenses, dateRange }) {
     if (percentage >= 100) return '#e74c3c';
     if (percentage >= 80) return '#f39c12';
     return '#27ae60';
+  };
+
+  const getExpensesByCategory = (categoryId) => {
+    return expenses.filter(expense => {
+      if (!expense.date || !expense.date.startsWith(currentMonth)) return false;
+
+      if (expense.items && expense.items.length > 0) {
+        return expense.items.some(item => (item.category || 'Other') === categoryId);
+      } else {
+        return (expense.category || 'Other') === categoryId;
+      }
+    }).map(expense => {
+      if (expense.items && expense.items.length > 0) {
+        const relevantItems = expense.items.filter(item => (item.category || 'Other') === categoryId);
+        return relevantItems.map((item, idx) => ({
+          id: `${expense.id}-${idx}`,
+          merchantName: expense.merchantName,
+          description: item.description,
+          amount: item.totalPrice || 0,
+          date: expense.date,
+          hasReceipt: !!expense.receiptUrl || !!expense.thumbnailUrl
+        }));
+      } else {
+        return [{
+          id: expense.id,
+          merchantName: expense.merchantName,
+          description: expense.merchantName,
+          amount: expense.totalAmount || 0,
+          date: expense.date,
+          hasReceipt: !!expense.receiptUrl || !!expense.thumbnailUrl
+        }];
+      }
+    }).flat();
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const totalBudget = Object.values(currentBudget).reduce((sum, val) => sum + val, 0);
@@ -371,8 +421,58 @@ function BudgetManage({ expenses, dateRange }) {
         </div>
       )}
 
-      {/* Category Budgets - Only show in overview mode */}
-      {viewMode === 'overview' && (
+      {/* AI Review Button - Mobile Only */}
+      {isMobile && viewMode === 'overview' && (
+        <button className="ai-review-chip">
+          💬 Review with AI
+        </button>
+      )}
+
+      {/* Category Budgets - Mobile Compact Grid */}
+      {isMobile && viewMode === 'overview' && (
+        <div className="category-grid-mobile">
+          {CATEGORIES.map(category => {
+            const budget = currentBudget[category.id];
+            const monthActual = monthSpending[category.id] || 0;
+            const percentage = getPercentage(monthActual, budget);
+            const remaining = budget - monthActual;
+            const statusColor = getStatusColor(monthActual, budget);
+            const categoryExpenses = getExpensesByCategory(category.id);
+            const itemCount = categoryExpenses.length;
+
+            return (
+              <div
+                key={category.id}
+                className="category-card-compact"
+                onClick={() => setExpandedCategory(category.id)}
+              >
+                <div className="category-card-badge" style={{ backgroundColor: category.color }}>
+                  {itemCount}
+                </div>
+                <div className="category-card-icon" style={{ color: category.color }}>
+                  {category.icon}
+                </div>
+                <div className="category-card-name">{category.name}</div>
+                <div className="category-card-amount" style={{ color: statusColor }}>
+                  {formatCurrency(monthActual)}
+                </div>
+                <div className="category-card-progress">
+                  <div
+                    className="category-card-progress-fill"
+                    style={{
+                      width: `${percentage}%`,
+                      background: `linear-gradient(90deg, ${category.color}dd, ${category.color})`
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Category Budgets - Desktop View - Only show in overview mode */}
+      {!isMobile && viewMode === 'overview' && (
         <div className="category-budgets">
           {CATEGORIES.map(category => {
             const budget = isEditingBudgets ? (tempBudgets[category.id] || 0) : currentBudget[category.id];
@@ -455,6 +555,109 @@ function BudgetManage({ expenses, dateRange }) {
             );
           })}
         </div>
+      )}
+
+      {/* Bottom Sheet for Expanded Category - Mobile Only */}
+      {isMobile && expandedCategory && (
+        <div className="bottom-sheet-overlay" onClick={() => setExpandedCategory(null)}>
+          <div className="bottom-sheet-category" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet-handle" />
+            {(() => {
+              const category = CATEGORIES.find(c => c.id === expandedCategory);
+              const budget = currentBudget[expandedCategory];
+              const monthActual = monthSpending[expandedCategory] || 0;
+              const percentage = getPercentage(monthActual, budget);
+              const remaining = budget - monthActual;
+              const statusColor = getStatusColor(monthActual, budget);
+              const categoryExpenses = getExpensesByCategory(expandedCategory);
+
+              return (
+                <>
+                  <div className="bottom-sheet-header-category">
+                    <div className="bottom-sheet-category-icon" style={{ color: category.color }}>
+                      {category.icon}
+                    </div>
+                    <div className="bottom-sheet-category-info">
+                      <h3>{category.name}</h3>
+                      <div className="bottom-sheet-category-stats">
+                        <span className="stat-item">
+                          <span className="stat-label">Spent:</span>
+                          <span className="stat-value" style={{ color: statusColor }}>
+                            {formatCurrency(monthActual)}
+                          </span>
+                        </span>
+                        <span className="stat-divider">•</span>
+                        <span className="stat-item">
+                          <span className="stat-label">Budget:</span>
+                          <span className="stat-value">{formatCurrency(budget)}</span>
+                        </span>
+                        <span className="stat-divider">•</span>
+                        <span className="stat-item">
+                          <span className="stat-label">Left:</span>
+                          <span className="stat-value" style={{ color: remaining >= 0 ? '#27ae60' : '#e74c3c' }}>
+                            {formatCurrency(remaining)}
+                          </span>
+                        </span>
+                      </div>
+                      <div className="bottom-sheet-progress">
+                        <div
+                          className="bottom-sheet-progress-fill"
+                          style={{
+                            width: `${percentage}%`,
+                            background: `linear-gradient(90deg, ${category.color}dd, ${category.color})`
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bottom-sheet-expenses">
+                    <div className="bottom-sheet-expenses-title">
+                      {categoryExpenses.length} Transaction{categoryExpenses.length !== 1 ? 's' : ''}
+                    </div>
+                    {categoryExpenses.length > 0 ? (
+                      <div className="expenses-list-compact">
+                        {categoryExpenses.map(exp => (
+                          <div key={exp.id} className="expense-item-compact">
+                            <div className="expense-item-main">
+                              <div className="expense-item-info">
+                                <div className="expense-item-title">{exp.description}</div>
+                                {exp.merchantName !== exp.description && (
+                                  <div className="expense-item-merchant">{exp.merchantName}</div>
+                                )}
+                              </div>
+                              <div className="expense-item-amount" style={{ color: category.color }}>
+                                {formatCurrency(exp.amount)}
+                              </div>
+                            </div>
+                            <div className="expense-item-meta">
+                              <span className="expense-item-date">{formatDate(exp.date)}</span>
+                              {exp.hasReceipt && (
+                                <>
+                                  <span className="meta-dot">•</span>
+                                  <span className="expense-item-tag">📎 Receipt</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="empty-expenses">No expenses in this category yet</div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Floating Add Button - Mobile Only */}
+      {isMobile && (
+        <button className="floating-add-btn">
+          + Add Expense
+        </button>
       )}
     </div>
   );

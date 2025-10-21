@@ -880,3 +880,367 @@
     border-color: #667eea;
   }
 }
+
+/* ==================== MOBILE OPTIMIZED LAYOUT ==================== */
+
+/* AI Review Button - Glowing Chip */
+.ai-review-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  margin: 16px auto 24px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, #667eea, #ed66ff) border-box;
+  color: #667eea;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ai-review-chip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.35);
+}
+
+/* 2-Column Responsive Grid */
+.category-grid-mobile {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  padding: 0 16px 24px;
+}
+
+/* Compact Category Cards */
+.category-card-compact {
+  position: relative;
+  background: white;
+  border-radius: 20px;
+  padding: 18px 14px 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08),
+              0 0 0 1px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.category-card-compact:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 16px 40px rgba(102, 126, 234, 0.15),
+              0 0 0 1px rgba(102, 126, 234, 0.1);
+}
+
+/* Item Count Badge */
+.category-card-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Category Icon */
+.category-card-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* Category Name */
+.category-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+/* Amount */
+.category-card-amount {
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+/* Progress Bar */
+.category-card-progress {
+  width: 100%;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.category-card-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Bottom Sheet Overlay */
+.bottom-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Bottom Sheet Container */
+.bottom-sheet-category {
+  width: 100%;
+  max-height: 80vh;
+  background: white;
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  padding: 0;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Handle */
+.bottom-sheet-handle {
+  width: 40px;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+  margin: 12px auto 16px;
+}
+
+/* Bottom Sheet Header */
+.bottom-sheet-header-category {
+  display: flex;
+  gap: 16px;
+  padding: 0 24px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.bottom-sheet-category-icon {
+  font-size: 48px;
+  flex-shrink: 0;
+}
+
+.bottom-sheet-category-info {
+  flex: 1;
+}
+
+.bottom-sheet-category-info h3 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  color: #2c3e50;
+}
+
+.bottom-sheet-category-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.stat-item {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.stat-label {
+  color: #7f8c8d;
+}
+
+.stat-value {
+  font-weight: 700;
+}
+
+.stat-divider {
+  color: #bdc3c7;
+  font-weight: 300;
+}
+
+/* Progress in Bottom Sheet */
+.bottom-sheet-progress {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.bottom-sheet-progress-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Expenses Section */
+.bottom-sheet-expenses {
+  padding: 24px;
+}
+
+.bottom-sheet-expenses-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Expenses List */
+.expenses-list-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Individual Expense Item */
+.expense-item-compact {
+  background: linear-gradient(135deg, rgba(246, 248, 250, 0.8), rgba(255, 255, 255, 0.9));
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+}
+
+.expense-item-compact:hover {
+  transform: translateX(4px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.expense-item-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.expense-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.expense-item-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expense-item-merchant {
+  font-size: 12px;
+  color: #7f8c8d;
+}
+
+.expense-item-amount {
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.expense-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #95a5a6;
+}
+
+.expense-item-date {
+  color: #95a5a6;
+}
+
+.meta-dot {
+  color: #bdc3c7;
+}
+
+.expense-item-tag {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.empty-expenses {
+  text-align: center;
+  padding: 40px 20px;
+  color: #95a5a6;
+  font-size: 14px;
+}
+
+/* Floating Add Button */
+.floating-add-btn {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ed66ff, #667eea);
+  color: white;
+  border: none;
+  font-size: 24px;
+  font-weight: 300;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  cursor: pointer;
+  z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.floating-add-btn:hover {
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
+}
+
+/* Hide desktop view controls on mobile */
+@media (max-width: 768px) {
+  .budget-controls,
+  .overall-budget-card {
+    margin: 0 16px;
+  }
+
+  .budget-header {
+    padding: 0 16px;
+  }
+}
