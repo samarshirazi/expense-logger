@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import {
   updateExpenseCategory,
@@ -10,143 +10,310 @@ import {
 } from '../services/apiService';
 import './CategorizedExpenses.css';
 
+const createEmptyBoard = () =>
+  CATEGORIES.reduce((acc, category) => {
+    acc[category.id] = [];
+    return acc;
+  }, {});
+
+const CARD_LONG_PRESS_DELAY = 420;
+
 const CATEGORIES = [
-  { id: 'Food', name: 'Food', icon: '🍔', color: '#ff6b6b' },
-  { id: 'Transport', name: 'Transport', icon: '🚗', color: '#4ecdc4' },
-  { id: 'Shopping', name: 'Shopping', icon: '🛍️', color: '#45b7d1' },
-  { id: 'Bills', name: 'Bills', icon: '💡', color: '#f9ca24' },
-  { id: 'Other', name: 'Other', icon: '📦', color: '#95afc0' }
+  { id: 'Food', name: 'Food', icon: '🍔', color: '#ff6b6b', gradient: 'linear-gradient(135deg, #ff6b6b 0%, #ff8585 100%)', budget: 450 },
+  { id: 'Transport', name: 'Transport', icon: '🚗', color: '#4ecdc4', gradient: 'linear-gradient(135deg, #4ecdc4 0%, #76e3da 100%)', budget: 220 },
+  { id: 'Shopping', name: 'Shopping', icon: '🛍️', color: '#45b7d1', gradient: 'linear-gradient(135deg, #45b7d1 0%, #6fd0e6 100%)', budget: 300 },
+  { id: 'Bills', name: 'Bills', icon: '💡', color: '#f9ca24', gradient: 'linear-gradient(135deg, #f9ca24 0%, #ffd866 100%)', budget: 380 },
+  { id: 'Other', name: 'Other', icon: '📦', color: '#95afc0', gradient: 'linear-gradient(135deg, #95afc0 0%, #b7c7d3 100%)', budget: 200 }
 ];
 
 function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRefresh, dateRange }) {
-  const [categorizedExpenses, setCategorizedExpenses] = useState({});
+  const [categorizedExpenses, setCategorizedExpenses] = useState(createEmptyBoard);
   const [error, setError] = useState(null);
-  const isUpdatingRef = useRef(false); // Use ref instead of state to prevent recalculation
-
-  // Modal states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [actionItem, setActionItem] = useState(null); // Item being deleted or edited
+  const [actionItem, setActionItem] = useState(null);
+  const [editForm, setEditForm] = useState({ description: '', totalPrice: '', date: '', currency: 'USD' });
 
-  // Edit form state
-  const [editForm, setEditForm] = useState({
-    description: '',
-    totalPrice: '',
-    date: '',
-    currency: 'USD'
-  });
+  const [isMobileView, setIsMobileView] = useState(false);
+  const [showAiPanel, setShowAiPanel] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [aiPreviewMode, setAiPreviewMode] = useState(false);
+  const [aiApplying, setAiApplying] = useState(false);
+  const [rememberRule, setRememberRule] = useState(true);
+  const [aiCelebration, setAiCelebration] = useState(false);
 
-  // Filter expenses by date range
-  const filteredExpenses = expenses.filter(expense => {
-    if (!dateRange?.startDate || !dateRange?.endDate) return true;
-    // Compare dates as strings to avoid timezone issues
-    // expense.date is in format "YYYY-MM-DD"
-    return expense.date >= dateRange.startDate && expense.date <= dateRange.endDate;
-  });
+  const [undoState, setUndoState] = useState(null);
+  const [showUndoToast, setShowUndoToast] = useState(false);
 
-  // Organize individual items by their category
+  const [activeBottomSheetItem, setActiveBottomSheetItem] = useState(null);
+
+  const isUpdatingRef = useRef(false);
+  const categorizedExpensesRef = useRef(createEmptyBoard());
+  const undoTimerRef = useRef(null);
+  const longPressTimeoutRef = useRef(null);
+  const columnRefs = useRef({});
+
   useEffect(() => {
-    // Don't recalculate if we're in the middle of an optimistic update
+    const handleResize = () => {
+      const mobile = window.matchMedia('(max-width: 768px)').matches;
+      setIsMobileView(mobile);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter(expense => {
+      if (!dateRange?.startDate || !dateRange?.endDate) return true;
+      return expense.date >= dateRange.startDate && expense.date <= dateRange.endDate;
+    });
+  }, [expenses, dateRange]);
+
+  useEffect(() => {
     if (isUpdatingRef.current) {
-      console.log('⏸️ Skipping recalculation - optimistic update in progress');
       return;
     }
 
-    console.log('📊 Recalculating categories from expenses');
-
-    const organized = {
-      Food: [],
-      Transport: [],
-      Shopping: [],
-      Bills: [],
-      Other: []
-    };
+    const organized = createEmptyBoard();
 
     filteredExpenses.forEach(expense => {
-      // If expense has items, add each item separately
       if (expense.items && expense.items.length > 0) {
         expense.items.forEach((item, itemIndex) => {
           const itemCategory = item.category || 'Other';
-          const itemWithMetadata = {
+          const enrichedItem = {
             ...item,
             expenseId: expense.id,
-            itemIndex: itemIndex,
+            itemIndex,
             merchantName: expense.merchantName,
             date: expense.date,
             currency: expense.currency,
-            // Create unique ID for dragging
+            category: itemCategory,
             uniqueId: `${expense.id}-item-${itemIndex}`
           };
 
           if (organized[itemCategory]) {
-            organized[itemCategory].push(itemWithMetadata);
+            organized[itemCategory].push(enrichedItem);
           } else {
-            organized['Other'].push(itemWithMetadata);
+            organized.Other.push(enrichedItem);
           }
         });
       } else {
-        // If no items, show the expense itself
         const category = expense.category || 'Other';
-        const expenseAsItem = {
+        const fallbackItem = {
           description: expense.merchantName,
           totalPrice: expense.totalAmount,
           quantity: 1,
           expenseId: expense.id,
-          itemIndex: -1, // -1 indicates whole expense, not individual item
+          itemIndex: -1,
           merchantName: expense.merchantName,
           date: expense.date,
           currency: expense.currency,
+          category,
           uniqueId: expense.id
         };
 
         if (organized[category]) {
-          organized[category].push(expenseAsItem);
+          organized[category].push(fallbackItem);
         } else {
-          organized['Other'].push(expenseAsItem);
+          organized.Other.push(fallbackItem);
         }
       }
     });
 
     setCategorizedExpenses(organized);
-  }, [filteredExpenses]); // Only recalculate when filteredExpenses changes
+    categorizedExpensesRef.current = organized;
+  }, [filteredExpenses]);
 
-  const handleDragEnd = async (result) => {
-    console.log('🔄 Drag ended:', result);
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) {
+        clearTimeout(undoTimerRef.current);
+      }
+      if (longPressTimeoutRef.current) {
+        clearTimeout(longPressTimeoutRef.current);
+      }
+    };
+  }, []);
 
-    const { destination, source, draggableId } = result;
+  useEffect(() => {
+    categorizedExpensesRef.current = categorizedExpenses;
+  }, [categorizedExpenses]);
 
-    // Dropped outside a valid droppable
-    if (!destination) {
-      console.log('❌ Dropped outside droppable area');
+  const keywordGroups = useMemo(() => ({
+    Food: ['restaurant', 'cafe', 'coffee', 'pizza', 'burger', 'grill', 'bakery', 'deli'],
+    Transport: ['uber', 'lyft', 'gas', 'fuel', 'taxi', 'metro', 'train', 'parking'],
+    Shopping: ['store', 'market', 'shop', 'mall', 'outlet', 'amazon', 'purchase'],
+    Bills: ['utility', 'electric', 'water', 'subscription', 'internet', 'phone', 'insurance'],
+    Other: []
+  }), []);
+
+  const inferCategoryFromText = useCallback((item) => {
+    const comparison = `${(item.description || '').toLowerCase()} ${(item.merchantName || '').toLowerCase()}`;
+    for (const [category, keywords] of Object.entries(keywordGroups)) {
+      if (keywords.some(keyword => comparison.includes(keyword))) {
+        return category;
+      }
+    }
+    return null;
+  }, [keywordGroups]);
+
+  const formatCurrency = useCallback((amount, currency = 'USD') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency
+    }).format(amount ?? 0);
+  }, []);
+
+  const formatDate = useCallback((dateString) => {
+    if (!dateString) return 'No date';
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }, []);
+
+  const getCategoryTotal = useCallback((categoryId) => {
+    const items = categorizedExpenses[categoryId] || [];
+    return items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+  }, [categorizedExpenses]);
+
+  const getCategoryProgress = useCallback((categoryId) => {
+    const category = CATEGORIES.find(cat => cat.id === categoryId);
+    const total = getCategoryTotal(categoryId);
+    const budget = category?.budget || Math.max(total, 1);
+    const percentage = Math.min(100, Math.round((total / budget) * 100));
+    return {
+      budget,
+      percentage
+    };
+  }, [getCategoryTotal]);
+
+  const closeUndoToast = useCallback(() => {
+    setShowUndoToast(false);
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+    }
+  }, []);
+
+  const performCategoryMove = useCallback(async (movedItem, sourceCategory, destinationCategory, options = {}) => {
+    if (!movedItem || !destinationCategory || sourceCategory === destinationCategory) {
       return;
     }
 
-    // Dropped in same position
+    isUpdatingRef.current = true;
+    const previousState = JSON.parse(JSON.stringify(categorizedExpensesRef.current));
+    let optimisticSnapshot = previousState;
+
+    setCategorizedExpenses(prev => {
+      const clone = CATEGORIES.reduce((acc, category) => {
+        acc[category.id] = [...(prev[category.id] || [])];
+        return acc;
+      }, {});
+
+      if (!clone[sourceCategory]) {
+        clone[sourceCategory] = [];
+      }
+      if (!clone[destinationCategory]) {
+        clone[destinationCategory] = [];
+      }
+
+      clone[sourceCategory] = clone[sourceCategory].filter(item => item.uniqueId !== movedItem.uniqueId);
+
+      const updatedItem = { ...movedItem, category: destinationCategory };
+      const destinationIndex = Math.max(0, Math.min(options.destinationIndex ?? clone[destinationCategory].length, clone[destinationCategory].length));
+      clone[destinationCategory] = [
+        ...clone[destinationCategory].slice(0, destinationIndex),
+        updatedItem,
+        ...clone[destinationCategory].slice(destinationIndex)
+      ];
+
+      optimisticSnapshot = clone;
+      categorizedExpensesRef.current = clone;
+      return clone;
+    });
+
+    if (!options.silent) {
+      setUndoState({
+        item: movedItem,
+        previousCategory: sourceCategory,
+        previousState,
+        destinationCategory
+      });
+      setShowUndoToast(true);
+
+      if (undoTimerRef.current) {
+        clearTimeout(undoTimerRef.current);
+      }
+      undoTimerRef.current = setTimeout(() => {
+        setShowUndoToast(false);
+        setUndoState(null);
+      }, 6000);
+    } else {
+      closeUndoToast();
+      setUndoState(null);
+    }
+
+    try {
+      if (movedItem.itemIndex === -1) {
+        await updateExpenseCategory(movedItem.expenseId, destinationCategory);
+        if (onCategoryUpdate) {
+          onCategoryUpdate(movedItem.expenseId, destinationCategory);
+        }
+      } else {
+        await updateItemCategory(movedItem.expenseId, movedItem.itemIndex, destinationCategory);
+      }
+
+      if (onRefresh) {
+        setTimeout(() => {
+          onRefresh();
+          setTimeout(() => {
+            isUpdatingRef.current = false;
+          }, 120);
+        }, options.deferRefresh ?? 500);
+      } else {
+        setTimeout(() => {
+          isUpdatingRef.current = false;
+        }, 120);
+      }
+    } catch (err) {
+      console.error('Failed to update category', err);
+      setError(`Failed to update: ${err.message}`);
+      setCategorizedExpenses(previousState);
+      categorizedExpensesRef.current = previousState;
+      isUpdatingRef.current = false;
+      if (onRefresh) {
+        setTimeout(() => {
+          onRefresh();
+        }, 400);
+      }
+    }
+  }, [closeUndoToast, onCategoryUpdate, onRefresh]);
+
+  const handleDragEnd = (result) => {
+    const { destination, source, draggableId } = result;
+    if (!destination) {
+      return;
+    }
+
     if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
     ) {
-      console.log('❌ Dropped in same position');
       return;
     }
 
     const sourceCategory = source.droppableId;
     const destinationCategory = destination.droppableId;
-
-    console.log(`📦 Moving from ${sourceCategory} to ${destinationCategory}`);
-
-    // Find the moved item
-    const movedItem = categorizedExpenses[sourceCategory]?.find(
-      item => item.uniqueId === draggableId
-    );
+    const movedItem = categorizedExpenses[sourceCategory]?.find(item => item.uniqueId === draggableId);
 
     if (!movedItem) {
-      console.error('❌ Item not found:', draggableId);
       setError('Item not found');
       return;
     }
 
-    // Handle special zones (Trash and Edit)
     if (destinationCategory === 'TRASH') {
       setActionItem(movedItem);
       setShowDeleteConfirm(true);
@@ -154,156 +321,57 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     }
 
     if (destinationCategory === 'EDIT') {
-      setActionItem(movedItem);
-      setEditForm({
-        description: movedItem.description || movedItem.merchantName,
-        totalPrice: movedItem.totalPrice || 0,
-        date: movedItem.date || '',
-        currency: movedItem.currency || 'USD'
-      });
-      setShowEditModal(true);
+      openEditModal(movedItem);
       return;
     }
 
-    // Category didn't change (shouldn't happen with different droppables)
-    if (sourceCategory === destinationCategory) {
-      console.log('❌ Same category');
-      return;
-    }
-
-    setError(null);
-    console.log('✅ Found item:', movedItem);
-
-    // Set updating flag to prevent useEffect from overwriting our optimistic update
-    isUpdatingRef.current = true;
-
-    // Save previous state for potential revert
-    const previousState = JSON.parse(JSON.stringify(categorizedExpenses));
-
-    // Update local state IMMEDIATELY (optimistic update)
-    const newCategorized = {};
-
-    // Deep clone to avoid mutations
-    Object.keys(categorizedExpenses).forEach(key => {
-      newCategorized[key] = [...categorizedExpenses[key]];
+    performCategoryMove(movedItem, sourceCategory, destinationCategory, {
+      destinationIndex: destination.index
     });
+  };
 
-    // Remove from source
-    newCategorized[sourceCategory] = newCategorized[sourceCategory].filter(
-      item => item.uniqueId !== draggableId
-    );
+  const handleUndo = useCallback(async () => {
+    if (!undoState) {
+      return;
+    }
 
-    // Add to destination with updated category
-    const updatedItem = { ...movedItem, category: destinationCategory };
-    newCategorized[destinationCategory] = [
-      ...newCategorized[destinationCategory].slice(0, destination.index),
-      updatedItem,
-      ...newCategorized[destinationCategory].slice(destination.index)
-    ];
+    const data = undoState;
+    closeUndoToast();
+    setCategorizedExpenses(data.previousState);
+    categorizedExpensesRef.current = data.previousState;
 
-    console.log('🔄 Updating UI optimistically...');
-    // Update UI immediately - no recalculation triggered because ref doesn't cause re-render
-    setCategorizedExpenses(newCategorized);
-
-    // Now send to server in background (don't block UI)
-    (async () => {
-      try {
-        console.log('📡 Sending to server...');
-
-        // Update category on server
-        if (movedItem.itemIndex === -1) {
-          console.log('🔧 Updating whole expense category');
-          await updateExpenseCategory(movedItem.expenseId, destinationCategory);
-        } else {
-          console.log('🔧 Updating item category:', {
-            expenseId: movedItem.expenseId,
-            itemIndex: movedItem.itemIndex,
-            newCategory: destinationCategory
-          });
-          await updateItemCategory(movedItem.expenseId, movedItem.itemIndex, destinationCategory);
+    try {
+      if (data.item.itemIndex === -1) {
+        await updateExpenseCategory(data.item.expenseId, data.previousCategory);
+        if (onCategoryUpdate) {
+          onCategoryUpdate(data.item.expenseId, data.previousCategory);
         }
-
-        console.log('✅ Server update successful!');
-
-        // Notify parent component if it's a whole expense
-        if (onCategoryUpdate && movedItem.itemIndex === -1) {
-          onCategoryUpdate(movedItem.expenseId, destinationCategory);
-        }
-
-        // Refresh parent data after animation completes to prevent visual glitch
-        // Wait for drag animation to finish before syncing with server
-        setTimeout(() => {
-          if (onRefresh) {
-            console.log('🔄 Refreshing parent data after successful update...');
-            onRefresh();
-          }
-          // Re-enable useEffect after refresh completes
-          setTimeout(() => {
-            isUpdatingRef.current = false;
-          }, 100);
-        }, 1000);
-
-      } catch (err) {
-        console.error('❌ Server update failed:', err);
-        setError(`Failed to update: ${err.message}`);
-
-        // Re-enable useEffect immediately on error
-        isUpdatingRef.current = false;
-
-        // Revert to previous state on error
-        console.log('🔄 Reverting to previous state...');
-        setCategorizedExpenses(previousState);
-
-        // Refresh from server to ensure consistency
-        if (onRefresh) {
-          setTimeout(() => {
-            console.log('🔄 Refreshing from server after error...');
-            onRefresh();
-          }, 500);
-        }
+      } else {
+        await updateItemCategory(data.item.expenseId, data.item.itemIndex, data.previousCategory);
       }
-    })();
-  };
 
-  const formatCurrency = (amount, currency = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency
-    }).format(amount);
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'No date';
-    // Parse date string as local date to avoid timezone shift
-    // dateString is in format "YYYY-MM-DD"
-    const [year, month, day] = dateString.split('-').map(Number);
-    const date = new Date(year, month - 1, day); // month is 0-indexed
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const getCategoryTotal = (category) => {
-    return categorizedExpenses[category]?.reduce(
-      (sum, item) => sum + (item.totalPrice || 0),
-      0
-    ) || 0;
-  };
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (err) {
+      console.error('Undo failed', err);
+      setError(`Undo failed: ${err.message}`);
+    } finally {
+      setUndoState(null);
+      isUpdatingRef.current = false;
+    }
+  }, [closeUndoToast, onCategoryUpdate, onRefresh, undoState]);
 
   const handleDeleteConfirm = async () => {
     if (!actionItem) return;
 
     try {
-      // Delete entire expense or just the item
       if (actionItem.itemIndex === -1) {
         await deleteExpense(actionItem.expenseId);
       } else {
         await deleteExpenseItem(actionItem.expenseId, actionItem.itemIndex);
       }
 
-      // Close modal and refresh
       setShowDeleteConfirm(false);
       setActionItem(null);
 
@@ -322,31 +390,23 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     if (!actionItem) return;
 
     try {
-      let updates;
-
-      // Update entire expense or just the item
       if (actionItem.itemIndex === -1) {
-        // For whole expense, update merchant name and total amount
-        updates = {
+        const updates = {
           merchantName: editForm.description,
           totalAmount: parseFloat(editForm.totalPrice),
           date: editForm.date
         };
         await updateExpense(actionItem.expenseId, updates);
       } else {
-        // For item, update description, price, and date
-        updates = {
+        const updates = {
           description: editForm.description,
           totalPrice: parseFloat(editForm.totalPrice),
           date: editForm.date
         };
         await updateExpenseItem(actionItem.expenseId, actionItem.itemIndex, updates);
-
-        // Also update the parent expense date so filtering works correctly
         await updateExpense(actionItem.expenseId, { date: editForm.date });
       }
 
-      // Close modal and refresh
       setShowEditModal(false);
       setActionItem(null);
 
@@ -360,13 +420,152 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     }
   };
 
+  const openEditModal = useCallback((item) => {
+    if (!item) return;
+    setActionItem(item);
+    setEditForm({
+      description: item.description || item.merchantName,
+      totalPrice: item.totalPrice || 0,
+      date: item.date || '',
+      currency: item.currency || 'USD'
+    });
+    setShowEditModal(true);
+  }, []);
+
+  const handleCardLongPressStart = (item) => {
+    if (!isMobileView) return;
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+    }
+    longPressTimeoutRef.current = setTimeout(() => {
+      setActiveBottomSheetItem(item);
+    }, CARD_LONG_PRESS_DELAY);
+  };
+
+  const cancelLongPressDetection = () => {
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+    }
+  };
+
+  const handleMoveFromBottomSheet = (item, destinationCategory) => {
+    if (!item || !destinationCategory) return;
+    setActiveBottomSheetItem(null);
+    performCategoryMove(item, item.category, destinationCategory);
+  };
+
+  const handleCardSelect = (item) => {
+    if (isMobileView) {
+      setActiveBottomSheetItem(item);
+      return;
+    }
+    if (onExpenseSelect) {
+      onExpenseSelect(item.expenseId);
+    }
+  };
+
+  const buildAiSuggestions = useCallback(() => {
+    const current = categorizedExpensesRef.current;
+    const suggestions = [];
+
+    Object.entries(current).forEach(([categoryId, items]) => {
+      items.forEach(item => {
+        const inferred = inferCategoryFromText(item);
+        if (inferred && inferred !== categoryId) {
+          suggestions.push({
+            ...item,
+            currentCategory: categoryId,
+            suggestedCategory: inferred
+          });
+        } else if (item.aiSuggestedCategory && item.aiSuggestedCategory !== categoryId) {
+          suggestions.push({
+            ...item,
+            currentCategory: categoryId,
+            suggestedCategory: item.aiSuggestedCategory
+          });
+        }
+      });
+    });
+
+    return suggestions.slice(0, 12);
+  }, [inferCategoryFromText]);
+
+  const handleAiReviewClick = () => {
+    const suggestions = buildAiSuggestions();
+    setAiSuggestions(suggestions);
+    setAiPreviewMode(false);
+    setShowAiPanel(true);
+  };
+
+  const handleApplyAiSuggestions = async () => {
+    if (aiSuggestions.length === 0) {
+      setShowAiPanel(false);
+      return;
+    }
+
+    setAiApplying(true);
+    try {
+      for (const suggestion of aiSuggestions) {
+        await performCategoryMove(suggestion, suggestion.currentCategory, suggestion.suggestedCategory, {
+          destinationIndex: 0,
+          deferRefresh: 650,
+          silent: true
+        });
+      }
+
+      setAiSuggestions([]);
+      setShowAiPanel(false);
+
+      if (rememberRule) {
+        setAiCelebration(true);
+        setTimeout(() => setAiCelebration(false), 3800);
+      }
+    } catch (err) {
+      console.error('Failed to apply AI suggestions', err);
+      setError(`Failed to apply AI suggestions: ${err.message}`);
+    } finally {
+      setAiApplying(false);
+    }
+  };
+
+  const handleCategoryPillClick = (categoryId) => {
+    if (!isMobileView) return;
+    const column = columnRefs.current[categoryId];
+    if (column) {
+      column.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  };
+
+  const getTagForItem = (item) => {
+    if (item.sourceTag) return item.sourceTag;
+    if (item.itemIndex === -1) return 'Manual Entry';
+    return 'Receipt Upload';
+  };
+
   return (
-    <div className="categorized-expenses">
-      <div className="categorized-header">
-        <h2>Products by Category</h2>
-        <p className="categorized-hint">
-          Each product is displayed separately. Drag items to recategorize them
-        </p>
+    <div className={`categorized-expenses ${isMobileView ? 'mobile-view' : ''}`}>
+      <div className="board-top-bar">
+        <div className="board-heading">
+          <h2>Review &amp; Categorize</h2>
+          <p className="board-subtitle">Organize spending with a responsive, AI-assisted command center.</p>
+        </div>
+        <button className="ai-review-button" onClick={handleAiReviewClick}>
+          <span className="ai-icon">🤖</span>
+          Review with AI
+        </button>
+      </div>
+
+      <div className="category-pill-bar">
+        {CATEGORIES.map(category => (
+          <button
+            key={category.id}
+            className="category-pill"
+            onClick={() => handleCategoryPillClick(category.id)}
+          >
+            <span className="pill-icon">{category.icon}</span>
+            {category.name}
+          </button>
+        ))}
       </div>
 
       {error && (
@@ -377,88 +576,108 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       )}
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="categories-grid">
-          {CATEGORIES.map(category => (
-            <div key={category.id} className="category-column">
-              <div
-                className="category-header"
-                style={{ backgroundColor: category.color }}
-              >
-                <span className="category-icon">{category.icon}</span>
-                <span className="category-name">{category.name}</span>
-                <span className="category-count">
-                  {categorizedExpenses[category.id]?.length || 0}
-                </span>
-              </div>
-
-              <div className="category-total">
-                {formatCurrency(getCategoryTotal(category.id))}
-              </div>
-
-              <Droppable droppableId={category.id}>
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={`category-list ${
-                      snapshot.isDraggingOver ? 'dragging-over' : ''
-                    }`}
-                  >
-                    {categorizedExpenses[category.id]?.length === 0 ? (
-                      <div className="empty-category">
-                        No {category.name.toLowerCase()} items
+        <div className="board-wrapper">
+          <div className="categories-board">
+            {CATEGORIES.map(category => {
+              const totals = getCategoryProgress(category.id);
+              const items = categorizedExpenses[category.id] || [];
+              return (
+                <div
+                  key={category.id}
+                  className="category-column"
+                  ref={(node) => {
+                    if (node) {
+                      columnRefs.current[category.id] = node;
+                    }
+                  }}
+                >
+                  <div className="category-header" style={{ backgroundImage: category.gradient }}>
+                    <div className="category-header-top">
+                      <div className="category-title">
+                        <span className="category-icon">{category.icon}</span>
+                        <span className="category-name">{category.name}</span>
                       </div>
-                    ) : (
-                      categorizedExpenses[category.id]?.map((item, index) => (
-                        <Draggable
-                          key={item.uniqueId}
-                          draggableId={item.uniqueId}
-                          index={index}
-                        >
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`product-card ${
-                                snapshot.isDragging ? 'dragging' : ''
-                              }`}
-                            >
-                              <div className="product-card-left">
-                                <div className="product-card-name">
-                                  {item.description || item.merchantName}
-                                  {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
-                                </div>
-                                <div className="product-card-meta">
-                                  {item.merchantName} • {formatDate(item.date)}
-                                </div>
-                              </div>
-                              <div className="product-card-amount">
-                                {formatCurrency(item.totalPrice || 0, item.currency)}
-                              </div>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))
-                    )}
-                    {provided.placeholder}
+                      <span className="category-count">{items.length}</span>
+                    </div>
+                    <div className="category-total-row">
+                      <span className="category-total-amount">{formatCurrency(getCategoryTotal(category.id))}</span>
+                      <span className="category-budget">Budget {formatCurrency(totals.budget)}</span>
+                    </div>
+                    <div className="category-progress">
+                      <div className="category-progress-fill" style={{ width: `${totals.percentage}%` }}></div>
+                    </div>
                   </div>
-                )}
-              </Droppable>
-            </div>
-          ))}
+
+                  <Droppable droppableId={category.id}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={`category-list ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
+                      >
+                        {items.length === 0 ? (
+                          <div className="empty-category">No {category.name.toLowerCase()} items</div>
+                        ) : (
+                          items.map((item, index) => (
+                            <Draggable key={item.uniqueId} draggableId={item.uniqueId} index={index}>
+                              {(dragProvided, dragSnapshot) => (
+                                <div
+                                  ref={dragProvided.innerRef}
+                                  {...dragProvided.draggableProps}
+                                  {...dragProvided.dragHandleProps}
+                                  className={`product-card ${dragSnapshot.isDragging ? 'dragging' : ''}`}
+                                  onMouseDown={() => handleCardLongPressStart(item)}
+                                  onMouseUp={cancelLongPressDetection}
+                                  onMouseLeave={cancelLongPressDetection}
+                                  onTouchStart={() => handleCardLongPressStart(item)}
+                                  onTouchEnd={cancelLongPressDetection}
+                                  onTouchMove={cancelLongPressDetection}
+                                  onClick={() => handleCardSelect(item)}
+                                >
+                                  <div className="product-card-content">
+                                    <div className="product-card-header">
+                                      <div className="product-card-name">
+                                        {item.description || item.merchantName}
+                                        {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
+                                      </div>
+                                      <div className="product-card-amount" style={{ color: category.color }}>
+                                        {formatCurrency(item.totalPrice || 0, item.currency)}
+                                      </div>
+                                    </div>
+                                    <div className="product-card-meta">
+                                      <span>{item.merchantName}</span>
+                                      <span className="meta-separator">•</span>
+                                      <span>{formatDate(item.date)}</span>
+                                      <span className={`meta-tag tag-${(item.category || 'Other').toLowerCase()}`}>
+                                        {getTagForItem(item)}
+                                      </span>
+                                    </div>
+                                    {item.aiRule && (
+                                      <div className="product-card-caption">Auto: {item.aiRule}</div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))
+                        )}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Action Zones */}
         <div className="action-zones">
           <Droppable droppableId="TRASH">
             {(provided, snapshot) => (
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className={`action-zone trash-zone ${
-                  snapshot.isDraggingOver ? 'dragging-over' : ''
-                }`}
+                className={`action-zone trash-zone ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
               >
                 <span className="action-icon">🗑️</span>
                 <span className="action-label">Trash</span>
@@ -473,9 +692,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className={`action-zone edit-zone ${
-                  snapshot.isDraggingOver ? 'dragging-over' : ''
-                }`}
+                className={`action-zone edit-zone ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
               >
                 <span className="action-icon">✏️</span>
                 <span className="action-label">Edit</span>
@@ -487,7 +704,139 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         </div>
       </DragDropContext>
 
-      {/* Delete Confirmation Modal */}
+      {showUndoToast && undoState && (
+        <div className="undo-snackbar">
+          <span>
+            Moved {undoState.item.description || undoState.item.merchantName} → {undoState.destinationCategory}
+          </span>
+          <button onClick={handleUndo}>Undo</button>
+        </div>
+      )}
+
+      {aiCelebration && (
+        <div className="ai-toast">AI learned this pattern for next time 🎉</div>
+      )}
+
+      {activeBottomSheetItem && (
+        <div className="bottom-sheet-overlay" onClick={() => setActiveBottomSheetItem(null)}>
+          <div className="bottom-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="bottom-sheet-handle" />
+            <div className="bottom-sheet-header">
+              <div className="bottom-sheet-title">Quick actions</div>
+              <div className="bottom-sheet-subtitle">
+                {activeBottomSheetItem.description || activeBottomSheetItem.merchantName}
+              </div>
+            </div>
+            <div className="bottom-sheet-section">
+              <div className="section-label">Move to category</div>
+              <div className="category-chip-grid">
+                {CATEGORIES.map(category => (
+                  <button
+                    key={category.id}
+                    className={`category-chip ${category.id === activeBottomSheetItem.category ? 'active' : ''}`}
+                    style={{ borderColor: category.color }}
+                    onClick={() => handleMoveFromBottomSheet(activeBottomSheetItem, category.id)}
+                  >
+                    <span className="chip-icon">{category.icon}</span>
+                    {category.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="bottom-sheet-actions">
+              <button
+                className="sheet-btn"
+                onClick={() => {
+                  setActiveBottomSheetItem(null);
+                  openEditModal(activeBottomSheetItem);
+                }}
+              >
+                ✏️ Edit
+              </button>
+              <button
+                className="sheet-btn destructive"
+                onClick={() => {
+                  setActiveBottomSheetItem(null);
+                  setActionItem(activeBottomSheetItem);
+                  setShowDeleteConfirm(true);
+                }}
+              >
+                🗑️ Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button className="floating-add-button" onClick={() => onExpenseSelect && onExpenseSelect(null)}>
+        ＋ Add Expense
+      </button>
+
+      {showAiPanel && (
+        <>
+          <div className="ai-panel-backdrop" onClick={() => setShowAiPanel(false)} />
+          <aside className="ai-panel">
+            <div className="ai-panel-header">
+              <h3>AI Review</h3>
+              <button className="ai-panel-close" onClick={() => setShowAiPanel(false)}>✕</button>
+            </div>
+            <p className="ai-panel-subtitle">
+              {aiSuggestions.length > 0
+                ? `AI found ${aiSuggestions.length} item${aiSuggestions.length > 1 ? 's' : ''} possibly miscategorized.`
+                : 'Everything looks organized. No miscategorized items detected.'}
+            </p>
+
+            {aiSuggestions.length > 0 && (
+              <div className="ai-panel-controls">
+                <button
+                  className={`ai-panel-btn ${aiPreviewMode ? 'secondary' : 'primary'}`}
+                  onClick={() => setAiPreviewMode(prev => !prev)}
+                >
+                  {aiPreviewMode ? 'Hide Preview' : 'Preview Fixes'}
+                </button>
+                <button
+                  className="ai-panel-btn primary"
+                  onClick={handleApplyAiSuggestions}
+                  disabled={aiApplying}
+                >
+                  {aiApplying ? 'Applying…' : 'Apply'}
+                </button>
+              </div>
+            )}
+
+            {aiPreviewMode && aiSuggestions.length > 0 && (
+              <div className="ai-suggestion-list">
+                {aiSuggestions.map(suggestion => (
+                  <div key={suggestion.uniqueId} className="ai-suggestion-card">
+                    <div className="ai-suggestion-title">{suggestion.description || suggestion.merchantName}</div>
+                    <div className="ai-suggestion-meta">
+                      <span>{suggestion.merchantName}</span>
+                      <span>·</span>
+                      <span>{formatDate(suggestion.date)}</span>
+                    </div>
+                    <div className="ai-suggestion-move">
+                      Move {formatCurrency(suggestion.totalPrice || 0, suggestion.currency)}
+                      <span className="badge badge-current">{suggestion.currentCategory}</span>
+                      →
+                      <span className="badge badge-next">{suggestion.suggestedCategory}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <label className="remember-toggle">
+              <input
+                type="checkbox"
+                checked={rememberRule}
+                onChange={(event) => setRememberRule(event.target.checked)}
+              />
+              <span>✅ Remember this rule next time</span>
+            </label>
+          </aside>
+        </>
+      )}
+
       {showDeleteConfirm && (
         <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -497,16 +846,10 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
               <strong>{actionItem?.description || actionItem?.merchantName}</strong>?
             </p>
             <div className="modal-actions">
-              <button
-                className="btn btn-cancel"
-                onClick={() => setShowDeleteConfirm(false)}
-              >
+              <button className="btn btn-cancel" onClick={() => setShowDeleteConfirm(false)}>
                 Cancel
               </button>
-              <button
-                className="btn btn-delete"
-                onClick={handleDeleteConfirm}
-              >
+              <button className="btn btn-delete" onClick={handleDeleteConfirm}>
                 Delete
               </button>
             </div>
@@ -514,7 +857,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         </div>
       )}
 
-      {/* Edit Modal */}
       {showEditModal && (
         <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
