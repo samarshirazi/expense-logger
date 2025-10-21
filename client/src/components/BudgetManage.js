@@ -435,7 +435,6 @@ function BudgetManage({ expenses, dateRange }) {
             const budget = currentBudget[category.id];
             const monthActual = monthSpending[category.id] || 0;
             const percentage = getPercentage(monthActual, budget);
-            const remaining = budget - monthActual;
             const statusColor = getStatusColor(monthActual, budget);
             const categoryExpenses = getExpensesByCategory(category.id);
             const itemCount = categoryExpenses.length;
