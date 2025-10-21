@@ -48,6 +48,9 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   const [activeBottomSheetItem, setActiveBottomSheetItem] = useState(null);
   const [activeCategory, setActiveCategory] = useState(CATEGORIES[0].id);
   const [expandedCategoryId, setExpandedCategoryId] = useState(null);
+  const [mobileEditItem, setMobileEditItem] = useState(null);
+  const [showMobileAdjust, setShowMobileAdjust] = useState(false);
+  const [mobileLongPressActive, setMobileLongPressActive] = useState(false);
 
   const isUpdatingRef = useRef(false);
   const categorizedExpensesRef = useRef(createEmptyBoard());
@@ -458,6 +461,67 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     performCategoryMove(item, item.category, destinationCategory);
   };
 
+  const handleMobileItemClick = (item) => {
+    setMobileEditItem({
+      ...item,
+      merchantName: item.merchantName || '',
+      description: item.description || item.merchantName || '',
+      totalPrice: item.totalPrice || item.totalAmount || 0,
+      date: item.date || '',
+      category: item.category || 'Other',
+      paymentMethod: item.paymentMethod || '',
+      currency: item.currency || 'USD'
+    });
+  };
+
+  const handleMobileItemLongPress = (item) => {
+    setMobileLongPressActive(true);
+    setExpandedCategoryId(null);
+    // Trigger the existing bottom sheet for drag and drop
+    setTimeout(() => {
+      setActiveBottomSheetItem(item);
+    }, 100);
+  };
+
+  const handleMobileSaveEdit = async () => {
+    if (!mobileEditItem) return;
+
+    try {
+      if (mobileEditItem.itemIndex === -1 || mobileEditItem.itemIndex === undefined) {
+        const updates = {
+          merchantName: mobileEditItem.merchantName || mobileEditItem.description,
+          totalAmount: parseFloat(mobileEditItem.totalPrice),
+          date: mobileEditItem.date,
+          category: mobileEditItem.category,
+          paymentMethod: mobileEditItem.paymentMethod || null
+        };
+        await updateExpense(mobileEditItem.expenseId, updates);
+      } else {
+        const itemUpdates = {
+          description: mobileEditItem.description,
+          totalPrice: parseFloat(mobileEditItem.totalPrice),
+          category: mobileEditItem.category
+        };
+        await updateExpenseItem(mobileEditItem.expenseId, mobileEditItem.itemIndex, itemUpdates);
+
+        const expenseUpdates = {
+          date: mobileEditItem.date,
+          merchantName: mobileEditItem.merchantName,
+          paymentMethod: mobileEditItem.paymentMethod || null
+        };
+        await updateExpense(mobileEditItem.expenseId, expenseUpdates);
+      }
+
+      setMobileEditItem(null);
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (err) {
+      console.error('Mobile update failed:', err);
+      setError(`Failed to update: ${err.message}`);
+    }
+  };
+
   const handleCardSelect = (item) => {
     if (isMobileView) {
       setActiveBottomSheetItem(item);
@@ -601,7 +665,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         <div className="mobile-compact-header">
           <div className="mobile-header-row">
             <h2 className="mobile-title">Categories</h2>
-            <button className="mobile-adjust-btn">Adjust</button>
+            <button className="mobile-adjust-btn" onClick={() => setShowMobileAdjust(true)}>Adjust</button>
           </div>
           <button className="ai-chip-mobile" onClick={handleAiReviewClick}>
             💬 Review with AI
@@ -832,30 +896,63 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                     </div>
                     {items.length > 0 ? (
                       <div className="mobile-expense-list">
-                        {items.map(item => (
-                          <div key={item.id} className="mobile-expense-mini">
-                            <div className="mobile-expense-main">
-                              <div className="mobile-expense-info">
-                                <div className="mobile-expense-title">{item.description || item.merchantName}</div>
-                                {item.merchantName && item.description && item.merchantName !== item.description && (
-                                  <div className="mobile-expense-merchant">{item.merchantName}</div>
+                        {items.map(item => {
+                          let longPressTimer = null;
+
+                          const handleTouchStart = () => {
+                            longPressTimer = setTimeout(() => {
+                              handleMobileItemLongPress(item);
+                            }, CARD_LONG_PRESS_DELAY);
+                          };
+
+                          const handleTouchEnd = () => {
+                            if (longPressTimer) {
+                              clearTimeout(longPressTimer);
+                              longPressTimer = null;
+                            }
+                          };
+
+                          const handleClick = () => {
+                            if (!mobileLongPressActive) {
+                              handleMobileItemClick(item);
+                            }
+                          };
+
+                          return (
+                            <div
+                              key={item.id}
+                              className="mobile-expense-mini"
+                              onClick={handleClick}
+                              onTouchStart={handleTouchStart}
+                              onTouchEnd={handleTouchEnd}
+                              onTouchCancel={handleTouchEnd}
+                              onMouseDown={handleTouchStart}
+                              onMouseUp={handleTouchEnd}
+                              onMouseLeave={handleTouchEnd}
+                            >
+                              <div className="mobile-expense-main">
+                                <div className="mobile-expense-info">
+                                  <div className="mobile-expense-title">{item.description || item.merchantName}</div>
+                                  {item.merchantName && item.description && item.merchantName !== item.description && (
+                                    <div className="mobile-expense-merchant">{item.merchantName}</div>
+                                  )}
+                                </div>
+                                <div className="mobile-expense-amount" style={{ color: category.color }}>
+                                  {formatCurrency(item.totalPrice || item.totalAmount)}
+                                </div>
+                              </div>
+                              <div className="mobile-expense-meta">
+                                <span className="mobile-expense-date">{formatDateCompact(item.date)}</span>
+                                {(item.receiptUrl || item.thumbnailUrl) && (
+                                  <>
+                                    <span className="meta-dot">•</span>
+                                    <span className="mobile-expense-tag">📎 Receipt</span>
+                                  </>
                                 )}
                               </div>
-                              <div className="mobile-expense-amount" style={{ color: category.color }}>
-                                {formatCurrency(item.totalPrice || item.totalAmount)}
-                              </div>
                             </div>
-                            <div className="mobile-expense-meta">
-                              <span className="mobile-expense-date">{formatDateCompact(item.date)}</span>
-                              {(item.receiptUrl || item.thumbnailUrl) && (
-                                <>
-                                  <span className="meta-dot">•</span>
-                                  <span className="mobile-expense-tag">📎 Receipt</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="mobile-empty-expenses">No expenses in this category yet</div>
@@ -868,11 +965,130 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         </div>
       )}
 
-      {/* Floating Add Button - Mobile Only */}
-      {isMobileView && (
-        <button className="mobile-floating-add">
-          + Add Expense
-        </button>
+      {/* Mobile Edit Modal */}
+      {isMobileView && mobileEditItem && (
+        <div className="mobile-edit-overlay" onClick={() => setMobileEditItem(null)}>
+          <div className="mobile-edit-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-edit-header">
+              <h3>Edit Expense</h3>
+              <button className="mobile-edit-close" onClick={() => setMobileEditItem(null)}>×</button>
+            </div>
+            <div className="mobile-edit-form">
+              <div className="mobile-form-field">
+                <label>Merchant</label>
+                <input
+                  type="text"
+                  value={mobileEditItem.merchantName}
+                  onChange={(e) => setMobileEditItem({...mobileEditItem, merchantName: e.target.value})}
+                  placeholder="Merchant name"
+                />
+              </div>
+              <div className="mobile-form-field">
+                <label>Description</label>
+                <input
+                  type="text"
+                  value={mobileEditItem.description}
+                  onChange={(e) => setMobileEditItem({...mobileEditItem, description: e.target.value})}
+                  placeholder="Item description"
+                />
+              </div>
+              <div className="mobile-form-row">
+                <div className="mobile-form-field">
+                  <label>Amount</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={mobileEditItem.totalPrice}
+                    onChange={(e) => setMobileEditItem({...mobileEditItem, totalPrice: e.target.value})}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="mobile-form-field">
+                  <label>Date</label>
+                  <input
+                    type="date"
+                    value={mobileEditItem.date}
+                    onChange={(e) => setMobileEditItem({...mobileEditItem, date: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div className="mobile-form-field">
+                <label>Category</label>
+                <select
+                  value={mobileEditItem.category}
+                  onChange={(e) => setMobileEditItem({...mobileEditItem, category: e.target.value})}
+                >
+                  {CATEGORIES.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="mobile-form-field">
+                <label>Payment Method</label>
+                <input
+                  type="text"
+                  value={mobileEditItem.paymentMethod}
+                  onChange={(e) => setMobileEditItem({...mobileEditItem, paymentMethod: e.target.value})}
+                  placeholder="e.g., Cash, Card, etc."
+                />
+              </div>
+            </div>
+            <div className="mobile-edit-actions">
+              <button className="mobile-btn-cancel" onClick={() => setMobileEditItem(null)}>Cancel</button>
+              <button className="mobile-btn-save" onClick={handleMobileSaveEdit}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Adjust Modal */}
+      {isMobileView && showMobileAdjust && (
+        <div className="mobile-edit-overlay" onClick={() => setShowMobileAdjust(false)}>
+          <div className="mobile-edit-modal mobile-adjust-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-edit-header">
+              <h3>Adjust Budget</h3>
+              <button className="mobile-edit-close" onClick={() => setShowMobileAdjust(false)}>×</button>
+            </div>
+            <div className="mobile-adjust-content">
+              <p className="mobile-adjust-description">
+                View and manage your category budgets. Tap a category card to see detailed spending.
+              </p>
+              <div className="mobile-adjust-categories">
+                {CATEGORIES.map(category => {
+                  const total = getCategoryTotal(category.id);
+                  const progress = getCategoryProgress(category.id);
+                  return (
+                    <div key={category.id} className="mobile-adjust-category">
+                      <div className="mobile-adjust-cat-header">
+                        <span className="mobile-adjust-cat-icon">{category.icon}</span>
+                        <span className="mobile-adjust-cat-name">{category.name}</span>
+                      </div>
+                      <div className="mobile-adjust-cat-info">
+                        <div className="mobile-adjust-cat-row">
+                          <span>Budget:</span>
+                          <strong>{formatCurrency(category.budget)}</strong>
+                        </div>
+                        <div className="mobile-adjust-cat-row">
+                          <span>Spent:</span>
+                          <strong style={{color: category.color}}>{formatCurrency(total)}</strong>
+                        </div>
+                        <div className="mobile-adjust-cat-progress">
+                          <div
+                            className="mobile-adjust-cat-fill"
+                            style={{
+                              width: `${progress}%`,
+                              background: category.gradient
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {showUndoToast && undoState && (
