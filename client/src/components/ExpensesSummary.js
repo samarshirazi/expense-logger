@@ -596,7 +596,6 @@ function ExpensesSummary({
             {sortedExpenses.length ? (
               sortedExpenses.map(expense => {
                 const categoryMeta = getCategoryMeta(expense.category);
-                const tags = deriveTags(expense);
                 const receiptPreview = getReceiptPreview(expense);
 
                 return (
