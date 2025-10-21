@@ -177,22 +177,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }, []);
 
-  const getCategoryTotal = useCallback((categoryId) => {
-    const items = categorizedExpenses[categoryId] || [];
-    return items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
-  }, [categorizedExpenses]);
-
-  const getCategoryProgress = useCallback((categoryId) => {
-    const category = CATEGORIES.find(cat => cat.id === categoryId);
-    const total = getCategoryTotal(categoryId);
-    const budget = category?.budget || Math.max(total, 1);
-    const percentage = Math.min(100, Math.round((total / budget) * 100));
-    return {
-      budget,
-      percentage
-    };
-  }, [getCategoryTotal]);
-
   const closeUndoToast = useCallback(() => {
     setShowUndoToast(false);
     if (undoTimerRef.current) {
@@ -625,98 +609,91 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="board-wrapper" ref={boardWrapperRef}>
-          <div className="categories-board">
+          <div className="category-sidebar">
             {CATEGORIES.map(category => {
-              const totals = getCategoryProgress(category.id);
               const items = categorizedExpenses[category.id] || [];
               return (
-                <div
-                  key={category.id}
-                  className={`category-column ${activeCategory === category.id ? 'is-active' : ''}`}
-                  ref={(node) => {
-                    if (node) {
-                      columnRefs.current[category.id] = node;
-                    }
-                  }}
-                >
-                  <div className="category-header" style={{ backgroundImage: category.gradient }}>
-                    <div className="category-header-top">
-                      <div className="category-title">
-                        <span className="category-icon">{category.icon}</span>
-                        <span className="category-name">{category.name}</span>
+                <Droppable key={category.id} droppableId={category.id}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={`category-drop-zone ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
+                      style={{ backgroundImage: category.gradient }}
+                    >
+                      <div className="category-zone-content">
+                        <div className="category-zone-header">
+                          <span className="category-icon">{category.icon}</span>
+                          <span className="category-name">{category.name}</span>
+                        </div>
+                        <span className="category-count">{items.length}</span>
                       </div>
-                      <span className="category-count">{items.length}</span>
+                      {provided.placeholder}
                     </div>
-                    <div className="category-total-row">
-                      <span className="category-total-amount">{formatCurrency(getCategoryTotal(category.id))}</span>
-                      <span className="category-budget">Budget {formatCurrency(totals.budget)}</span>
-                    </div>
-                    <div className="category-progress">
-                      <div className="category-progress-fill" style={{ width: `${totals.percentage}%` }}></div>
-                    </div>
-                  </div>
-
-                  <Droppable droppableId={category.id}>
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className={`category-list ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
-                      >
-                        {items.length === 0 ? (
-                          <div className="empty-category">No {category.name.toLowerCase()} items</div>
-                        ) : (
-                          items.map((item, index) => (
-                            <Draggable key={item.uniqueId} draggableId={item.uniqueId} index={index}>
-                              {(dragProvided, dragSnapshot) => (
-                                <div
-                                  ref={dragProvided.innerRef}
-                                  {...dragProvided.draggableProps}
-                                  {...dragProvided.dragHandleProps}
-                                  className={`product-card ${dragSnapshot.isDragging ? 'dragging' : ''}`}
-                                  onMouseDown={() => handleCardLongPressStart(item)}
-                                  onMouseUp={cancelLongPressDetection}
-                                  onMouseLeave={cancelLongPressDetection}
-                                  onTouchStart={() => handleCardLongPressStart(item)}
-                                  onTouchEnd={cancelLongPressDetection}
-                                  onTouchMove={cancelLongPressDetection}
-                                  onClick={() => handleCardSelect(item)}
-                                >
-                                  <div className="product-card-content">
-                                    <div className="product-card-header">
-                                      <div className="product-card-name">
-                                        {item.description || item.merchantName}
-                                        {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
-                                      </div>
-                                      <div className="product-card-amount" style={{ color: category.color }}>
-                                        {formatCurrency(item.totalPrice || 0, item.currency)}
-                                      </div>
-                                    </div>
-                                    <div className="product-card-meta">
-                                      <span>{item.merchantName}</span>
-                                      <span className="meta-separator">•</span>
-                                      <span>{formatDate(item.date)}</span>
-                                      <span className={`meta-tag tag-${(item.category || 'Other').toLowerCase()}`}>
-                                        {getTagForItem(item)}
-                                      </span>
-                                    </div>
-                                    {item.aiRule && (
-                                      <div className="product-card-caption">Auto: {item.aiRule}</div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </Draggable>
-                          ))
-                        )}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </div>
+                  )}
+                </Droppable>
               );
             })}
           </div>
+
+          <Droppable droppableId="ALL_PRODUCTS" direction="horizontal">
+            {(provided, snapshot) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className={`products-horizontal-area ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
+              >
+                {Object.entries(categorizedExpenses).flatMap(([categoryId, items]) =>
+                  items.map((item, globalIndex) => {
+                    const category = CATEGORIES.find(cat => cat.id === categoryId);
+                    return (
+                      <Draggable key={item.uniqueId} draggableId={item.uniqueId} index={globalIndex}>
+                        {(dragProvided, dragSnapshot) => (
+                          <div
+                            ref={dragProvided.innerRef}
+                            {...dragProvided.draggableProps}
+                            {...dragProvided.dragHandleProps}
+                            className={`product-card ${dragSnapshot.isDragging ? 'dragging' : ''}`}
+                            onMouseDown={() => handleCardLongPressStart(item)}
+                            onMouseUp={cancelLongPressDetection}
+                            onMouseLeave={cancelLongPressDetection}
+                            onTouchStart={() => handleCardLongPressStart(item)}
+                            onTouchEnd={cancelLongPressDetection}
+                            onTouchMove={cancelLongPressDetection}
+                            onClick={() => handleCardSelect(item)}
+                          >
+                            <div className="product-card-content">
+                              <div className="product-card-header">
+                                <div className="product-card-name">
+                                  {item.description || item.merchantName}
+                                  {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
+                                </div>
+                                <div className="product-card-amount" style={{ color: category?.color }}>
+                                  {formatCurrency(item.totalPrice || 0, item.currency)}
+                                </div>
+                              </div>
+                              <div className="product-card-meta">
+                                <span>{item.merchantName}</span>
+                                <span className="meta-separator">•</span>
+                                <span>{formatDate(item.date)}</span>
+                                <span className={`meta-tag tag-${(item.category || 'Other').toLowerCase()}`}>
+                                  {getTagForItem(item)}
+                                </span>
+                              </div>
+                              {item.aiRule && (
+                                <div className="product-card-caption">Auto: {item.aiRule}</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    );
+                  })
+                )}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
         </div>
 
         <div className="action-zones">

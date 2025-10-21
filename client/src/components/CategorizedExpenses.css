@@ -142,52 +142,46 @@
 
 
 .board-wrapper {
+  display: flex;
+  gap: 20px;
   overflow: visible;
   padding-bottom: 12px;
 }
 
-.categories-board {
+.category-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  width: 100%;
-}
-
-
-.category-column {
-  display: flex;
-  flex-direction: row;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(44, 62, 80, 0.06);
-  overflow: hidden;
-  transition: box-shadow 0.2s ease;
-  min-height: 140px;
-}
-
-.category-column:hover {
-  box-shadow: 0 8px 24px rgba(44, 62, 80, 0.1);
-}
-
-.category-column.is-active {
-  box-shadow: 0 8px 28px rgba(124, 93, 250, 0.12);
-}
-
-
-.category-header {
-  min-width: 180px;
-  width: 180px;
-  padding: 20px;
-  color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background-size: cover;
-  justify-content: center;
+  gap: 12px;
   flex-shrink: 0;
+  width: 200px;
 }
 
-.category-header-top {
+.category-drop-zone {
+  padding: 16px;
+  border-radius: 12px;
+  background-size: cover;
+  color: #ffffff;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(44, 62, 80, 0.08);
+}
+
+.category-drop-zone:hover {
+  transform: translateX(4px);
+  box-shadow: 0 6px 18px rgba(44, 62, 80, 0.14);
+}
+
+.category-drop-zone.dragging-over {
+  transform: scale(1.05);
+  box-shadow: 0 12px 32px rgba(78, 205, 196, 0.3);
+  background-color: rgba(78, 205, 196, 0.2);
+}
+
+.category-zone-content {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -195,102 +189,60 @@
   gap: 12px;
 }
 
-.category-title {
-  display: inline-flex;
+.category-zone-header {
+  display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 17px;
+}
+
+.category-drop-zone .category-icon {
+  font-size: 24px;
+}
+
+.category-drop-zone .category-name {
+  font-size: 16px;
   font-weight: 600;
-}
-
-.category-icon {
-  font-size: 26px;
-}
-
-.category-name {
   letter-spacing: 0.3px;
 }
 
-.category-count {
-  padding: 4px 9px;
+.category-drop-zone .category-count {
+  padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.3);
   font-size: 13px;
   font-weight: 600;
 }
 
-.category-total-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  opacity: 0.95;
-}
-
-.category-total-amount {
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.category-budget {
-  font-weight: 500;
-  font-size: 11px;
-}
-
-.category-progress {
-  height: 4px;
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 999px;
-  overflow: hidden;
-  width: 100%;
-}
-
-.category-progress-fill {
-  height: 100%;
-  border-radius: inherit;
-  background: rgba(255, 255, 255, 0.95);
-  transition: width 0.3s ease;
-}
-
-.category-list {
+.products-horizontal-area {
   flex: 1;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.5);
   display: flex;
   flex-direction: row;
-  gap: 12px;
+  gap: 14px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
   overflow-x: auto;
   overflow-y: hidden;
-  transition: background 0.2s ease;
-  align-items: center;
+  align-items: flex-start;
+  min-height: 500px;
   scrollbar-width: thin;
 }
 
-.category-list::-webkit-scrollbar {
-  height: 6px;
+.products-horizontal-area::-webkit-scrollbar {
+  height: 8px;
 }
 
-.category-list::-webkit-scrollbar-thumb {
-  background: rgba(149, 175, 192, 0.3);
-  border-radius: 3px;
+.products-horizontal-area::-webkit-scrollbar-thumb {
+  background: rgba(149, 175, 192, 0.4);
+  border-radius: 4px;
 }
 
-.category-list::-webkit-scrollbar-track {
-  background: rgba(149, 175, 192, 0.05);
+.products-horizontal-area::-webkit-scrollbar-track {
+  background: rgba(149, 175, 192, 0.08);
 }
 
-.category-list.dragging-over {
-  background: rgba(78, 205, 196, 0.12);
-}
-
-.empty-category {
-  padding: 30px 20px;
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 13px;
-  opacity: 0.6;
-  width: 100%;
+.products-horizontal-area.dragging-over {
+  background: rgba(78, 205, 196, 0.1);
 }
 
 
