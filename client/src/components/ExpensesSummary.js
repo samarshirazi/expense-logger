@@ -588,7 +588,7 @@ function ExpensesSummary({
                   )}
                 </button>
               </th>
-              <th>Tags</th>
+              <th>Payment Method</th>
               <th>Receipt</th>
             </tr>
           </thead>
@@ -614,14 +614,10 @@ function ExpensesSummary({
                     </td>
                     <td className="cell-amount">{formatCurrency(expense.amount, expense.currency)}</td>
                     <td>
-                      {tags.length ? (
-                        <div className="tags">
-                          {tags.map(tag => (
-                            <span key={tag} className="tag">{tag}</span>
-                          ))}
-                        </div>
+                      {expense.paymentMethod ? (
+                        <span className="tag">{expense.paymentMethod}</span>
                       ) : (
-                        <span className="tag tag-empty">No tags</span>
+                        <span className="tag tag-empty">—</span>
                       )}
                     </td>
                     <td>
@@ -781,7 +777,7 @@ function ExpensesSummary({
                   <strong>{formatDate(selectedExpense.date)}</strong>
                 </div>
                 <div className="modal-detail">
-                  <span>Amount</span>
+                  <span>Total Amount</span>
                   <strong>{formatCurrency(selectedExpense.totalAmount ?? selectedExpense.amount, selectedExpense.currency)}</strong>
                 </div>
                 {selectedExpenseMeta?.category && (
@@ -805,22 +801,36 @@ function ExpensesSummary({
                     </span>
                   </div>
                 )}
+                {selectedExpense.paymentMethod && (
+                  <div className="modal-detail">
+                    <span>Payment Method</span>
+                    <strong>{selectedExpense.paymentMethod}</strong>
+                  </div>
+                )}
                 {selectedExpense.source && (
                   <div className="modal-detail">
                     <span>Source</span>
                     <strong>{selectedExpense.source}</strong>
                   </div>
                 )}
-                {selectedExpenseMeta?.tags?.length ? (
-                  <div className="modal-detail">
-                    <span>Tags</span>
-                    <div className="modal-tags">
-                      {selectedExpenseMeta.tags.map(tag => (
-                        <span key={tag} className="tag">{tag}</span>
+                {selectedExpense.items && selectedExpense.items.length > 0 && (
+                  <div className="modal-detail modal-items">
+                    <span>Items ({selectedExpense.items.length})</span>
+                    <div className="items-list">
+                      {selectedExpense.items.map((item, index) => (
+                        <div key={index} className="item-row">
+                          <div className="item-description">
+                            {item.description}
+                            {item.quantity > 1 && <span className="item-quantity"> ×{item.quantity}</span>}
+                          </div>
+                          <div className="item-price">
+                            {formatCurrency(item.totalPrice || item.price, selectedExpense.currency)}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>
-                ) : null}
+                )}
                 {selectedExpense.notes && (
                   <div className="modal-detail">
                     <span>Notes</span>

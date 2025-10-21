@@ -611,6 +611,53 @@
   background: rgba(118, 100, 255, 0.16);
 }
 
+.modal-items {
+  grid-column: 1 / -1;
+}
+
+.modal-items > span {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface-muted);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-radius: 8px;
+  gap: 12px;
+}
+
+.item-description {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.item-quantity {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.item-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
 .modal-receipt {
   border-radius: 18px;
   border: 1px dashed rgba(148, 163, 184, 0.35);
