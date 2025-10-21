@@ -145,8 +145,23 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
   padding-bottom: 12px;
+  scrollbar-width: thin;
+}
+
+.board-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.board-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(149, 175, 192, 0.4);
+  border-radius: 4px;
+}
+
+.board-wrapper::-webkit-scrollbar-track {
+  background: rgba(149, 175, 192, 0.08);
 }
 
 .category-row {
@@ -158,6 +173,7 @@
   box-shadow: 0 4px 16px rgba(44, 62, 80, 0.06);
   overflow: hidden;
   transition: box-shadow 0.2s ease;
+  min-width: fit-content;
 }
 
 .category-row:hover {
@@ -210,10 +226,9 @@
   gap: 12px;
   padding: 16px;
   background: rgba(255, 255, 255, 0.5);
-  overflow-x: auto;
+  overflow-x: visible;
   overflow-y: hidden;
   align-items: center;
-  scrollbar-width: thin;
   min-height: 140px;
 }
 
