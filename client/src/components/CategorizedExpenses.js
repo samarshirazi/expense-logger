@@ -205,7 +205,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
     isUpdatingRef.current = true;
     const previousState = JSON.parse(JSON.stringify(categorizedExpensesRef.current));
-    let optimisticSnapshot = previousState;
 
     setCategorizedExpenses(prev => {
       const clone = CATEGORIES.reduce((acc, category) => {
@@ -230,7 +229,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         ...clone[destinationCategory].slice(destinationIndex)
       ];
 
-      optimisticSnapshot = clone;
       categorizedExpensesRef.current = clone;
       return clone;
     });
