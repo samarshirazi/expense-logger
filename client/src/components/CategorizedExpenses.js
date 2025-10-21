@@ -609,91 +609,78 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="board-wrapper" ref={boardWrapperRef}>
-          <div className="category-sidebar">
-            {CATEGORIES.map(category => {
-              const items = categorizedExpenses[category.id] || [];
-              return (
-                <Droppable key={category.id} droppableId={category.id}>
+          {CATEGORIES.map(category => {
+            const items = categorizedExpenses[category.id] || [];
+            return (
+              <div key={category.id} className="category-row">
+                <div className="category-label" style={{ backgroundImage: category.gradient }}>
+                  <div className="category-label-content">
+                    <span className="category-icon">{category.icon}</span>
+                    <span className="category-name">{category.name}</span>
+                    <span className="category-count">{items.length}</span>
+                  </div>
+                </div>
+
+                <Droppable droppableId={category.id} direction="horizontal">
                   {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`category-drop-zone ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
-                      style={{ backgroundImage: category.gradient }}
+                      className={`products-row ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
                     >
-                      <div className="category-zone-content">
-                        <div className="category-zone-header">
-                          <span className="category-icon">{category.icon}</span>
-                          <span className="category-name">{category.name}</span>
-                        </div>
-                        <span className="category-count">{items.length}</span>
-                      </div>
+                      {items.length === 0 ? (
+                        <div className="empty-category">No {category.name.toLowerCase()} items</div>
+                      ) : (
+                        items.map((item, index) => (
+                          <Draggable key={item.uniqueId} draggableId={item.uniqueId} index={index}>
+                            {(dragProvided, dragSnapshot) => (
+                              <div
+                                ref={dragProvided.innerRef}
+                                {...dragProvided.draggableProps}
+                                {...dragProvided.dragHandleProps}
+                                className={`product-card ${dragSnapshot.isDragging ? 'dragging' : ''}`}
+                                onMouseDown={() => handleCardLongPressStart(item)}
+                                onMouseUp={cancelLongPressDetection}
+                                onMouseLeave={cancelLongPressDetection}
+                                onTouchStart={() => handleCardLongPressStart(item)}
+                                onTouchEnd={cancelLongPressDetection}
+                                onTouchMove={cancelLongPressDetection}
+                                onClick={() => handleCardSelect(item)}
+                              >
+                                <div className="product-card-content">
+                                  <div className="product-card-header">
+                                    <div className="product-card-name">
+                                      {item.description || item.merchantName}
+                                      {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
+                                    </div>
+                                    <div className="product-card-amount" style={{ color: category.color }}>
+                                      {formatCurrency(item.totalPrice || 0, item.currency)}
+                                    </div>
+                                  </div>
+                                  <div className="product-card-meta">
+                                    <span>{item.merchantName}</span>
+                                    <span className="meta-separator">•</span>
+                                    <span>{formatDate(item.date)}</span>
+                                    <span className={`meta-tag tag-${(item.category || 'Other').toLowerCase()}`}>
+                                      {getTagForItem(item)}
+                                    </span>
+                                  </div>
+                                  {item.aiRule && (
+                                    <div className="product-card-caption">Auto: {item.aiRule}</div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))
+                      )}
                       {provided.placeholder}
                     </div>
                   )}
                 </Droppable>
-              );
-            })}
-          </div>
-
-          <Droppable droppableId="ALL_PRODUCTS" direction="horizontal">
-            {(provided, snapshot) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className={`products-horizontal-area ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
-              >
-                {Object.entries(categorizedExpenses).flatMap(([categoryId, items]) =>
-                  items.map((item, globalIndex) => {
-                    const category = CATEGORIES.find(cat => cat.id === categoryId);
-                    return (
-                      <Draggable key={item.uniqueId} draggableId={item.uniqueId} index={globalIndex}>
-                        {(dragProvided, dragSnapshot) => (
-                          <div
-                            ref={dragProvided.innerRef}
-                            {...dragProvided.draggableProps}
-                            {...dragProvided.dragHandleProps}
-                            className={`product-card ${dragSnapshot.isDragging ? 'dragging' : ''}`}
-                            onMouseDown={() => handleCardLongPressStart(item)}
-                            onMouseUp={cancelLongPressDetection}
-                            onMouseLeave={cancelLongPressDetection}
-                            onTouchStart={() => handleCardLongPressStart(item)}
-                            onTouchEnd={cancelLongPressDetection}
-                            onTouchMove={cancelLongPressDetection}
-                            onClick={() => handleCardSelect(item)}
-                          >
-                            <div className="product-card-content">
-                              <div className="product-card-header">
-                                <div className="product-card-name">
-                                  {item.description || item.merchantName}
-                                  {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
-                                </div>
-                                <div className="product-card-amount" style={{ color: category?.color }}>
-                                  {formatCurrency(item.totalPrice || 0, item.currency)}
-                                </div>
-                              </div>
-                              <div className="product-card-meta">
-                                <span>{item.merchantName}</span>
-                                <span className="meta-separator">•</span>
-                                <span>{formatDate(item.date)}</span>
-                                <span className={`meta-tag tag-${(item.category || 'Other').toLowerCase()}`}>
-                                  {getTagForItem(item)}
-                                </span>
-                              </div>
-                              {item.aiRule && (
-                                <div className="product-card-caption">Auto: {item.aiRule}</div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </Draggable>
-                    );
-                  })
-                )}
-                {provided.placeholder}
               </div>
-            )}
-          </Droppable>
+            );
+          })}
         </div>
 
         <div className="action-zones">
