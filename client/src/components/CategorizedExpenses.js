@@ -458,6 +458,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   const handleMoveFromBottomSheet = (item, destinationCategory) => {
     if (!item || !destinationCategory) return;
     setActiveBottomSheetItem(null);
+    setMobileLongPressActive(false);
     performCategoryMove(item, item.category, destinationCategory);
   };
 
@@ -1105,7 +1106,10 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       )}
 
       {activeBottomSheetItem && (
-        <div className="bottom-sheet-overlay" onClick={() => setActiveBottomSheetItem(null)}>
+        <div className="bottom-sheet-overlay" onClick={() => {
+          setActiveBottomSheetItem(null);
+          setMobileLongPressActive(false);
+        }}>
           <div className="bottom-sheet" onClick={(event) => event.stopPropagation()}>
             <div className="bottom-sheet-handle" />
             <div className="bottom-sheet-header">
@@ -1122,7 +1126,10 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                     key={category.id}
                     className={`category-chip ${category.id === activeBottomSheetItem.category ? 'active' : ''}`}
                     style={{ borderColor: category.color }}
-                    onClick={() => handleMoveFromBottomSheet(activeBottomSheetItem, category.id)}
+                    onClick={() => {
+                      handleMoveFromBottomSheet(activeBottomSheetItem, category.id);
+                      setMobileLongPressActive(false);
+                    }}
                   >
                     <span className="chip-icon">{category.icon}</span>
                     {category.name}
@@ -1135,6 +1142,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                 className="sheet-btn"
                 onClick={() => {
                   setActiveBottomSheetItem(null);
+                  setMobileLongPressActive(false);
                   openEditModal(activeBottomSheetItem);
                 }}
               >
@@ -1144,6 +1152,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                 className="sheet-btn destructive"
                 onClick={() => {
                   setActiveBottomSheetItem(null);
+                  setMobileLongPressActive(false);
                   setActionItem(activeBottomSheetItem);
                   setShowDeleteConfirm(true);
                 }}
