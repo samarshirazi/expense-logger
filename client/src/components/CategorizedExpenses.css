@@ -936,3 +936,415 @@
     padding: 20px;
   }
 }
+
+/* ==================== MOBILE COMPACT LAYOUT ==================== */
+
+/* Mobile Compact Header */
+.mobile-compact-header {
+  padding: 16px 20px 12px;
+}
+
+.mobile-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.mobile-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.mobile-adjust-btn {
+  padding: 8px 20px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #ed66ff, #f78da7);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(237, 102, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.mobile-adjust-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(237, 102, 255, 0.4);
+}
+
+/* AI Chip */
+.ai-chip-mobile {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, #667eea, #ed66ff) border-box;
+  color: #667eea;
+  font-weight: 600;
+  font-size: 13px;
+  box-shadow: 0 6px 18px rgba(102, 126, 234, 0.2);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ai-chip-mobile:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+}
+
+/* 2-Column Compact Grid */
+.mobile-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px 20px 24px;
+}
+
+/* Compact Category Cards */
+.mobile-category-card {
+  position: relative;
+  background: white;
+  border-radius: 18px;
+  padding: 12px;
+  min-height: 105px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06),
+              0 0 0 1px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-category-card:active {
+  transform: scale(0.96);
+}
+
+.mobile-category-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.12),
+              0 0 0 1px rgba(102, 126, 234, 0.08);
+}
+
+/* Item Badge */
+.mobile-card-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
+
+/* Icon */
+.mobile-card-icon {
+  font-size: 32px;
+  margin-bottom: 4px;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Category Name */
+.mobile-card-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+/* Amount */
+.mobile-card-amount {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* Progress Bar */
+.mobile-card-progress-bar {
+  width: 100%;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.mobile-card-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Bottom Sheet Overlay */
+.mobile-bottom-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  z-index: 3000;
+  display: flex;
+  align-items: flex-end;
+  animation: overlayFadeIn 0.25s ease;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Bottom Sheet */
+.mobile-bottom-sheet {
+  width: 100%;
+  max-height: 75vh;
+  background: white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 0;
+  box-shadow: 0 -6px 30px rgba(0, 0, 0, 0.15);
+  animation: sheetSlideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+}
+
+@keyframes sheetSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Sheet Handle */
+.mobile-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 999px;
+  margin: 10px auto 14px;
+}
+
+/* Sheet Header */
+.mobile-sheet-header {
+  display: flex;
+  gap: 14px;
+  padding: 0 20px 18px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.mobile-sheet-icon {
+  font-size: 44px;
+  flex-shrink: 0;
+}
+
+.mobile-sheet-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-sheet-info h3 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  color: #2c3e50;
+}
+
+.mobile-sheet-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #7f8c8d;
+  margin-bottom: 10px;
+}
+
+.mobile-sheet-stats strong {
+  font-weight: 700;
+}
+
+.stat-divider {
+  color: #bdc3c7;
+  font-weight: 300;
+}
+
+/* Sheet Progress */
+.mobile-sheet-progress {
+  width: 100%;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.mobile-sheet-progress-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sheet Expenses */
+.mobile-sheet-expenses {
+  padding: 20px;
+}
+
+.mobile-sheet-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Expense List */
+.mobile-expense-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Mini Expense Card */
+.mobile-expense-mini {
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.9), rgba(255, 255, 255, 1));
+  border-radius: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: all 0.25s ease;
+}
+
+.mobile-expense-mini:active {
+  transform: scale(0.98);
+}
+
+.mobile-expense-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.mobile-expense-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-expense-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-expense-merchant {
+  font-size: 11px;
+  color: #7f8c8d;
+}
+
+.mobile-expense-amount {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mobile-expense-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #95a5a6;
+}
+
+.mobile-expense-date {
+  color: #95a5a6;
+}
+
+.meta-dot {
+  color: #bdc3c7;
+}
+
+.mobile-expense-tag {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.mobile-empty-expenses {
+  text-align: center;
+  padding: 36px 16px;
+  color: #95a5a6;
+  font-size: 13px;
+}
+
+/* Floating Add Button */
+.mobile-floating-add {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ed66ff, #667eea);
+  color: white;
+  border: none;
+  font-size: 22px;
+  font-weight: 300;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+  cursor: pointer;
+  z-index: 2500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-floating-add:active {
+  transform: scale(0.92);
+}
+
+.mobile-floating-add:hover {
+  transform: scale(1.08) rotate(90deg);
+  box-shadow: 0 8px 28px rgba(102, 126, 234, 0.45);
+}
+
+/* Hide desktop elements on mobile */
+@media (max-width: 768px) {
+  .mobile-view .board-top-bar,
+  .mobile-view .category-pill-bar,
+  .mobile-view .board-wrapper {
+    display: none;
+  }
+}

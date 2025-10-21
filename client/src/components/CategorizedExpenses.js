@@ -47,6 +47,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
   const [activeBottomSheetItem, setActiveBottomSheetItem] = useState(null);
   const [activeCategory, setActiveCategory] = useState(CATEGORIES[0].id);
+  const [expandedCategoryId, setExpandedCategoryId] = useState(null);
 
   const isUpdatingRef = useRef(false);
   const categorizedExpensesRef = useRef(createEmptyBoard());
@@ -176,6 +177,25 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     const date = new Date(year, month - 1, day);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }, []);
+
+  const formatDateCompact = useCallback((dateString) => {
+    if (!dateString) return '';
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }, []);
+
+  const getCategoryTotal = useCallback((categoryId) => {
+    const items = categorizedExpenses[categoryId] || [];
+    return items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+  }, [categorizedExpenses]);
+
+  const getCategoryProgress = useCallback((categoryId) => {
+    const category = CATEGORIES.find(c => c.id === categoryId);
+    if (!category) return 0;
+    const total = getCategoryTotal(categoryId);
+    return Math.min((total / category.budget) * 100, 100);
+  }, [getCategoryTotal]);
 
   const closeUndoToast = useCallback(() => {
     setShowUndoToast(false);
@@ -576,29 +596,44 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
   return (
     <div className={`categorized-expenses ${isMobileView ? 'mobile-view' : ''}`}>
-      <div className="board-top-bar">
-        <div className="board-heading">
-          <h2>Review &amp; Categorize</h2>
-          <p className="board-subtitle">Organize spending with a responsive, AI-assisted command center.</p>
-        </div>
-        <button className="ai-review-button" onClick={handleAiReviewClick}>
-          <span className="ai-icon">🤖</span>
-          Review with AI
-        </button>
-      </div>
-
-      <div className="category-pill-bar">
-        {CATEGORIES.map(category => (
-          <button
-            key={category.id}
-            className={`category-pill ${activeCategory === category.id ? 'active' : ''}`}
-            onClick={() => handleCategoryPillClick(category.id)}
-          >
-            <span className="pill-icon">{category.icon}</span>
-            {category.name}
+      {/* Mobile Compact Header */}
+      {isMobileView ? (
+        <div className="mobile-compact-header">
+          <div className="mobile-header-row">
+            <h2 className="mobile-title">Categories</h2>
+            <button className="mobile-adjust-btn">Adjust</button>
+          </div>
+          <button className="ai-chip-mobile" onClick={handleAiReviewClick}>
+            💬 Review with AI
           </button>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <>
+          <div className="board-top-bar">
+            <div className="board-heading">
+              <h2>Review &amp; Categorize</h2>
+              <p className="board-subtitle">Organize spending with a responsive, AI-assisted command center.</p>
+            </div>
+            <button className="ai-review-button" onClick={handleAiReviewClick}>
+              <span className="ai-icon">🤖</span>
+              Review with AI
+            </button>
+          </div>
+
+          <div className="category-pill-bar">
+            {CATEGORIES.map(category => (
+              <button
+                key={category.id}
+                className={`category-pill ${activeCategory === category.id ? 'active' : ''}`}
+                onClick={() => handleCategoryPillClick(category.id)}
+              >
+                <span className="pill-icon">{category.icon}</span>
+                {category.name}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {error && (
         <div className="error-message">
@@ -607,9 +642,45 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         </div>
       )}
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="board-wrapper" ref={boardWrapperRef}>
+      {/* Mobile Compact 2-Column Grid */}
+      {isMobileView ? (
+        <div className="mobile-category-grid">
           {CATEGORIES.map(category => {
+            const items = categorizedExpenses[category.id] || [];
+            const total = getCategoryTotal(category.id);
+            const progress = getCategoryProgress(category.id);
+
+            return (
+              <div
+                key={category.id}
+                className="mobile-category-card"
+                onClick={() => setExpandedCategoryId(category.id)}
+              >
+                <div className="mobile-card-badge" style={{ backgroundColor: category.color }}>
+                  {items.length}
+                </div>
+                <div className="mobile-card-icon">{category.icon}</div>
+                <div className="mobile-card-name">{category.name}</div>
+                <div className="mobile-card-amount" style={{ color: category.color }}>
+                  {formatCurrency(total)}
+                </div>
+                <div className="mobile-card-progress-bar">
+                  <div
+                    className="mobile-card-progress-fill"
+                    style={{
+                      width: `${progress}%`,
+                      background: category.gradient
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <div className="board-wrapper" ref={boardWrapperRef}>
+            {CATEGORIES.map(category => {
             const items = categorizedExpenses[category.id] || [];
             return (
               <div key={category.id} className="category-row">
@@ -715,6 +786,94 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
           </Droppable>
         </div>
       </DragDropContext>
+      )}
+
+      {/* Bottom Sheet for Expanded Category - Mobile Only */}
+      {isMobileView && expandedCategoryId && (
+        <div className="mobile-bottom-sheet-overlay" onClick={() => setExpandedCategoryId(null)}>
+          <div className="mobile-bottom-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-sheet-handle" />
+            {(() => {
+              const category = CATEGORIES.find(c => c.id === expandedCategoryId);
+              const items = categorizedExpenses[expandedCategoryId] || [];
+              const total = getCategoryTotal(expandedCategoryId);
+              const progress = getCategoryProgress(expandedCategoryId);
+
+              return (
+                <>
+                  <div className="mobile-sheet-header">
+                    <div className="mobile-sheet-icon" style={{ color: category.color }}>
+                      {category.icon}
+                    </div>
+                    <div className="mobile-sheet-info">
+                      <h3>{category.name}</h3>
+                      <div className="mobile-sheet-stats">
+                        <span>Spent: <strong style={{ color: category.color }}>{formatCurrency(total)}</strong></span>
+                        <span className="stat-divider">•</span>
+                        <span>Budget: <strong>{formatCurrency(category.budget)}</strong></span>
+                        <span className="stat-divider">•</span>
+                        <span>Left: <strong>{formatCurrency(category.budget - total)}</strong></span>
+                      </div>
+                      <div className="mobile-sheet-progress">
+                        <div
+                          className="mobile-sheet-progress-fill"
+                          style={{
+                            width: `${progress}%`,
+                            background: category.gradient
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mobile-sheet-expenses">
+                    <div className="mobile-sheet-title">
+                      {items.length} Transaction{items.length !== 1 ? 's' : ''}
+                    </div>
+                    {items.length > 0 ? (
+                      <div className="mobile-expense-list">
+                        {items.map(item => (
+                          <div key={item.id} className="mobile-expense-mini">
+                            <div className="mobile-expense-main">
+                              <div className="mobile-expense-info">
+                                <div className="mobile-expense-title">{item.description || item.merchantName}</div>
+                                {item.merchantName && item.description && item.merchantName !== item.description && (
+                                  <div className="mobile-expense-merchant">{item.merchantName}</div>
+                                )}
+                              </div>
+                              <div className="mobile-expense-amount" style={{ color: category.color }}>
+                                {formatCurrency(item.totalPrice || item.totalAmount)}
+                              </div>
+                            </div>
+                            <div className="mobile-expense-meta">
+                              <span className="mobile-expense-date">{formatDateCompact(item.date)}</span>
+                              {(item.receiptUrl || item.thumbnailUrl) && (
+                                <>
+                                  <span className="meta-dot">•</span>
+                                  <span className="mobile-expense-tag">📎 Receipt</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mobile-empty-expenses">No expenses in this category yet</div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Floating Add Button - Mobile Only */}
+      {isMobileView && (
+        <button className="mobile-floating-add">
+          + Add Expense
+        </button>
+      )}
 
       {showUndoToast && undoState && (
         <div className="undo-snackbar">
