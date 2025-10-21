@@ -46,12 +46,14 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   const [showUndoToast, setShowUndoToast] = useState(false);
 
   const [activeBottomSheetItem, setActiveBottomSheetItem] = useState(null);
+  const [activeCategory, setActiveCategory] = useState(CATEGORIES[0].id);
 
   const isUpdatingRef = useRef(false);
   const categorizedExpensesRef = useRef(createEmptyBoard());
   const undoTimerRef = useRef(null);
   const longPressTimeoutRef = useRef(null);
   const columnRefs = useRef({});
+  const boardWrapperRef = useRef(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -531,6 +533,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     const column = columnRefs.current[categoryId];
     if (column) {
       column.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      setActiveCategory(categoryId);
     }
   };
 
@@ -539,6 +542,53 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     if (item.itemIndex === -1) return 'Manual Entry';
     return 'Receipt Upload';
   };
+
+  useEffect(() => {
+    if (!isMobileView) {
+      setActiveCategory(CATEGORIES[0].id);
+      return;
+    }
+
+    const wrapper = boardWrapperRef.current;
+    if (!wrapper) return;
+
+    let animationFrame = null;
+
+    const handleScroll = () => {
+      if (animationFrame) return;
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = null;
+        let closestId = activeCategory;
+        let smallestOffset = Number.POSITIVE_INFINITY;
+
+        Object.entries(columnRefs.current).forEach(([id, node]) => {
+          if (!node) return;
+          const rect = node.getBoundingClientRect();
+          const viewportCenter = window.innerWidth / 2;
+          const columnCenter = rect.left + rect.width / 2;
+          const offset = Math.abs(columnCenter - viewportCenter);
+          if (offset < smallestOffset) {
+            smallestOffset = offset;
+            closestId = id;
+          }
+        });
+
+        if (closestId !== activeCategory) {
+          setActiveCategory(closestId);
+        }
+      });
+    };
+
+    wrapper.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      wrapper.removeEventListener('scroll', handleScroll);
+      if (animationFrame) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [activeCategory, isMobileView]);
 
   return (
     <div className={`categorized-expenses ${isMobileView ? 'mobile-view' : ''}`}>
@@ -557,7 +607,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         {CATEGORIES.map(category => (
           <button
             key={category.id}
-            className="category-pill"
+            className={`category-pill ${activeCategory === category.id ? 'active' : ''}`}
             onClick={() => handleCategoryPillClick(category.id)}
           >
             <span className="pill-icon">{category.icon}</span>
@@ -574,7 +624,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       )}
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="board-wrapper">
+        <div className="board-wrapper" ref={boardWrapperRef}>
           <div className="categories-board">
             {CATEGORIES.map(category => {
               const totals = getCategoryProgress(category.id);
@@ -582,7 +632,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
               return (
                 <div
                   key={category.id}
-                  className="category-column"
+                  className={`category-column ${activeCategory === category.id ? 'is-active' : ''}`}
                   ref={(node) => {
                     if (node) {
                       columnRefs.current[category.id] = node;
