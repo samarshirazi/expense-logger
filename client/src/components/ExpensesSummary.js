@@ -603,6 +603,17 @@ function ExpensesSummary({
                     <td>{formatDate(expense.date)}</td>
                     <td>
                       <div className="cell-merchant">{expense.merchantName || 'Unknown merchant'}</div>
+                      {expense.items && expense.items.length > 0 && (
+                        <div className="cell-items">
+                          {expense.items.map((item, idx) => (
+                            <div key={idx} className="item-compact">
+                              <span className="item-compact-desc">{item.description}</span>
+                              {item.quantity > 1 && <span className="item-compact-qty">×{item.quantity}</span>}
+                              <span className="item-compact-price">{formatCurrency(item.totalPrice || item.price, expense.currency)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {expense.notes && <div className="cell-notes">{expense.notes}</div>}
                     </td>
                     <td>
