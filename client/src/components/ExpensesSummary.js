@@ -78,6 +78,7 @@ const sourceOptionsFromExpenses = (expenses) => {
 
 function ExpensesSummary({
   expenses = [],
+  dateRange,
   onAddExpense,
   onFiltersToggle,
   onExport,
@@ -125,13 +126,24 @@ function ExpensesSummary({
   const parsedExpenses = useMemo(() => {
     return (expenses || []).map(expense => ({
       ...expense,
-      dateObj: expense.date ? new Date(expense.date) : null,
+      dateStr: expense.date ? expense.date.substring(0, 10) : null,
       amount: Number(expense.totalAmount || expense.total_price || 0)
     }));
   }, [expenses]);
 
   const filteredExpenses = useMemo(() => {
-    return parsedExpenses.filter(expense => {
+    // Apply the global dateRange filter first if it exists
+    let filtered = parsedExpenses;
+
+    if (dateRange?.startDate && dateRange?.endDate) {
+      filtered = filtered.filter(expense => {
+        if (!expense.dateStr) return false;
+        return expense.dateStr >= dateRange.startDate && expense.dateStr <= dateRange.endDate;
+      });
+    }
+
+    // Then apply user-selected filters
+    return filtered.filter(expense => {
       if (filters.category !== 'all' && (expense.category || 'Other') !== filters.category) {
         return false;
       }
@@ -149,15 +161,13 @@ function ExpensesSummary({
       }
 
       if (filters.startDate) {
-        const start = new Date(filters.startDate);
-        if (expense.dateObj && expense.dateObj < start) {
+        if (!expense.dateStr || expense.dateStr < filters.startDate) {
           return false;
         }
       }
 
       if (filters.endDate) {
-        const end = new Date(filters.endDate);
-        if (expense.dateObj && expense.dateObj > end) {
+        if (!expense.dateStr || expense.dateStr > filters.endDate) {
           return false;
         }
       }
@@ -171,7 +181,7 @@ function ExpensesSummary({
 
       return true;
     });
-  }, [parsedExpenses, filters]);
+  }, [parsedExpenses, filters, dateRange]);
 
   const sortedExpenses = useMemo(() => {
     const sorted = [...filteredExpenses];
@@ -180,9 +190,10 @@ function ExpensesSummary({
       if (sortConfig.key === 'amount') {
         return (a.amount - b.amount) * direction;
       }
-      const timeA = a.dateObj ? a.dateObj.getTime() : 0;
-      const timeB = b.dateObj ? b.dateObj.getTime() : 0;
-      return (timeA - timeB) * direction;
+      // Sort by date string (YYYY-MM-DD format sorts correctly as strings)
+      const dateA = a.dateStr || '';
+      const dateB = b.dateStr || '';
+      return dateA.localeCompare(dateB) * direction;
     });
     return sorted;
   }, [filteredExpenses, sortConfig]);
