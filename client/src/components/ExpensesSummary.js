@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './ExpensesSummary.css';
+import { updateExpense } from '../services/apiService';
 
 const CATEGORY_META = {
   Food: { icon: '🍔', color: '#ff6b6b' },
@@ -79,7 +80,8 @@ function ExpensesSummary({
   expenses = [],
   onAddExpense,
   onFiltersToggle,
-  onExport
+  onExport,
+  onExpenseUpdated = () => {}
 }) {
   const defaultFilters = {
     search: '',
@@ -101,6 +103,16 @@ function ExpensesSummary({
     return window.innerWidth > 768;
   });
   const [selectedExpense, setSelectedExpense] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    merchantName: '',
+    date: '',
+    totalAmount: '',
+    category: 'Other',
+    paymentMethod: ''
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }));
@@ -234,6 +246,48 @@ function ExpensesSummary({
 
   const sources = useMemo(() => sourceOptionsFromExpenses(expenses), [expenses]);
 
+  const buildEditFormState = (expense) => {
+    if (!expense) {
+      return {
+        merchantName: '',
+        date: '',
+        totalAmount: '',
+        category: 'Other',
+        paymentMethod: ''
+      };
+    }
+
+    let normalizedDate = '';
+    if (expense.date) {
+      if (typeof expense.date === 'string' && expense.date.length >= 10) {
+        normalizedDate = expense.date.substring(0, 10);
+      } else {
+        const parsedDate = new Date(expense.date);
+        if (!Number.isNaN(parsedDate.getTime())) {
+          normalizedDate = parsedDate.toISOString().substring(0, 10);
+        }
+      }
+    }
+
+    const amountValue = expense.totalAmount ?? expense.amount ?? '';
+
+    return {
+      merchantName: expense.merchantName || '',
+      date: normalizedDate,
+      totalAmount: amountValue === '' ? '' : String(amountValue),
+      category: expense.category || 'Other',
+      paymentMethod: expense.paymentMethod || ''
+    };
+  };
+
+  useEffect(() => {
+    const nextFormState = buildEditFormState(selectedExpense);
+    setEditForm(nextFormState);
+    setIsEditing(false);
+    setIsSaving(false);
+    setEditError('');
+  }, [selectedExpense]);
+
   const selectedExpenseMeta = useMemo(() => {
     if (!selectedExpense) {
       return null;
@@ -313,6 +367,91 @@ function ExpensesSummary({
       onFiltersToggle(!showFilters);
     }
   };
+
+  const handleEditFieldChange = (field, value) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleStartEdit = () => {
+    if (!selectedExpense) {
+      return;
+    }
+    setIsEditing(true);
+    setEditError('');
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditError('');
+    setEditForm(buildEditFormState(selectedExpense));
+  };
+
+  const handleSaveEdit = async (event) => {
+    event.preventDefault();
+    if (!selectedExpense || !selectedExpense.id) {
+      setEditError('Unable to update this expense.');
+      return;
+    }
+
+    const trimmedMerchant = editForm.merchantName.trim();
+    if (!trimmedMerchant) {
+      setEditError('Merchant name is required.');
+      return;
+    }
+
+    if (!editForm.date) {
+      setEditError('Date is required.');
+      return;
+    }
+
+    const parsedAmount = Number(editForm.totalAmount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+      setEditError('Enter a valid amount.');
+      return;
+    }
+
+    const updates = {
+      merchantName: trimmedMerchant,
+      date: editForm.date,
+      totalAmount: Number(parsedAmount.toFixed(2)),
+      category: editForm.category || 'Other',
+      paymentMethod: editForm.paymentMethod.trim() || null,
+      currency: selectedExpense.currency
+    };
+
+    setIsSaving(true);
+    setEditError('');
+
+    try {
+      const updated = await updateExpense(selectedExpense.id, updates);
+
+      const normalizedTotal = updated?.totalAmount ?? updates.totalAmount;
+      const normalizedPayment = updated?.paymentMethod ?? updates.paymentMethod ?? null;
+
+      const mergedExpense = {
+        ...selectedExpense,
+        ...updated,
+        totalAmount: normalizedTotal,
+        amount: normalizedTotal,
+        paymentMethod: normalizedPayment
+      };
+
+      setSelectedExpense(mergedExpense);
+      setIsEditing(false);
+      setEditForm(buildEditFormState(mergedExpense));
+
+      onExpenseUpdated(mergedExpense);
+    } catch (error) {
+      console.error('Failed to update expense:', error);
+      setEditError(error.message || 'Failed to update expense');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const modalTitle = isEditing
+    ? (editForm.merchantName || selectedExpense?.merchantName || 'Expense detail')
+    : (selectedExpense?.merchantName || 'Expense detail');
 
   return (
     <div className="expenses-summary">
@@ -569,60 +708,127 @@ function ExpensesSummary({
             <button type="button" className="modal-close" onClick={() => setSelectedExpense(null)} aria-label="Close">
               ×
             </button>
-            <h2>{selectedExpense.merchantName || 'Expense detail'}</h2>
-            <div className="modal-details">
-              <div className="modal-detail">
-                <span>Date</span>
-                <strong>{formatDate(selectedExpense.date)}</strong>
-              </div>
-              <div className="modal-detail">
-                <span>Amount</span>
-                <strong>{formatCurrency(selectedExpense.totalAmount ?? selectedExpense.amount, selectedExpense.currency)}</strong>
-              </div>
-              {selectedExpenseMeta?.category && (
-                <div className="modal-detail category-detail">
-                  <span>Category</span>
-                  <span
-                    className="category-pill"
-                    style={{
-                      backgroundColor: selectedExpenseMeta.category.color + '1f',
-                      color: selectedExpenseMeta.category.color
-                    }}
-                  >
-                    <span
-                      className="category-icon"
-                      role="img"
-                      aria-label={selectedExpense.category || 'Other'}
+            <h2>{modalTitle}</h2>
+            {isEditing ? (
+              <form id="expense-edit-form" className="modal-form" onSubmit={handleSaveEdit}>
+                <div className="form-grid">
+                  <div className="form-field">
+                    <label htmlFor="edit-merchant">Merchant</label>
+                    <input
+                      id="edit-merchant"
+                      type="text"
+                      value={editForm.merchantName}
+                      onChange={(event) => handleEditFieldChange('merchantName', event.target.value)}
+                      disabled={isSaving}
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="edit-date">Date</label>
+                    <input
+                      id="edit-date"
+                      type="date"
+                      value={editForm.date}
+                      onChange={(event) => handleEditFieldChange('date', event.target.value)}
+                      disabled={isSaving}
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="edit-amount">Amount</label>
+                    <input
+                      id="edit-amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editForm.totalAmount}
+                      onChange={(event) => handleEditFieldChange('totalAmount', event.target.value)}
+                      disabled={isSaving}
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="edit-category">Category</label>
+                    <select
+                      id="edit-category"
+                      value={editForm.category}
+                      onChange={(event) => handleEditFieldChange('category', event.target.value)}
+                      disabled={isSaving}
                     >
-                      {selectedExpenseMeta.category.icon}
-                    </span>
-                    {selectedExpense.category || 'Other'}
-                  </span>
-                </div>
-              )}
-              {selectedExpense.source && (
-                <div className="modal-detail">
-                  <span>Source</span>
-                  <strong>{selectedExpense.source}</strong>
-                </div>
-              )}
-              {selectedExpenseMeta?.tags?.length ? (
-                <div className="modal-detail">
-                  <span>Tags</span>
-                  <div className="modal-tags">
-                    {selectedExpenseMeta.tags.map(tag => (
-                      <span key={tag} className="tag">{tag}</span>
-                    ))}
+                      {Object.keys(CATEGORY_META).map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-field form-field-full">
+                    <label htmlFor="edit-payment">Payment method</label>
+                    <input
+                      id="edit-payment"
+                      type="text"
+                      value={editForm.paymentMethod}
+                      onChange={(event) => handleEditFieldChange('paymentMethod', event.target.value)}
+                      disabled={isSaving}
+                    />
                   </div>
                 </div>
-              ) : null}
-              {selectedExpense.notes && (
+                {editError && (
+                  <div className="modal-error">
+                    {editError}
+                  </div>
+                )}
+              </form>
+            ) : (
+              <div className="modal-details">
                 <div className="modal-detail">
-                  <span>Notes</span>
-                  <p>{selectedExpense.notes}</p>
+                  <span>Date</span>
+                  <strong>{formatDate(selectedExpense.date)}</strong>
                 </div>
-              )}
-            </div>
+                <div className="modal-detail">
+                  <span>Amount</span>
+                  <strong>{formatCurrency(selectedExpense.totalAmount ?? selectedExpense.amount, selectedExpense.currency)}</strong>
+                </div>
+                {selectedExpenseMeta?.category && (
+                  <div className="modal-detail category-detail">
+                    <span>Category</span>
+                    <span
+                      className="category-pill"
+                      style={{
+                        backgroundColor: selectedExpenseMeta.category.color + '1f',
+                        color: selectedExpenseMeta.category.color
+                      }}
+                    >
+                      <span
+                        className="category-icon"
+                        role="img"
+                        aria-label={selectedExpense.category || 'Other'}
+                      >
+                        {selectedExpenseMeta.category.icon}
+                      </span>
+                      {selectedExpense.category || 'Other'}
+                    </span>
+                  </div>
+                )}
+                {selectedExpense.source && (
+                  <div className="modal-detail">
+                    <span>Source</span>
+                    <strong>{selectedExpense.source}</strong>
+                  </div>
+                )}
+                {selectedExpenseMeta?.tags?.length ? (
+                  <div className="modal-detail">
+                    <span>Tags</span>
+                    <div className="modal-tags">
+                      {selectedExpenseMeta.tags.map(tag => (
+                        <span key={tag} className="tag">{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {selectedExpense.notes && (
+                  <div className="modal-detail">
+                    <span>Notes</span>
+                    <p>{selectedExpense.notes}</p>
+                  </div>
+                )}
+              </div>
+            )}
             {getReceiptPreview(selectedExpense) ? (
               <div className="modal-receipt">
                 <img src={getReceiptPreview(selectedExpense)} alt="Receipt detail" />
@@ -631,12 +837,40 @@ function ExpensesSummary({
               <div className="modal-receipt placeholder">No receipt available</div>
             )}
             <div className="modal-actions">
-              <button type="button" className="expenses-btn primary" onClick={() => window.alert('Edit flow coming soon!')}>
-                Edit expense
-              </button>
-              <button type="button" className="expenses-btn ghost" onClick={() => setSelectedExpense(null)}>
-                Close
-              </button>
+              {isEditing ? (
+                <>
+                  <button
+                    type="button"
+                    className="expenses-btn ghost"
+                    onClick={handleCancelEdit}
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    form="expense-edit-form"
+                    className="expenses-btn primary"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Save changes'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="expenses-btn primary"
+                    onClick={handleStartEdit}
+                    disabled={!selectedExpense.id}
+                  >
+                    Edit expense
+                  </button>
+                  <button type="button" className="expenses-btn ghost" onClick={() => setSelectedExpense(null)}>
+                    Close
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

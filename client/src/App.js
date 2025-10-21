@@ -156,6 +156,24 @@ function App() {
     }
   };
 
+  const handleExpenseUpdated = (updatedExpense) => {
+    if (!updatedExpense?.id) {
+      return;
+    }
+
+    setExpenses(prev => prev.map(expense =>
+      expense.id === updatedExpense.id
+        ? { ...expense, ...updatedExpense }
+        : expense
+    ));
+
+    setSelectedExpense(prev =>
+      prev && prev.id === updatedExpense.id
+        ? { ...prev, ...updatedExpense }
+        : prev
+    );
+  };
+
   const applyTheme = useCallback((value) => {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
@@ -504,6 +522,7 @@ function App() {
             <ExpensesSummary
               expenses={expenses}
               dateRange={dateRange}
+              onExpenseUpdated={handleExpenseUpdated}
             />
           </div>
         )}
