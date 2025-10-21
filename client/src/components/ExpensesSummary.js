@@ -434,7 +434,8 @@ function ExpensesSummary({
     setEditError('');
 
     try {
-      const updated = await updateExpense(selectedExpense.id, updates);
+      const response = await updateExpense(selectedExpense.id, updates);
+      const updated = response.expense;
 
       const normalizedTotal = updated?.totalAmount ?? updates.totalAmount;
       const normalizedPayment = updated?.paymentMethod ?? updates.paymentMethod ?? null;
