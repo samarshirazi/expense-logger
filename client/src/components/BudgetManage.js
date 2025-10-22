@@ -22,13 +22,6 @@ const getPreviousMonthKey = (monthKey) => {
   return `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
 };
 
-// Format month for display (2024-10 -> October 2024)
-const formatMonthDisplay = (monthKey) => {
-  const [year, month] = monthKey.split('-');
-  const date = new Date(year, parseInt(month) - 1);
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-};
-
 const CATEGORIES = [
   { id: 'Food', name: 'Food', icon: '🍔', color: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)' },
   { id: 'Transport', name: 'Transport', icon: '🚗', color: 'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)' },
@@ -62,7 +55,11 @@ function BudgetManage({ expenses, dateRange }) {
   const [showAISuggestions, setShowAISuggestions] = useState(true);
   const [autoAdjust, setAutoAdjust] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(getMonthKey(toLocalDateString(new Date())));
+
+  // Use dateRange from props to determine current month
+  const selectedMonth = dateRange?.startDate
+    ? getMonthKey(dateRange.startDate)
+    : getMonthKey(toLocalDateString(new Date()));
 
   // Calculate spending for the ENTIRE month and selected range
   const [monthSpending, setMonthSpending] = useState({});
@@ -75,6 +72,18 @@ function BudgetManage({ expenses, dateRange }) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Initialize budget for current month if not exists
+  useEffect(() => {
+    if (!monthlyBudgets[selectedMonth]) {
+      const updatedBudgets = {
+        ...monthlyBudgets,
+        [selectedMonth]: { ...DEFAULT_BUDGET }
+      };
+      setMonthlyBudgets(updatedBudgets);
+      localStorage.setItem('monthlyBudgets', JSON.stringify(updatedBudgets));
+    }
+  }, [selectedMonth, monthlyBudgets]);
 
   useEffect(() => {
     // Calculate spending for entire month
@@ -147,34 +156,6 @@ function BudgetManage({ expenses, dateRange }) {
     }
 
     return "Track your spending to get personalized insights.";
-  };
-
-  // Handle month navigation
-  const changeMonth = (direction) => {
-    const [year, month] = selectedMonth.split('-').map(Number);
-    let newMonth = month;
-    let newYear = year;
-
-    if (direction === 'prev') {
-      newMonth = month === 1 ? 12 : month - 1;
-      newYear = month === 1 ? year - 1 : year;
-    } else {
-      newMonth = month === 12 ? 1 : month + 1;
-      newYear = month === 12 ? year + 1 : year;
-    }
-
-    const newMonthKey = `${newYear}-${String(newMonth).padStart(2, '0')}`;
-    setSelectedMonth(newMonthKey);
-
-    // Initialize budget for new month if not exists
-    if (!monthlyBudgets[newMonthKey]) {
-      const updatedBudgets = {
-        ...monthlyBudgets,
-        [newMonthKey]: { ...DEFAULT_BUDGET }
-      };
-      setMonthlyBudgets(updatedBudgets);
-      localStorage.setItem('monthlyBudgets', JSON.stringify(updatedBudgets));
-    }
   };
 
   // Open edit modal for category
@@ -336,11 +317,6 @@ function BudgetManage({ expenses, dateRange }) {
             <p className="budget-subtitle">Set monthly limits for your spending categories.</p>
           </div>
           <div className="budget-header-controls">
-            <div className="month-selector">
-              <button className="month-nav" onClick={() => changeMonth('prev')}>‹</button>
-              <span className="current-month">{formatMonthDisplay(selectedMonth)}</span>
-              <button className="month-nav" onClick={() => changeMonth('next')}>›</button>
-            </div>
             <button className="ai-suggest-btn" onClick={handleAISuggest}>
               <span className="emoji">💬</span>
               <span className="btn-text">Ask AI for Smart Budgets</span>
