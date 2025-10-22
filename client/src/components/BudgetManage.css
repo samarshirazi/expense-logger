@@ -3,14 +3,17 @@
 .budget-manage-modern {
   width: 100%;
   min-height: 100vh;
-  background: #ffffff;
+  background: #ffffff !important;
   padding-bottom: 100px;
+  padding: 0;
+  margin: 0;
 }
 
 /* Header Section */
 .budget-page-header {
   margin-bottom: 2rem;
-  padding: 1rem 0;
+  padding: 2rem;
+  background: #ffffff !important;
 }
 
 .budget-header-content {
@@ -19,17 +22,19 @@
   align-items: flex-start;
   gap: 2rem;
   flex-wrap: wrap;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .budget-title-section h1 {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #000000;
+  color: #000000 !important;
   margin-bottom: 0.5rem;
 }
 
 .budget-subtitle {
-  color: #000000;
+  color: #000000 !important;
   font-size: 1rem;
 }
 
@@ -68,7 +73,7 @@
   font-weight: 600;
   min-width: 140px;
   text-align: center;
-  color: #000000;
+  color: #000000 !important;
 }
 
 .ai-suggest-btn {
@@ -100,10 +105,17 @@
 }
 
 /* Main Content Grid */
+.budget-main-content {
+  padding: 0 2rem 2rem 2rem;
+  background: #ffffff !important;
+}
+
 .budget-content-grid {
   display: grid;
   grid-template-columns: 1fr 380px;
   gap: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .budget-left-column {
@@ -114,7 +126,7 @@
 
 /* Card Styles */
 .budget-card {
-  background: white;
+  background: white !important;
   border-radius: 16px;
   padding: 2rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -129,7 +141,7 @@
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
-  color: #000000;
+  color: #000000 !important;
 }
 
 /* Budget Overview Card */
@@ -208,7 +220,7 @@
 .stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #000000;
+  color: #000000 !important;
 }
 
 .stat-value.spent {
@@ -226,7 +238,7 @@
   background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
   border-radius: 12px;
   font-size: 0.875rem;
-  color: #000000;
+  color: #000000 !important;
 }
 
 .ai-icon {
@@ -238,7 +250,7 @@
   font-size: 1.25rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
-  color: #000000;
+  color: #000000 !important;
 }
 
 .category-grid {
@@ -248,7 +260,7 @@
 }
 
 .category-card {
-  background: white;
+  background: white !important;
   border-radius: 16px;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -287,7 +299,7 @@
 .category-name {
   font-weight: 600;
   font-size: 1.125rem;
-  color: #000000;
+  color: #000000 !important;
 }
 
 .edit-icon {
@@ -314,7 +326,7 @@
 
 .amount-budget {
   font-weight: 600;
-  color: #000000;
+  color: #000000 !important;
 }
 
 .progress-bar-container {
@@ -358,7 +370,7 @@
 }
 
 .ai-message strong {
-  color: #000000;
+  color: #000000 !important;
   font-weight: 600;
 }
 
@@ -372,12 +384,12 @@
   flex: 1;
   padding: 0.75rem;
   border: 2px solid #e5e7eb;
-  background: white;
+  background: white !important;
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
-  color: #000000;
+  color: #000000 !important;
 }
 
 .btn-secondary:hover {
@@ -466,7 +478,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
+  background: white !important;
   padding: 1.5rem 2rem;
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
   display: flex;
@@ -566,7 +578,7 @@
 }
 
 .modal {
-  background: white;
+  background: white !important;
   border-radius: 20px;
   width: 90%;
   max-width: 500px;
@@ -596,7 +608,7 @@
 .modal-header h3 {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #000000;
+  color: #000000 !important;
 }
 
 .modal-close {
@@ -632,7 +644,7 @@
   display: block;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #000000;
+  color: #000000 !important;
 }
 
 .input-with-currency {
@@ -713,7 +725,7 @@
 }
 
 .current-spending strong {
-  color: #000000;
+  color: #000000 !important;
 }
 
 .modal-footer {
@@ -751,16 +763,19 @@
 }
 
 /* Responsive Design */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .budget-content-grid {
     grid-template-columns: 1fr;
+    max-width: 100%;
   }
 
   .budget-right-column {
     position: relative;
     top: 0;
   }
+}
 
+@media (max-width: 1024px) {
   .category-grid {
     grid-template-columns: 1fr;
   }
@@ -771,20 +786,39 @@
     padding-bottom: 80px;
   }
 
+  .budget-page-header {
+    padding: 1.5rem 1rem;
+  }
+
+  .budget-main-content {
+    padding: 0 1rem 1rem 1rem;
+  }
+
   .budget-header-content {
     flex-direction: column;
     align-items: stretch;
+    gap: 1.5rem;
   }
 
   .budget-title-section h1 {
-    font-size: 2rem;
+    font-size: 1.75rem;
+  }
+
+  .budget-subtitle {
+    font-size: 0.875rem;
   }
 
   .budget-header-controls {
     flex-direction: column;
+    gap: 0.75rem;
   }
 
   .month-selector {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ai-suggest-btn {
     width: 100%;
     justify-content: center;
   }
@@ -797,12 +831,21 @@
     display: inline;
   }
 
+  .budget-content-grid {
+    gap: 1.5rem;
+  }
+
   .budget-card {
     padding: 1.5rem;
   }
 
+  .budget-card-title {
+    font-size: 1.25rem;
+  }
+
   .budget-overview-content {
     flex-direction: column;
+    gap: 1.5rem;
   }
 
   .circular-progress {
@@ -815,12 +858,34 @@
     height: 180px;
   }
 
+  .overview-stats {
+    width: 100%;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .section-title {
+    font-size: 1.125rem;
+  }
+
   .category-grid {
     gap: 1rem;
   }
 
   .category-card {
     padding: 1.25rem;
+  }
+
+  .category-icon {
+    width: 45px;
+    height: 45px;
+    font-size: 1.75rem;
+  }
+
+  .category-name {
+    font-size: 1rem;
   }
 
   .action-bar {
@@ -844,80 +909,110 @@
 }
 
 @media (max-width: 480px) {
+  .budget-page-header {
+    padding: 1rem;
+  }
+
+  .budget-main-content {
+    padding: 0 0.75rem 0.75rem 0.75rem;
+  }
+
   .budget-title-section h1 {
     font-size: 1.5rem;
   }
 
-  .budget-card-title {
-    font-size: 1.25rem;
-  }
-
-  .circular-progress {
-    width: 150px;
-    height: 150px;
-  }
-
-  .progress-ring {
-    width: 150px;
-    height: 150px;
-  }
-
-  .progress-percent {
-    font-size: 2rem;
-  }
-
-  .stat-value {
-    font-size: 1.25rem;
-  }
-}
-
-/* Dark mode support (if your app has it) */
-@media (prefers-color-scheme: dark) {
-  .budget-manage-modern {
-    background: #1a1a2e;
+  .budget-subtitle {
+    font-size: 0.8rem;
   }
 
   .budget-card {
-    background: #16213e;
+    padding: 1rem;
   }
 
-  .budget-title-section h1,
-  .budget-card-title,
-  .section-title,
-  .category-name,
-  .modal-header h3,
-  .modal-form label,
-  .stat-value,
-  .amount-budget,
-  .current-spending strong {
-    color: #ffffff;
+  .budget-card-title {
+    font-size: 1.125rem;
   }
 
-  .budget-subtitle,
-  .stat-label,
+  .circular-progress {
+    width: 140px;
+    height: 140px;
+  }
+
+  .progress-ring {
+    width: 140px;
+    height: 140px;
+  }
+
+  .progress-percent {
+    font-size: 1.75rem;
+  }
+
+  .stat-value {
+    font-size: 1.125rem;
+  }
+
+  .category-card {
+    padding: 1rem;
+  }
+
+  .category-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+  }
+
+  .category-name {
+    font-size: 0.9rem;
+  }
+
   .amount-spent,
-  .ai-message,
-  .toggle-label,
-  .current-spending,
-  .modal-close {
-    color: #a0a0a0;
+  .amount-budget {
+    font-size: 0.8rem;
   }
+}
 
-  .month-selector,
-  .modal,
-  .btn-secondary {
-    background: #16213e;
-    color: #ffffff;
-  }
+/* Override dark theme - Force white background and black text */
+:root[data-theme='dark'] .budget-manage-modern,
+:root[data-theme='dark'] .budget-page-header,
+:root[data-theme='dark'] .budget-main-content {
+  background: #ffffff !important;
+}
 
-  .input-with-currency input {
-    background: #1a1a2e;
-    border-color: #2c3e50;
-    color: #ffffff;
-  }
+:root[data-theme='dark'] .budget-card,
+:root[data-theme='dark'] .category-card,
+:root[data-theme='dark'] .month-selector,
+:root[data-theme='dark'] .modal {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
 
-  .ai-summary {
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-    color: #ffffff;
-  }
+:root[data-theme='dark'] .budget-title-section h1,
+:root[data-theme='dark'] .budget-subtitle,
+:root[data-theme='dark'] .current-month,
+:root[data-theme='dark'] .budget-card-title,
+:root[data-theme='dark'] .section-title,
+:root[data-theme='dark'] .category-name,
+:root[data-theme='dark'] .amount-budget,
+:root[data-theme='dark'] .stat-value,
+:root[data-theme='dark'] .modal-header h3,
+:root[data-theme='dark'] .modal-form label,
+:root[data-theme='dark'] .current-spending strong,
+:root[data-theme='dark'] .ai-message strong,
+:root[data-theme='dark'] .btn-secondary {
+  color: #000000 !important;
+}
+
+:root[data-theme='dark'] .input-with-currency input {
+  background: #ffffff !important;
+  border-color: #e5e7eb !important;
+  color: #000000 !important;
+}
+
+:root[data-theme='dark'] .btn-secondary {
+  background: #ffffff !important;
+  border-color: #e5e7eb !important;
+}
+
+:root[data-theme='dark'] .action-bar {
+  background: #ffffff !important;
 }
