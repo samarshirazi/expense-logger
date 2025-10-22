@@ -66,7 +66,6 @@ function BudgetManage({ expenses, dateRange }) {
 
   // Calculate spending for the ENTIRE month and selected range
   const [monthSpending, setMonthSpending] = useState({});
-  const [rangeSpending, setRangeSpending] = useState({});
 
   useEffect(() => {
     const handleResize = () => {
@@ -104,36 +103,6 @@ function BudgetManage({ expenses, dateRange }) {
     });
 
     setMonthSpending(monthTotals);
-
-    // Calculate CUMULATIVE spending from month start up to selected end date
-    const monthStartDate = selectedMonth + '-01';
-    const filteredExpenses = expenses.filter(expense => {
-      if (!expense.date) return false;
-      if (!dateRange?.startDate || !dateRange?.endDate) return true;
-      return expense.date >= monthStartDate && expense.date <= dateRange.endDate;
-    });
-
-    const rangeTotals = {
-      Food: 0,
-      Transport: 0,
-      Shopping: 0,
-      Bills: 0,
-      Other: 0
-    };
-
-    filteredExpenses.forEach(expense => {
-      if (expense.items && expense.items.length > 0) {
-        expense.items.forEach(item => {
-          const itemCategory = item.category || 'Other';
-          rangeTotals[itemCategory] += item.totalPrice || 0;
-        });
-      } else {
-        const category = expense.category || 'Other';
-        rangeTotals[category] += expense.totalAmount || 0;
-      }
-    });
-
-    setRangeSpending(rangeTotals);
   }, [expenses, dateRange, selectedMonth]);
 
   const currentBudget = monthlyBudgets[selectedMonth] || { ...DEFAULT_BUDGET };
@@ -240,6 +209,7 @@ function BudgetManage({ expenses, dateRange }) {
 
   // Reset all budgets
   const resetBudgets = () => {
+    // eslint-disable-next-line no-restricted-globals
     if (!confirm('Are you sure you want to reset all budgets for this month? This will set all budgets to $0.')) {
       return;
     }
@@ -274,7 +244,6 @@ function BudgetManage({ expenses, dateRange }) {
     showNotification('Rebalancing budgets based on AI suggestions...');
 
     setTimeout(() => {
-      const avgSpending = totalMonthSpending / CATEGORIES.length;
       const rebalanced = {};
 
       CATEGORIES.forEach(cat => {
