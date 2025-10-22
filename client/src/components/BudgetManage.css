@@ -3,7 +3,7 @@
 .budget-manage-modern {
   width: 100%;
   min-height: 100vh;
-  background: #f8f9fc;
+  background: #ffffff;
   padding-bottom: 100px;
 }
 
@@ -24,12 +24,12 @@
 .budget-title-section h1 {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #1a1a2e;
+  color: #000000;
   margin-bottom: 0.5rem;
 }
 
 .budget-subtitle {
-  color: #6b7280;
+  color: #000000;
   font-size: 1rem;
 }
 
@@ -68,7 +68,7 @@
   font-weight: 600;
   min-width: 140px;
   text-align: center;
-  color: #1a1a2e;
+  color: #000000;
 }
 
 .ai-suggest-btn {
@@ -129,7 +129,7 @@
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
-  color: #1a1a2e;
+  color: #000000;
 }
 
 /* Budget Overview Card */
@@ -208,7 +208,7 @@
 .stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1a1a2e;
+  color: #000000;
 }
 
 .stat-value.spent {
@@ -226,7 +226,7 @@
   background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
   border-radius: 12px;
   font-size: 0.875rem;
-  color: #1a1a2e;
+  color: #000000;
 }
 
 .ai-icon {
@@ -238,7 +238,7 @@
   font-size: 1.25rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
-  color: #1a1a2e;
+  color: #000000;
 }
 
 .category-grid {
@@ -287,7 +287,7 @@
 .category-name {
   font-weight: 600;
   font-size: 1.125rem;
-  color: #1a1a2e;
+  color: #000000;
 }
 
 .edit-icon {
@@ -314,7 +314,7 @@
 
 .amount-budget {
   font-weight: 600;
-  color: #1a1a2e;
+  color: #000000;
 }
 
 .progress-bar-container {
@@ -358,7 +358,7 @@
 }
 
 .ai-message strong {
-  color: #1a1a2e;
+  color: #000000;
   font-weight: 600;
 }
 
@@ -377,7 +377,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
-  color: #1a1a2e;
+  color: #000000;
 }
 
 .btn-secondary:hover {
@@ -596,7 +596,7 @@
 .modal-header h3 {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1a1a2e;
+  color: #000000;
 }
 
 .modal-close {
@@ -632,7 +632,7 @@
   display: block;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #1a1a2e;
+  color: #000000;
 }
 
 .input-with-currency {
@@ -713,7 +713,7 @@
 }
 
 .current-spending strong {
-  color: #1a1a2e;
+  color: #000000;
 }
 
 .modal-footer {
