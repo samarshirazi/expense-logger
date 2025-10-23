@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { uploadReceipt } from '../services/apiService';
+import { showLocalNotification, getNotificationPermissionState } from '../services/notificationService';
 import CameraCapture from './CameraCapture';
 import './CameraCapture.css';
 
@@ -24,6 +25,92 @@ const ReceiptUpload = ({ onExpenseAdded }) => {
     checkMobile();
   }, []);
 
+  // Helper function to get current month key
+  const getMonthKey = useCallback((dateString) => {
+    return dateString.substring(0, 7); // "2024-01-15" -> "2024-01"
+  }, []);
+
+  // Helper function to check budget thresholds
+  const checkBudgetThresholds = useCallback(async (addedExpense) => {
+    try {
+      // Get monthly budgets from localStorage
+      const monthlyBudgets = JSON.parse(localStorage.getItem('monthlyBudgets') || '{}');
+      const currentMonth = getMonthKey(new Date().toISOString().split('T')[0]);
+      const currentBudget = monthlyBudgets[currentMonth];
+
+      if (!currentBudget) return;
+
+      // Get all expenses from localStorage
+      const allExpensesStr = localStorage.getItem('expenses');
+      let allExpenses = allExpensesStr ? JSON.parse(allExpensesStr) : [];
+
+      // Calculate current spending by category for the month
+      const monthSpending = {
+        Food: 0,
+        Transport: 0,
+        Shopping: 0,
+        Bills: 0,
+        Other: 0
+      };
+
+      // Calculate spending from existing expenses
+      allExpenses.forEach(expense => {
+        if (expense.date && expense.date.startsWith(currentMonth)) {
+          if (expense.items && expense.items.length > 0) {
+            expense.items.forEach(item => {
+              const itemCategory = item.category || 'Other';
+              monthSpending[itemCategory] += item.totalPrice || 0;
+            });
+          } else {
+            const category = expense.category || 'Other';
+            monthSpending[category] += expense.totalAmount || 0;
+          }
+        }
+      });
+
+      // Add newly added expense to spending
+      if (addedExpense.items && addedExpense.items.length > 0) {
+        addedExpense.items.forEach(item => {
+          const itemCategory = item.category || 'Other';
+          monthSpending[itemCategory] += item.totalPrice || 0;
+        });
+      } else {
+        const category = addedExpense.category || 'Other';
+        monthSpending[category] += addedExpense.totalAmount || 0;
+      }
+
+      // Check for categories approaching or exceeding budget
+      const THRESHOLD = 0.85; // 85% of budget
+      const permissionState = getNotificationPermissionState();
+
+      Object.keys(monthSpending).forEach(async (category) => {
+        const budget = currentBudget[category] || 0;
+        const spent = monthSpending[category] || 0;
+        const percentage = budget > 0 ? (spent / budget) * 100 : 0;
+
+        if (percentage >= 100 && permissionState === 'granted') {
+          // Over budget
+          await showLocalNotification('Budget Exceeded! ⚠️', {
+            body: `You've exceeded your ${category} budget! Spent $${spent.toFixed(2)} of $${budget.toFixed(2)} (${Math.round(percentage)}%)`,
+            icon: '/icon-192.svg',
+            tag: `budget-warning-${category}`,
+            data: { category, percentage }
+          });
+        } else if (percentage >= THRESHOLD * 100 && percentage < 100 && permissionState === 'granted') {
+          // Close to budget
+          await showLocalNotification('Budget Alert 💡', {
+            body: `You're close to your ${category} budget limit! Spent $${spent.toFixed(2)} of $${budget.toFixed(2)} (${Math.round(percentage)}%)`,
+            icon: '/icon-192.svg',
+            tag: `budget-alert-${category}`,
+            data: { category, percentage }
+          });
+        }
+      });
+    } catch (err) {
+      console.warn('Failed to check budget thresholds:', err);
+    }
+  }, [getMonthKey]);
+
   const handleFileUpload = useCallback(async (file) => {
     setUploading(true);
     setError(null);
@@ -40,6 +127,9 @@ const ReceiptUpload = ({ onExpenseAdded }) => {
       // Use the full expense object from server response
       if (onExpenseAdded && result.expense) {
         onExpenseAdded(result.expense);
+
+        // Check budget thresholds and send notifications if needed
+        await checkBudgetThresholds(result.expense);
       }
 
     } catch (err) {
@@ -49,7 +139,7 @@ const ReceiptUpload = ({ onExpenseAdded }) => {
       setUploading(false);
       setProgress(0);
     }
-  }, [onExpenseAdded]);
+  }, [onExpenseAdded, checkBudgetThresholds]);
 
   const onDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];

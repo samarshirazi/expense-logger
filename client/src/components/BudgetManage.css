@@ -323,6 +323,78 @@
   background: white;
 }
 
+/* Mobile AI Panel */
+.ai-panel-mobile {
+  background: linear-gradient(135deg, #fff5e6 0%, #ffe4f2 100%);
+  border-left: 4px solid #f59e0b;
+  margin-bottom: 1.5rem;
+}
+
+.ai-content-mobile {
+  padding: 0;
+}
+
+.ai-header-mobile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.ai-icon-mobile {
+  font-size: 1.75rem;
+}
+
+.ai-title-mobile {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #000000 !important;
+  flex: 1;
+}
+
+.ai-close-mobile {
+  background: none;
+  border: none;
+  font-size: 1.75rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s;
+}
+
+.ai-close-mobile:hover {
+  color: #000000;
+}
+
+.ai-message-mobile {
+  color: #000000 !important;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.btn-rebalance-mobile {
+  width: 100%;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.btn-rebalance-mobile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
 .ai-content {
   text-align: center;
 }
@@ -812,13 +884,13 @@
   }
 
   .circular-progress {
-    width: 180px;
-    height: 180px;
+    width: 150px;
+    height: 150px;
   }
 
   .progress-ring {
-    width: 180px;
-    height: 180px;
+    width: 150px;
+    height: 150px;
   }
 
   .overview-stats {
@@ -907,7 +979,11 @@
   }
 
   .progress-percent {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
+  }
+
+  .progress-label {
+    font-size: 0.75rem;
   }
 
   .stat-value {

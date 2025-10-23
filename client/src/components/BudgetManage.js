@@ -138,6 +138,41 @@ function BudgetManage({ expenses, dateRange }) {
   const totalMonthSpending = Object.values(monthSpending).reduce((sum, val) => sum + val, 0);
   const totalPercentage = getPercentage(totalMonthSpending, totalBudget);
 
+  // Calculate AI suggestions based on actual spending
+  const getAISuggestionData = () => {
+    const categoriesOverBudget = [];
+    const categoriesNearBudget = [];
+
+    CATEGORIES.forEach(cat => {
+      const budget = currentBudget[cat.id] || 0;
+      const spent = monthSpending[cat.id] || 0;
+      const percentage = getPercentage(spent, budget);
+
+      if (percentage >= 100) {
+        categoriesOverBudget.push({ name: cat.name, percentage, spent, budget });
+      } else if (percentage >= 80) {
+        categoriesNearBudget.push({ name: cat.name, percentage, spent, budget });
+      }
+    });
+
+    return { categoriesOverBudget, categoriesNearBudget };
+  };
+
+  const { categoriesOverBudget, categoriesNearBudget } = getAISuggestionData();
+  const shouldShowAISuggestions = categoriesOverBudget.length > 0 || categoriesNearBudget.length > 0;
+
+  // Generate dynamic AI message
+  const getAIMessage = () => {
+    if (categoriesOverBudget.length > 0) {
+      const names = categoriesOverBudget.map(c => c.name).join(' and ');
+      return `You've exceeded your budget in ${names}. Consider adjusting your budgets or reducing spending.`;
+    } else if (categoriesNearBudget.length > 0) {
+      const names = categoriesNearBudget.map(c => c.name).join(' and ');
+      return `You're approaching your budget limit in ${names}. Want to rebalance before you overspend?`;
+    }
+    return "Your spending is on track! Keep up the good work.";
+  };
+
   // AI Summary calculation
   const getAISummary = () => {
     const prevMonth = getPreviousMonthKey(selectedMonth);
@@ -220,17 +255,33 @@ function BudgetManage({ expenses, dateRange }) {
     }, 2000);
   };
 
-  // Rebalance budgets
+  // Rebalance budgets intelligently
   const handleRebalance = () => {
     showNotification('Rebalancing budgets based on AI suggestions...');
 
     setTimeout(() => {
-      const rebalanced = {};
+      const rebalanced = { ...currentBudget };
 
+      // Only adjust categories that are over or near budget
+      [...categoriesOverBudget, ...categoriesNearBudget].forEach(item => {
+        const categoryId = CATEGORIES.find(c => c.name === item.name)?.id;
+        if (categoryId) {
+          const spent = monthSpending[categoryId] || 0;
+          // For over-budget: set to 110% of spending
+          // For near-budget: set to 120% of current budget
+          if (item.percentage >= 100) {
+            rebalanced[categoryId] = Math.ceil(spent * 1.1);
+          } else {
+            rebalanced[categoryId] = Math.ceil(currentBudget[categoryId] * 1.2);
+          }
+        }
+      });
+
+      // Keep other categories unchanged
       CATEGORIES.forEach(cat => {
-        const spent = monthSpending[cat.id] || 0;
-        // Suggest budget as 120% of current spending
-        rebalanced[cat.id] = Math.max(spent * 1.2, 50);
+        if (!rebalanced[cat.id]) {
+          rebalanced[cat.id] = currentBudget[cat.id];
+        }
       });
 
       const updatedBudgets = {
@@ -240,6 +291,7 @@ function BudgetManage({ expenses, dateRange }) {
 
       setMonthlyBudgets(updatedBudgets);
       localStorage.setItem('monthlyBudgets', JSON.stringify(updatedBudgets));
+      setShowAISuggestions(false); // Hide panel after rebalancing
       showNotification('Budgets rebalanced successfully!');
     }, 1500);
   };
@@ -336,7 +388,7 @@ function BudgetManage({ expenses, dateRange }) {
               <h2 className="budget-card-title">Budget Overview</h2>
               <div className="budget-overview-content">
                 <div className="circular-progress">
-                  <svg className="progress-ring" width="200" height="200">
+                  <svg className="progress-ring" width="200" height="200" viewBox="0 0 200 200">
                     <circle className="progress-ring-bg" cx="100" cy="100" r="80"></circle>
                     <circle
                       className="progress-ring-fill"
@@ -370,6 +422,34 @@ function BudgetManage({ expenses, dateRange }) {
                 <span>{getAISummary()}</span>
               </div>
             </div>
+
+            {/* Mobile AI Alert */}
+            {isMobile && shouldShowAISuggestions && showAISuggestions && (
+              <div className="budget-card ai-panel-mobile">
+                <div className="ai-content-mobile">
+                  <div className="ai-header-mobile">
+                    <span className="ai-icon-mobile">
+                      {categoriesOverBudget.length > 0 ? '⚠️' : '💡'}
+                    </span>
+                    <span className="ai-title-mobile">AI Alert</span>
+                    <button
+                      className="ai-close-mobile"
+                      onClick={() => setShowAISuggestions(false)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <p className="ai-message-mobile">
+                    {getAIMessage()}
+                  </p>
+                  {(categoriesOverBudget.length > 0 || categoriesNearBudget.length > 0) && (
+                    <button className="btn-rebalance-mobile" onClick={handleRebalance}>
+                      Rebalance Budgets
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Category Budget Cards */}
             <div className="categories-section">
@@ -417,19 +497,23 @@ function BudgetManage({ expenses, dateRange }) {
           </div>
 
           {/* Right Column: AI Suggestions */}
-          {!isMobile && showAISuggestions && (
+          {!isMobile && shouldShowAISuggestions && showAISuggestions && (
             <div className="budget-right-column">
               <div className="budget-card ai-panel">
                 <h3 className="budget-card-title">AI Suggestions</h3>
                 <div className="ai-content">
-                  <div className="ai-icon-large">🤖</div>
-                  <p className="ai-message">
-                    AI found your <strong>Transport</strong> and <strong>Food</strong> budgets might exceed your average. Want to rebalance?
-                  </p>
-                  <div className="ai-actions">
-                    <button className="btn-secondary" onClick={() => setShowAISuggestions(false)}>Ignore</button>
-                    <button className="btn-gradient" onClick={handleRebalance}>Rebalance</button>
+                  <div className="ai-icon-large">
+                    {categoriesOverBudget.length > 0 ? '⚠️' : '💡'}
                   </div>
+                  <p className="ai-message">
+                    {getAIMessage()}
+                  </p>
+                  {(categoriesOverBudget.length > 0 || categoriesNearBudget.length > 0) && (
+                    <div className="ai-actions">
+                      <button className="btn-secondary" onClick={() => setShowAISuggestions(false)}>Ignore</button>
+                      <button className="btn-gradient" onClick={handleRebalance}>Rebalance</button>
+                    </div>
+                  )}
                   <div className="ai-toggle">
                     <label className="toggle-switch">
                       <input

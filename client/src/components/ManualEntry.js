@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import authService from '../services/authService';
+import { showLocalNotification, getNotificationPermissionState } from '../services/notificationService';
 import './ManualEntry.css';
 
 function ManualEntry({ onExpensesAdded }) {
@@ -8,6 +9,87 @@ function ManualEntry({ onExpensesAdded }) {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+
+  // Helper function to get current month key
+  const getMonthKey = (dateString) => {
+    return dateString.substring(0, 7); // "2024-01-15" -> "2024-01"
+  };
+
+  // Helper function to check budget thresholds
+  const checkBudgetThresholds = async (addedExpenses) => {
+    try {
+      // Get monthly budgets from localStorage
+      const monthlyBudgets = JSON.parse(localStorage.getItem('monthlyBudgets') || '{}');
+      const currentMonth = getMonthKey(new Date().toISOString().split('T')[0]);
+      const currentBudget = monthlyBudgets[currentMonth];
+
+      if (!currentBudget) return;
+
+      // Get all expenses from localStorage or fetch from API
+      const allExpensesStr = localStorage.getItem('expenses');
+      let allExpenses = allExpensesStr ? JSON.parse(allExpensesStr) : [];
+
+      // Calculate current spending by category for the month
+      const monthSpending = {
+        Food: 0,
+        Transport: 0,
+        Shopping: 0,
+        Bills: 0,
+        Other: 0
+      };
+
+      // Calculate spending from existing expenses
+      allExpenses.forEach(expense => {
+        if (expense.date && expense.date.startsWith(currentMonth)) {
+          if (expense.items && expense.items.length > 0) {
+            expense.items.forEach(item => {
+              const itemCategory = item.category || 'Other';
+              monthSpending[itemCategory] += item.totalPrice || 0;
+            });
+          } else {
+            const category = expense.category || 'Other';
+            monthSpending[category] += expense.totalAmount || 0;
+          }
+        }
+      });
+
+      // Add newly added expenses to spending
+      addedExpenses.forEach(exp => {
+        const category = exp.category || 'Other';
+        monthSpending[category] += exp.totalAmount || 0;
+      });
+
+      // Check for categories approaching or exceeding budget
+      const THRESHOLD = 0.85; // 85% of budget
+      const permissionState = getNotificationPermissionState();
+
+      Object.keys(monthSpending).forEach(async (category) => {
+        const budget = currentBudget[category] || 0;
+        const spent = monthSpending[category] || 0;
+        const percentage = budget > 0 ? (spent / budget) * 100 : 0;
+
+        if (percentage >= 100 && permissionState === 'granted') {
+          // Over budget
+          await showLocalNotification('Budget Exceeded! ⚠️', {
+            body: `You've exceeded your ${category} budget! Spent $${spent.toFixed(2)} of $${budget.toFixed(2)} (${Math.round(percentage)}%)`,
+            icon: '/icon-192.svg',
+            tag: `budget-warning-${category}`,
+            data: { category, percentage }
+          });
+        } else if (percentage >= THRESHOLD * 100 && percentage < 100 && permissionState === 'granted') {
+          // Close to budget
+          await showLocalNotification('Budget Alert 💡', {
+            body: `You're close to your ${category} budget limit! Spent $${spent.toFixed(2)} of $${budget.toFixed(2)} (${Math.round(percentage)}%)`,
+            icon: '/icon-192.svg',
+            tag: `budget-alert-${category}`,
+            data: { category, percentage }
+          });
+        }
+      });
+    } catch (err) {
+      console.warn('Failed to check budget thresholds:', err);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,12 +124,19 @@ function ManualEntry({ onExpensesAdded }) {
         setSuccess(`✅ ${response.data.message}`);
         setTextEntry('');
 
+        // Collect added expenses for budget checking
+        const addedExpenses = [];
+
         // Notify parent component
         if (onExpensesAdded && response.data.expenses) {
           response.data.expenses.forEach(exp => {
             onExpensesAdded(exp.expenseData);
+            addedExpenses.push(exp.expenseData);
           });
         }
+
+        // Check budget thresholds and send notifications if needed
+        await checkBudgetThresholds(addedExpenses);
 
         // Clear success message after 3 seconds
         setTimeout(() => setSuccess(null), 3000);
