@@ -792,17 +792,119 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     };
   }, [activeCategory, isMobileView]);
 
+  // Auto-suggest emoji based on category name
+  const suggestEmoji = (name) => {
+    const emojiMap = {
+      'entertainment': '🎬',
+      'movie': '🎬',
+      'movies': '🎬',
+      'health': '🏥',
+      'healthcare': '🏥',
+      'medical': '🏥',
+      'doctor': '🏥',
+      'fitness': '💪',
+      'gym': '💪',
+      'exercise': '💪',
+      'workout': '💪',
+      'education': '📚',
+      'school': '📚',
+      'study': '📚',
+      'books': '📚',
+      'travel': '✈️',
+      'trip': '✈️',
+      'vacation': '✈️',
+      'flight': '✈️',
+      'hotel': '🏨',
+      'groceries': '🛒',
+      'grocery': '🛒',
+      'supermarket': '🛒',
+      'restaurant': '🍽️',
+      'dining': '🍽️',
+      'coffee': '☕',
+      'cafe': '☕',
+      'gas': '⛽',
+      'fuel': '⛽',
+      'car': '🚗',
+      'insurance': '🛡️',
+      'rent': '🏠',
+      'home': '🏠',
+      'house': '🏠',
+      'clothing': '👕',
+      'clothes': '👕',
+      'fashion': '👗',
+      'shoes': '👟',
+      'phone': '📱',
+      'mobile': '📱',
+      'internet': '🌐',
+      'wifi': '📡',
+      'utilities': '🔌',
+      'electric': '⚡',
+      'water': '💧',
+      'gift': '🎁',
+      'gifts': '🎁',
+      'pet': '🐾',
+      'pets': '🐾',
+      'subscription': '📺',
+      'streaming': '📺',
+      'gaming': '🎮',
+      'game': '🎮',
+      'beauty': '💄',
+      'cosmetics': '💄',
+      'hair': '💇',
+      'sports': '⚽',
+      'hobby': '🎨',
+      'hobbies': '🎨',
+      'music': '🎵',
+      'concert': '🎤',
+      'charity': '❤️',
+      'donation': '❤️',
+      'investment': '📈',
+      'savings': '💰',
+      'tax': '💼',
+      'taxes': '💼',
+      'baby': '👶',
+      'kids': '👶',
+      'children': '👶',
+      'garden': '🌱',
+      'plants': '🌱',
+      'electronics': '💻',
+      'tech': '💻',
+      'tools': '🔧',
+      'repair': '🔧',
+      'maintenance': '🔧'
+    };
+
+    const lowerName = name.toLowerCase().trim();
+
+    // Direct match
+    if (emojiMap[lowerName]) {
+      return emojiMap[lowerName];
+    }
+
+    // Partial match
+    for (const [key, emoji] of Object.entries(emojiMap)) {
+      if (lowerName.includes(key) || key.includes(lowerName)) {
+        return emoji;
+      }
+    }
+
+    // Default emoji
+    return '📋';
+  };
+
   // Category management functions
   const handleAddCategory = () => {
-    if (!categoryForm.name || !categoryForm.icon || !categoryForm.color) {
-      alert('Please fill in all fields');
+    if (!categoryForm.name || !categoryForm.color) {
+      alert('Please fill in name and color');
       return;
     }
+
+    const icon = categoryForm.icon || suggestEmoji(categoryForm.name);
 
     const newCategory = {
       id: categoryForm.name.replace(/\s+/g, ''),
       name: categoryForm.name,
-      icon: categoryForm.icon,
+      icon: icon,
       color: categoryForm.color,
       gradient: `linear-gradient(135deg, ${categoryForm.color} 0%, ${categoryForm.color}cc 100%)`
     };
@@ -822,17 +924,19 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   };
 
   const handleUpdateCategory = () => {
-    if (!categoryForm.name || !categoryForm.icon || !categoryForm.color) {
-      alert('Please fill in all fields');
+    if (!categoryForm.name || !categoryForm.color) {
+      alert('Please fill in name and color');
       return;
     }
+
+    const icon = categoryForm.icon || suggestEmoji(categoryForm.name);
 
     setCustomCategories(prev => prev.map(cat =>
       cat.id === editingCategoryId
         ? {
             ...cat,
             name: categoryForm.name,
-            icon: categoryForm.icon,
+            icon: icon,
             color: categoryForm.color,
             gradient: `linear-gradient(135deg, ${categoryForm.color} 0%, ${categoryForm.color}cc 100%)`
           }
@@ -1575,12 +1679,14 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                   />
                 </div>
                 <div className="form-group">
-                  <label>Icon (Emoji)</label>
+                  <label>
+                    Icon (Optional - Auto-suggested: {categoryForm.name ? suggestEmoji(categoryForm.name) : '📋'})
+                  </label>
                   <input
                     type="text"
                     value={categoryForm.icon}
                     onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
-                    placeholder="🎬"
+                    placeholder={`Leave empty for auto: ${categoryForm.name ? suggestEmoji(categoryForm.name) : '📋'}`}
                     maxLength="2"
                   />
                 </div>
