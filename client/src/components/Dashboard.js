@@ -159,10 +159,18 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
   const summaryInitializedRef = useRef(false);
   const summarySignatureRef = useRef(null);
   const isCoachOpenRef = useRef(isCoachOpen);
+  const loadedDateRangeRef = useRef(null);
 
-  const loadSummary = useCallback(async () => {
+  const loadSummary = useCallback(async (force = false) => {
+    // Skip if already loaded for this date range and not forcing refresh
+    const currentRangeKey = JSON.stringify(dateRange);
+    if (!force && loadedDateRangeRef.current === currentRangeKey && summary) {
+      return;
+    }
+
     try {
       setLoading(true);
+      loadedDateRangeRef.current = currentRangeKey;
       const token = authService.getAccessToken();
       const API_BASE_URL = process.env.NODE_ENV === 'production'
         ? '/api'
@@ -254,7 +262,7 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
     } finally {
       setLoading(false);
     }
-  }, [dateRange]);
+  }, [dateRange, summary]);
 
   useEffect(() => {
     loadSummary();
@@ -1029,9 +1037,34 @@ const formatDateDisplay = (iso) => {
   }, [analysisData]);
   if (loading && !summary) {
     return (
-      <div className="dashboard-loading">
-        <div className="spinner"></div>
-        <p>Loading dashboard...</p>
+      <div className="dashboard">
+        <div className="dashboard-header">
+          <div className="dashboard-header-text">
+            <h1>Dashboard</h1>
+            <p>Overview of your spending</p>
+          </div>
+        </div>
+        <div className="dashboard-content">
+          <div className="dashboard-skeleton">
+            <div className="skeleton-card skeleton-summary">
+              <div className="skeleton-title"></div>
+              <div className="skeleton-amount"></div>
+              <div className="skeleton-bar"></div>
+            </div>
+            <div className="skeleton-card skeleton-chart">
+              <div className="skeleton-title"></div>
+              <div className="skeleton-circle"></div>
+            </div>
+            <div className="skeleton-card skeleton-categories">
+              <div className="skeleton-title"></div>
+              <div className="skeleton-list">
+                <div className="skeleton-item"></div>
+                <div className="skeleton-item"></div>
+                <div className="skeleton-item"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

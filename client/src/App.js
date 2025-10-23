@@ -505,7 +505,7 @@ function App() {
           </div>
         )}
 
-        {activeView === 'dashboard' && (
+        <div style={{ display: activeView === 'dashboard' ? 'block' : 'none' }}>
           <Dashboard
             expenses={expenses}
             dateRange={dateRange}
@@ -515,7 +515,7 @@ function App() {
             onCoachUnreadChange={setCoachHasUnread}
             coachMood={coachMood}
           />
-        )}
+        </div>
 
         {activeView === 'expenses' && (
           <div className="view-container">
