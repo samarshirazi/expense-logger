@@ -4,7 +4,7 @@ import authService from '../services/authService';
 import { showLocalNotification, getNotificationPermissionState } from '../services/notificationService';
 import './ManualEntry.css';
 
-function ManualEntry({ onExpensesAdded }) {
+function ManualEntry({ onExpensesAdded, expenses = [] }) {
   const [textEntry, setTextEntry] = useState('');
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
@@ -32,9 +32,8 @@ function ManualEntry({ onExpensesAdded }) {
         return;
       }
 
-      // Get all expenses from localStorage or fetch from API
-      const allExpensesStr = localStorage.getItem('expenses');
-      let allExpenses = allExpensesStr ? JSON.parse(allExpensesStr) : [];
+      // Use expenses from props (React state, not localStorage)
+      const allExpenses = expenses || [];
 
       console.log('💰 Total expenses loaded:', allExpenses.length);
 
@@ -160,10 +159,8 @@ function ManualEntry({ onExpensesAdded }) {
           });
         }
 
-        // Wait a bit for localStorage to update, then check budget thresholds
-        setTimeout(async () => {
-          await checkBudgetThresholds(addedExpenses);
-        }, 500);
+        // Check budget thresholds immediately with current expenses
+        await checkBudgetThresholds(addedExpenses);
 
         // Clear success message after 3 seconds
         setTimeout(() => setSuccess(null), 3000);

@@ -555,7 +555,7 @@ function App() {
               <h1>Log Expense</h1>
               <p>Upload receipts or add expenses manually</p>
             </div>
-            <LogExpense onExpenseAdded={handleExpenseAdded} />
+            <LogExpense onExpenseAdded={handleExpenseAdded} expenses={expenses} />
           </div>
         )}
 

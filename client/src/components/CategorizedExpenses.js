@@ -238,19 +238,25 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   }, []);
 
   // Helper function to get budget for a category
-  const getCategoryBudget = useCallback((categoryId) => {
-    const currentMonth = dateRange?.startDate
+  // Memoize the current month to avoid recalculations
+  const currentMonth = useMemo(() => {
+    return dateRange?.startDate
       ? dateRange.startDate.substring(0, 7)
       : new Date().toISOString().substring(0, 7);
+  }, [dateRange]);
 
-    const currentBudget = monthlyBudgets[currentMonth];
+  // Get current budget for the month
+  const currentBudget = useMemo(() => {
+    return monthlyBudgets[currentMonth] || DEFAULT_BUDGET;
+  }, [monthlyBudgets, currentMonth]);
+
+  const getCategoryBudget = useCallback((categoryId) => {
     if (currentBudget && currentBudget[categoryId] !== undefined) {
       return currentBudget[categoryId];
     }
-
     // Fallback to default budget
     return DEFAULT_BUDGET[categoryId] || 0;
-  }, [monthlyBudgets, dateRange]);
+  }, [currentBudget]);
 
   const getCategoryTotal = useCallback((categoryId) => {
     const items = categorizedExpenses[categoryId] || [];

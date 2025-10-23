@@ -5,7 +5,7 @@ import { showLocalNotification, getNotificationPermissionState } from '../servic
 import CameraCapture from './CameraCapture';
 import './CameraCapture.css';
 
-const ReceiptUpload = ({ onExpenseAdded }) => {
+const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
@@ -47,9 +47,8 @@ const ReceiptUpload = ({ onExpenseAdded }) => {
         return;
       }
 
-      // Get all expenses from localStorage
-      const allExpensesStr = localStorage.getItem('expenses');
-      let allExpenses = allExpensesStr ? JSON.parse(allExpensesStr) : [];
+      // Use expenses from props (React state, not localStorage)
+      const allExpenses = expenses || [];
 
       console.log('💰 Total expenses loaded:', allExpenses.length);
 
@@ -153,10 +152,8 @@ const ReceiptUpload = ({ onExpenseAdded }) => {
       if (onExpenseAdded && result.expense) {
         onExpenseAdded(result.expense);
 
-        // Wait a bit for localStorage to update, then check budget thresholds
-        setTimeout(async () => {
-          await checkBudgetThresholds(result.expense);
-        }, 500);
+        // Check budget thresholds immediately with current expenses
+        await checkBudgetThresholds(result.expense);
       }
 
     } catch (err) {
