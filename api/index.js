@@ -115,6 +115,73 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
+// Default budget values
+const DEFAULT_BUDGET = {
+  Food: 500,
+  Transport: 200,
+  Shopping: 300,
+  Bills: 400,
+  Other: 100
+};
+
+// Helper function to calculate category spending for current month
+async function calculateCategorySpending(userId, category, userToken) {
+  const currentDate = new Date();
+  const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+
+  // Get all expenses for current month
+  const allExpenses = await getExpenses(userId, userToken);
+  const monthExpenses = allExpenses.filter(expense => {
+    return expense.date && expense.date.startsWith(currentMonth);
+  });
+
+  let categoryTotal = 0;
+
+  // Calculate spending for the specific category
+  monthExpenses.forEach(expense => {
+    if (expense.items && expense.items.length > 0) {
+      expense.items.forEach(item => {
+        const itemCategory = item.category || 'Other';
+        if (itemCategory === category) {
+          categoryTotal += item.totalPrice || 0;
+        }
+      });
+    } else {
+      const expenseCategory = expense.category || 'Other';
+      if (expenseCategory === category) {
+        categoryTotal += expense.totalAmount || 0;
+      }
+    }
+  });
+
+  return categoryTotal;
+}
+
+// Helper function to check budget status and return notification message
+function getBudgetAlertMessage(category, spending, budget) {
+  const percentage = (spending / budget) * 100;
+
+  if (percentage >= 100) {
+    return {
+      shouldAlert: true,
+      message: `⚠️ Budget exceeded! You've spent $${spending.toFixed(2)} of $${budget} in ${category} (${percentage.toFixed(0)}%)`,
+      severity: 'critical'
+    };
+  } else if (percentage >= 80) {
+    return {
+      shouldAlert: true,
+      message: `⚠️ Approaching budget limit! You've spent $${spending.toFixed(2)} of $${budget} in ${category} (${percentage.toFixed(0)}%)`,
+      severity: 'warning'
+    };
+  }
+
+  return {
+    shouldAlert: false,
+    message: null,
+    severity: 'normal'
+  };
+}
+
 // Notification endpoints
 app.post('/api/notifications/subscribe', requireAuth, async (req, res) => {
   try {
@@ -253,20 +320,52 @@ app.post('/api/manual-entry', requireAuth, async (req, res) => {
         expenseData
       });
 
-      // Send push notification (optional)
+      // Send push notification with budget checking (optional)
       if (notificationService) {
         try {
+          // Determine the category for budget checking
+          let category = expenseData.category || 'Other';
+
+          // If expense has items, check each item's category
+          if (expenseData.items && expenseData.items.length > 0) {
+            // For multi-item expenses, check the first item's category or the most expensive
+            const mainItem = expenseData.items.reduce((max, item) =>
+              (item.totalPrice || 0) > (max.totalPrice || 0) ? item : max
+            , expenseData.items[0]);
+            category = mainItem.category || 'Other';
+          }
+
+          // Calculate current spending for this category
+          const currentSpending = await calculateCategorySpending(req.user.id, category, userToken);
+          const budget = DEFAULT_BUDGET[category] || 100;
+          const budgetAlert = getBudgetAlertMessage(category, currentSpending, budget);
+
+          // Prepare notification payload
+          let notificationTitle = 'Manual Entry Added!';
+          let notificationBody = `${expenseData.merchantName} - $${expenseData.totalAmount}`;
+
+          // If budget alert is needed, modify the notification
+          if (budgetAlert.shouldAlert) {
+            notificationTitle = budgetAlert.severity === 'critical'
+              ? '🚨 Budget Alert!'
+              : '⚠️ Budget Warning!';
+            notificationBody = `${expenseData.merchantName} - $${expenseData.totalAmount}\n${budgetAlert.message}`;
+          }
+
           const notificationPayload = {
-            title: 'Manual Entry Added!',
-            body: `${expenseData.merchantName} - $${expenseData.totalAmount}`,
+            title: notificationTitle,
+            body: notificationBody,
             icon: '/icon-192.svg',
             badge: '/icon-192.svg',
             tag: `expense-${expenseId}`,
             data: {
               url: '/',
-              expenseId: expenseId
+              expenseId: expenseId,
+              budgetAlert: budgetAlert.shouldAlert,
+              category: category
             }
           };
+
           await notificationService.sendPushToUser(req.user.id, notificationPayload, userToken);
         } catch (notifError) {
           console.warn('⚠️  Failed to send push notification:', notifError.message);
@@ -324,6 +423,58 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
       driveFileId: driveFileId,
       uploadDate: new Date().toISOString()
     }, req.user.id, userToken);
+
+    // Send push notification with budget checking (optional)
+    if (notificationService) {
+      try {
+        // Determine the category for budget checking
+        let category = expenseData.category || 'Other';
+
+        // If expense has items, check each item's category
+        if (expenseData.items && expenseData.items.length > 0) {
+          // For multi-item expenses, check the first item's category or the most expensive
+          const mainItem = expenseData.items.reduce((max, item) =>
+            (item.totalPrice || 0) > (max.totalPrice || 0) ? item : max
+          , expenseData.items[0]);
+          category = mainItem.category || 'Other';
+        }
+
+        // Calculate current spending for this category
+        const currentSpending = await calculateCategorySpending(req.user.id, category, userToken);
+        const budget = DEFAULT_BUDGET[category] || 100;
+        const budgetAlert = getBudgetAlertMessage(category, currentSpending, budget);
+
+        // Prepare notification payload
+        let notificationTitle = 'Receipt Uploaded!';
+        let notificationBody = `${expenseData.merchantName} - $${expenseData.totalAmount}`;
+
+        // If budget alert is needed, modify the notification
+        if (budgetAlert.shouldAlert) {
+          notificationTitle = budgetAlert.severity === 'critical'
+            ? '🚨 Budget Alert!'
+            : '⚠️ Budget Warning!';
+          notificationBody = `${expenseData.merchantName} - $${expenseData.totalAmount}\n${budgetAlert.message}`;
+        }
+
+        const notificationPayload = {
+          title: notificationTitle,
+          body: notificationBody,
+          icon: '/icon-192.svg',
+          badge: '/icon-192.svg',
+          tag: `expense-${expenseId}`,
+          data: {
+            url: '/',
+            expenseId: expenseId,
+            budgetAlert: budgetAlert.shouldAlert,
+            category: category
+          }
+        };
+
+        await notificationService.sendPushToUser(req.user.id, notificationPayload, userToken);
+      } catch (notifError) {
+        console.warn('⚠️  Failed to send push notification:', notifError.message);
+      }
+    }
 
     res.json({
       success: true,

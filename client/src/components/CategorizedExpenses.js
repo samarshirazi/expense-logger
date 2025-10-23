@@ -827,7 +827,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                   </div>
                 </div>
 
-                <Droppable droppableId={category.id} direction="horizontal">
+                <Droppable droppableId={category.id} direction="horizontal" type="EXPENSE_ITEM">
                   {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
@@ -890,7 +890,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         </div>
 
         <div className="action-zones">
-          <Droppable droppableId="TRASH">
+          <Droppable droppableId="TRASH" type="EXPENSE_ITEM">
             {(provided, snapshot) => (
               <div
                 ref={provided.innerRef}
@@ -905,7 +905,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
             )}
           </Droppable>
 
-          <Droppable droppableId="EDIT">
+          <Droppable droppableId="EDIT" type="EXPENSE_ITEM">
             {(provided, snapshot) => (
               <div
                 ref={provided.innerRef}
