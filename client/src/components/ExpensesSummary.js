@@ -19,25 +19,37 @@ const formatCurrency = (amount, currency = 'USD') => {
   }).format(amount || 0);
 };
 
-const formatDate = (iso) => {
-  if (!iso) return '—';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
+const formatDate = (dateString) => {
+  if (!dateString) return '—';
+  try {
+    // Parse date string as local date to avoid timezone shift
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  } catch {
+    return '—';
+  }
 };
 
-const formatDateShort = (iso) => {
-  if (!iso) return '—';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric'
-  });
+const formatDateShort = (dateString) => {
+  if (!dateString) return '—';
+  try {
+    // Parse date string as local date to avoid timezone shift
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch {
+    return '—';
+  }
 };
 
 const deriveTags = (expense) => {

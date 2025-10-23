@@ -81,8 +81,14 @@ function SpendingSummary({ onClose, expenses = [] }) {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'No Date';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    try {
+      // Parse date string as local date to avoid timezone shift
+      const [year, month, day] = dateString.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch {
+      return 'No Date';
+    }
   };
 
   return (
@@ -237,9 +243,9 @@ function SpendingSummary({ onClose, expenses = [] }) {
             {summary.dateRange.start || summary.dateRange.end ? (
               <div className="date-range-info">
                 Showing data from{' '}
-                {summary.dateRange.start ? new Date(summary.dateRange.start).toLocaleDateString() : 'beginning'}{' '}
+                {summary.dateRange.start ? formatDate(summary.dateRange.start) : 'beginning'}{' '}
                 to{' '}
-                {summary.dateRange.end ? new Date(summary.dateRange.end).toLocaleDateString() : 'now'}
+                {summary.dateRange.end ? formatDate(summary.dateRange.end) : 'now'}
               </div>
             ) : (
               <div className="date-range-info">Showing all-time data</div>
