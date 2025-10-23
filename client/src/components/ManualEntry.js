@@ -160,8 +160,10 @@ function ManualEntry({ onExpensesAdded }) {
           });
         }
 
-        // Check budget thresholds and send notifications if needed
-        await checkBudgetThresholds(addedExpenses);
+        // Wait a bit for localStorage to update, then check budget thresholds
+        setTimeout(async () => {
+          await checkBudgetThresholds(addedExpenses);
+        }, 500);
 
         // Clear success message after 3 seconds
         setTimeout(() => setSuccess(null), 3000);

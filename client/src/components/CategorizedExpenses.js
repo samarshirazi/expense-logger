@@ -73,7 +73,8 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     const loadBudgets = () => {
       const saved = localStorage.getItem('monthlyBudgets');
       if (saved) {
-        setMonthlyBudgets(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setMonthlyBudgets(parsed);
       } else {
         // Initialize with default budget for current month
         const currentMonth = new Date().toISOString().substring(0, 7);
@@ -94,12 +95,16 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
     window.addEventListener('storage', handleStorageChange);
 
-    // Also check for localStorage changes every second (for same-tab updates)
-    const interval = setInterval(loadBudgets, 1000);
+    // Use custom event for same-tab updates instead of polling
+    const handleBudgetUpdate = () => {
+      loadBudgets();
+    };
+
+    window.addEventListener('budgetUpdated', handleBudgetUpdate);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
+      window.removeEventListener('budgetUpdated', handleBudgetUpdate);
     };
   }, []);
 

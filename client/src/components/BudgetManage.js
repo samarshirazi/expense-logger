@@ -219,6 +219,10 @@ function BudgetManage({ expenses, dateRange }) {
 
     setMonthlyBudgets(updatedBudgets);
     localStorage.setItem('monthlyBudgets', JSON.stringify(updatedBudgets));
+
+    // Dispatch event to notify other components
+    window.dispatchEvent(new CustomEvent('budgetUpdated'));
+
     closeEditModal();
     showNotification('Budget updated successfully!');
   };
@@ -291,6 +295,10 @@ function BudgetManage({ expenses, dateRange }) {
 
       setMonthlyBudgets(updatedBudgets);
       localStorage.setItem('monthlyBudgets', JSON.stringify(updatedBudgets));
+
+      // Dispatch event to notify other components
+      window.dispatchEvent(new CustomEvent('budgetUpdated'));
+
       setShowAISuggestions(false); // Hide panel after rebalancing
       showNotification('Budgets rebalanced successfully!');
     }, 1500);

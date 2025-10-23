@@ -153,8 +153,10 @@ const ReceiptUpload = ({ onExpenseAdded }) => {
       if (onExpenseAdded && result.expense) {
         onExpenseAdded(result.expense);
 
-        // Check budget thresholds and send notifications if needed
-        await checkBudgetThresholds(result.expense);
+        // Wait a bit for localStorage to update, then check budget thresholds
+        setTimeout(async () => {
+          await checkBudgetThresholds(result.expense);
+        }, 500);
       }
 
     } catch (err) {
