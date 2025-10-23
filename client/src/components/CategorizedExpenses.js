@@ -371,7 +371,10 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
   const handleDragEnd = (result) => {
     const { destination, source, draggableId } = result;
+    console.log('🎯 Drag ended:', { destination, source, draggableId });
+
     if (!destination) {
+      console.log('❌ No destination');
       return;
     }
 
@@ -379,29 +382,41 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       destination.droppableId === source.droppableId &&
       destination.index === source.index
     ) {
+      console.log('↩️ Same position');
       return;
     }
 
     const sourceCategory = source.droppableId;
     const destinationCategory = destination.droppableId;
+    console.log('📦 Moving from', sourceCategory, 'to', destinationCategory);
+
     const movedItem = categorizedExpenses[sourceCategory]?.find(item => item.uniqueId === draggableId);
 
     if (!movedItem) {
+      console.error('❌ Item not found');
       setError('Item not found');
       return;
     }
 
     if (destinationCategory === 'TRASH') {
+      console.log('🗑️ Opening delete modal for:', movedItem);
+      console.log('Setting actionItem:', movedItem);
+      console.log('Setting showDeleteConfirm to true');
       setActionItem(movedItem);
       setShowDeleteConfirm(true);
+      console.log('State should be updated now');
       return;
     }
 
     if (destinationCategory === 'EDIT') {
+      console.log('✏️ Opening edit modal for:', movedItem);
+      console.log('Calling openEditModal');
       openEditModal(movedItem);
+      console.log('openEditModal called');
       return;
     }
 
+    console.log('🔄 Performing category move');
     performCategoryMove(movedItem, sourceCategory, destinationCategory, {
       destinationIndex: destination.index
     });
