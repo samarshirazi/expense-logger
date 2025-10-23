@@ -215,6 +215,197 @@
   line-height: 1.4;
 }
 
+/* Notification Settings Enhancements */
+.settings-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 24px 0;
+}
+
+.settings-subsection {
+  margin: 20px 0;
+}
+
+.settings-subsection-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settings-toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-toggle-description {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.settings-frequency-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.settings-frequency-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.settings-frequency-card:hover {
+  border-color: #9ca3af;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.settings-frequency-card.active {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.settings-frequency-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+}
+
+.settings-frequency-icon {
+  font-size: 24px;
+}
+
+.settings-frequency-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.settings-mute-button {
+  width: 100%;
+  padding: 12px 24px;
+  background: #fee2e2;
+  border: 2px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-mute-button:hover {
+  background: #fecaca;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Mute Confirmation Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.mute-confirm-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mute-confirm-modal h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 12px 0;
+}
+
+.mute-confirm-modal p {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+}
+
+.mute-confirm-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-cancel,
+.btn-confirm {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.btn-cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.btn-cancel:hover {
+  background: #e5e7eb;
+}
+
+.btn-confirm {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 @media (max-width: 768px) {
   .settings-section {
     padding: 20px;
@@ -228,5 +419,23 @@
   .settings-action-button {
     width: 100%;
     justify-content: center;
+  }
+
+  .settings-frequency-options {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-frequency-card {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 12px;
+  }
+
+  .settings-frequency-icon {
+    font-size: 20px;
+  }
+
+  .mute-confirm-modal {
+    padding: 24px;
   }
 }

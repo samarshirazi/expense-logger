@@ -32,12 +32,31 @@ const Settings = ({
   onCoachAutoOpenChange
 }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    dailySummary: true,
+    overspendingAlert: true,
+    newReceiptScanned: true,
+    monthlyBudgetReminder: true,
+    frequency: 'instant' // instant, daily, weekly
+  });
+  const [showMuteConfirm, setShowMuteConfirm] = useState(false);
 
   useEffect(() => {
     if (typeof Notification !== 'undefined') {
       setNotificationsEnabled(Notification.permission === 'granted');
     }
+
+    // Load notification preferences from localStorage
+    const saved = localStorage.getItem('notificationPreferences');
+    if (saved) {
+      setNotificationPrefs(JSON.parse(saved));
+    }
   }, []);
+
+  // Save preferences whenever they change
+  useEffect(() => {
+    localStorage.setItem('notificationPreferences', JSON.stringify(notificationPrefs));
+  }, [notificationPrefs]);
 
   const themeDescription = useMemo(() => {
     switch (themePreference) {
@@ -103,6 +122,35 @@ const Settings = ({
     }
   };
 
+  const handleNotificationPrefToggle = (key) => {
+    setNotificationPrefs(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const handleFrequencyChange = (frequency) => {
+    setNotificationPrefs(prev => ({
+      ...prev,
+      frequency
+    }));
+  };
+
+  const handleMuteAll = () => {
+    setNotificationPrefs({
+      dailySummary: false,
+      overspendingAlert: false,
+      newReceiptScanned: false,
+      monthlyBudgetReminder: false,
+      frequency: notificationPrefs.frequency
+    });
+    setShowMuteConfirm(false);
+    showLocalNotification('Notifications Muted', {
+      body: 'All notification types have been disabled.',
+      tag: 'mute-all'
+    });
+  };
+
   return (
     <div className="settings">
       <section className="settings-section">
@@ -112,6 +160,7 @@ const Settings = ({
             <p>Choose how you hear about new expenses, summaries, and reminders.</p>
           </div>
         </header>
+
         <div className="settings-row">
           <label className="settings-toggle">
             <input
@@ -130,10 +179,153 @@ const Settings = ({
             Send test notification
           </button>
         </div>
+
+        {notificationsEnabled && (
+          <>
+            <div className="settings-divider"></div>
+
+            <div className="settings-subsection">
+              <h3 className="settings-subsection-title">Notification Types</h3>
+
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={notificationPrefs.dailySummary}
+                  onChange={() => handleNotificationPrefToggle('dailySummary')}
+                />
+                <span className="settings-toggle-slider" />
+                <div className="settings-toggle-info">
+                  <span className="settings-toggle-label">Daily Summary</span>
+                  <span className="settings-toggle-description">Get a recap of your spending each day</span>
+                </div>
+              </label>
+
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={notificationPrefs.overspendingAlert}
+                  onChange={() => handleNotificationPrefToggle('overspendingAlert')}
+                />
+                <span className="settings-toggle-slider" />
+                <div className="settings-toggle-info">
+                  <span className="settings-toggle-label">Overspending Alert</span>
+                  <span className="settings-toggle-description">Warns when you exceed budget limits</span>
+                </div>
+              </label>
+
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={notificationPrefs.newReceiptScanned}
+                  onChange={() => handleNotificationPrefToggle('newReceiptScanned')}
+                />
+                <span className="settings-toggle-slider" />
+                <div className="settings-toggle-info">
+                  <span className="settings-toggle-label">New Receipt Scanned</span>
+                  <span className="settings-toggle-description">Confirms when receipts are processed</span>
+                </div>
+              </label>
+
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={notificationPrefs.monthlyBudgetReminder}
+                  onChange={() => handleNotificationPrefToggle('monthlyBudgetReminder')}
+                />
+                <span className="settings-toggle-slider" />
+                <div className="settings-toggle-info">
+                  <span className="settings-toggle-label">Monthly Budget Reminder</span>
+                  <span className="settings-toggle-description">Reminds you to review your budget</span>
+                </div>
+              </label>
+            </div>
+
+            <div className="settings-divider"></div>
+
+            <div className="settings-subsection">
+              <h3 className="settings-subsection-title">Notification Frequency</h3>
+              <div className="settings-frequency-options">
+                <label className={`settings-frequency-card ${notificationPrefs.frequency === 'instant' ? 'active' : ''}`}>
+                  <input
+                    type="radio"
+                    name="frequency"
+                    value="instant"
+                    checked={notificationPrefs.frequency === 'instant'}
+                    onChange={() => handleFrequencyChange('instant')}
+                  />
+                  <span className="settings-frequency-icon">⚡</span>
+                  <span className="settings-frequency-label">Instant</span>
+                </label>
+
+                <label className={`settings-frequency-card ${notificationPrefs.frequency === 'daily' ? 'active' : ''}`}>
+                  <input
+                    type="radio"
+                    name="frequency"
+                    value="daily"
+                    checked={notificationPrefs.frequency === 'daily'}
+                    onChange={() => handleFrequencyChange('daily')}
+                  />
+                  <span className="settings-frequency-icon">📅</span>
+                  <span className="settings-frequency-label">Daily</span>
+                </label>
+
+                <label className={`settings-frequency-card ${notificationPrefs.frequency === 'weekly' ? 'active' : ''}`}>
+                  <input
+                    type="radio"
+                    name="frequency"
+                    value="weekly"
+                    checked={notificationPrefs.frequency === 'weekly'}
+                    onChange={() => handleFrequencyChange('weekly')}
+                  />
+                  <span className="settings-frequency-icon">📊</span>
+                  <span className="settings-frequency-label">Weekly</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="settings-divider"></div>
+
+            <div className="settings-row">
+              <button
+                type="button"
+                className="settings-mute-button"
+                onClick={() => setShowMuteConfirm(true)}
+              >
+                🔕 Mute All Notifications
+              </button>
+            </div>
+          </>
+        )}
+
         <div className="settings-hint">
-          Tip: we’ll ask for permission the first time you enable notifications.
+          Tip: we'll ask for permission the first time you enable notifications.
         </div>
       </section>
+
+      {showMuteConfirm && (
+        <div className="modal-overlay" onClick={() => setShowMuteConfirm(false)}>
+          <div className="mute-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Mute All Notifications?</h3>
+            <p>This will disable all notification types. You can re-enable them individually later.</p>
+            <div className="mute-confirm-actions">
+              <button
+                type="button"
+                className="btn-cancel"
+                onClick={() => setShowMuteConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-confirm"
+                onClick={handleMuteAll}
+              >
+                Mute All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="settings-section">
         <header className="settings-section-header">

@@ -888,15 +888,21 @@ async function generateCoachInsights({ conversation = [], analysis }) {
         }))
     : [];
 
-  const systemPrompt = `You are "Finch", an empathetic financial coach living inside a budgeting app.
-You study the provided JSON snapshot of the user's current expense data and offer concise, supportive insights.
+  const systemPrompt = `You are "Finch", an empathetic financial coach living inside a budgeting app with deep memory of all user expenses.
+You study the provided JSON snapshot containing complete expense history, spending patterns, merchant analytics, and budget data.
 Goals:
-- Highlight notable changes in spending versus prior periods (weeks or months) when data is available.
+- Remember and reference the user's complete spending history (all expenses, dates, merchants, and patterns).
+- Identify what they spend most money on by analyzing categoryAnalysis and topMerchants in spendingPatterns.
+- Highlight notable changes in spending versus prior periods when data is available.
 - Surface category-level overages, savings opportunities, and budget adherence.
-- Encourage the user with actionable, present-focused suggestions.
+- Point out merchant frequency patterns (e.g., "You've visited Starbucks 12 times this month").
+- Note spending habits by day of week when relevant (e.g., "You tend to spend more on weekends").
+- Reference specific past purchases to show you remember their habits.
+- Provide data-driven insights using avgTransactionValue, totalTransactions, and payment method preferences.
+- Encourage the user with actionable, present-focused suggestions based on their actual behavior.
 - Never claim certainty about the future or make forecasts; focus on observed trends.
-- Keep responses under 180 words. Favor a conversational voice over rigid bullet lists; mix short paragraphs with a couple of quick highlights when helpful.
-- Speak like a supportive friend who remembers the user's habits—naturally weave in numbers instead of listing them.
+- Keep responses under 200 words. Favor a conversational voice over rigid bullet lists; mix short paragraphs with quick highlights when helpful.
+- Speak like a supportive friend who actually remembers their habits—naturally weave in numbers and specific details instead of listing them generically.
 - Avoid generic financial disclaimers.
 - Wrap up with one encouraging note or a high-five for progress.`;
 
@@ -909,13 +915,33 @@ Goals:
   const personaInstruction = moodInstructions[moodPreference] || moodInstructions.motivator_serious;
 
   if (provider === AI_PROVIDERS.STUB) {
-      const topCategory = analysis?.categorySummary?.[0];
+    const topCategory = analysis?.categorySummary?.[0];
     const topCategoryName = topCategory?.categoryName ?? 'one of your tracked buckets';
     const leaderSummary = topCategory?.categoryId ? analysis?.categoryLeaders?.[topCategory.categoryId] : null;
     const topMerchant = leaderSummary?.topMerchants?.[0];
+
+    // Enhanced analytics from spendingPatterns
+    const patterns = analysis?.spendingPatterns;
+    const topMerchantFromPatterns = patterns?.topMerchants?.[0];
+    const topCategoryFromPatterns = patterns?.categoryAnalysis?.[0];
+    const avgTransaction = patterns?.avgTransactionValue;
+    const mostActiveDay = patterns?.mostActiveDay;
+    const totalExpenses = patterns?.totalTransactions || 0;
+
     const merchantBlurb = topMerchant
       ? ` Most of that is flowing to ${topMerchant.name} (~$${Number(topMerchant.total ?? 0).toFixed(2)} across ${topMerchant.count} visits).`
+      : topMerchantFromPatterns
+      ? ` Your top spending spot is ${topMerchantFromPatterns.name} with $${topMerchantFromPatterns.totalSpent.toFixed(2)} across ${topMerchantFromPatterns.count} visits.`
       : '';
+
+    const patternInsight = mostActiveDay
+      ? ` I've noticed you tend to spend more on ${mostActiveDay}s.`
+      : '';
+
+    const avgInsight = avgTransaction && totalExpenses > 5
+      ? ` Your average transaction is around $${avgTransaction.toFixed(2)}.`
+      : '';
+
     const roastClosingLines = [
       "Keep hustling—but maybe cool it on the $6 cold brew flex 😅",
       "Your budget's on life support. Time to bench that 'treat yo self' for a hot minute 🔥",
@@ -934,9 +960,9 @@ Goals:
       : pickClosing(seriousClosingLines);
 
     return {
-      message: `Here's what I'm seeing right now: your total spending this period is $${analysis?.totals?.spending?.toFixed?.(2) ?? '—'}, with ${analysis?.expenseCount ?? 'no'} logged purchases. You're still sitting on $${analysis?.totals?.remaining?.toFixed?.(2) ?? '—'} of buffer overall.
+      message: `Here's what I'm seeing across all ${totalExpenses} transactions: your total spending this period is $${analysis?.totals?.spending?.toFixed?.(2) ?? '—'}, with ${analysis?.expenseCount ?? 'no'} logged purchases. You're still sitting on $${analysis?.totals?.remaining?.toFixed?.(2) ?? '—'} of buffer overall.
 
-The busiest category at the moment is ${topCategoryName}.${merchantBlurb}
+The category you're spending most on is ${topCategoryFromPatterns?.category || topCategoryName}.${merchantBlurb}${avgInsight}${patternInsight}
 
 ${closingLine}`,
       usage: null

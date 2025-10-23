@@ -432,6 +432,145 @@ const formatDateDisplay = (iso) => {
       }));
   }, [expenses]);
 
+  // Complete expense history for AI Coach analysis
+  const allExpensesForCoach = useMemo(() => {
+    if (!Array.isArray(expenses)) {
+      return [];
+    }
+
+    return [...expenses]
+      .filter(expense => expense?.date)
+      .sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA;
+      })
+      .map(expense => ({
+        id: expense.id,
+        merchantName: expense.merchantName,
+        description: expense.description,
+        category: expense.category,
+        totalAmount: expense.totalAmount,
+        date: expense.date,
+        paymentMethod: expense.paymentMethod,
+        source: expense.source || 'unknown'
+      }));
+  }, [expenses]);
+
+  // Spending pattern analytics for AI Coach
+  const spendingPatterns = useMemo(() => {
+    if (!Array.isArray(expenses) || expenses.length === 0) {
+      return null;
+    }
+
+    // Merchant frequency and spending
+    const merchantStats = {};
+    expenses.forEach(expense => {
+      const merchant = expense.merchantName || 'Unknown';
+      if (!merchantStats[merchant]) {
+        merchantStats[merchant] = {
+          count: 0,
+          totalSpent: 0,
+          categories: new Set(),
+          dates: []
+        };
+      }
+      merchantStats[merchant].count += 1;
+      merchantStats[merchant].totalSpent += Number(expense.totalAmount || 0);
+      if (expense.category) {
+        merchantStats[merchant].categories.add(expense.category);
+      }
+      merchantStats[merchant].dates.push(expense.date);
+    });
+
+    // Convert to sorted array
+    const topMerchants = Object.entries(merchantStats)
+      .map(([name, stats]) => ({
+        name,
+        count: stats.count,
+        totalSpent: stats.totalSpent,
+        avgSpent: stats.totalSpent / stats.count,
+        categories: Array.from(stats.categories),
+        lastVisit: stats.dates.sort().reverse()[0]
+      }))
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, 10);
+
+    // Category spending analysis
+    const categoryStats = {};
+    expenses.forEach(expense => {
+      const category = expense.category || 'Other';
+      if (!categoryStats[category]) {
+        categoryStats[category] = {
+          count: 0,
+          totalSpent: 0,
+          avgPerTransaction: 0,
+          merchants: new Set()
+        };
+      }
+      categoryStats[category].count += 1;
+      categoryStats[category].totalSpent += Number(expense.totalAmount || 0);
+      if (expense.merchantName) {
+        categoryStats[category].merchants.add(expense.merchantName);
+      }
+    });
+
+    const categoryAnalysis = Object.entries(categoryStats)
+      .map(([name, stats]) => ({
+        category: name,
+        count: stats.count,
+        totalSpent: stats.totalSpent,
+        avgPerTransaction: stats.totalSpent / stats.count,
+        uniqueMerchants: stats.merchants.size
+      }))
+      .sort((a, b) => b.totalSpent - a.totalSpent);
+
+    // Payment method analysis
+    const paymentStats = {};
+    expenses.forEach(expense => {
+      const method = expense.paymentMethod || 'Not specified';
+      if (!paymentStats[method]) {
+        paymentStats[method] = { count: 0, totalSpent: 0 };
+      }
+      paymentStats[method].count += 1;
+      paymentStats[method].totalSpent += Number(expense.totalAmount || 0);
+    });
+
+    const paymentAnalysis = Object.entries(paymentStats)
+      .map(([method, stats]) => ({
+        method,
+        count: stats.count,
+        totalSpent: stats.totalSpent,
+        percentage: (stats.count / expenses.length) * 100
+      }))
+      .sort((a, b) => b.totalSpent - a.totalSpent);
+
+    // Spending frequency analysis
+    const dayOfWeekStats = [0, 0, 0, 0, 0, 0, 0]; // Sun-Sat
+    expenses.forEach(expense => {
+      if (expense.date) {
+        const [year, month, day] = expense.date.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        dayOfWeekStats[date.getDay()] += 1;
+      }
+    });
+
+    const mostActiveDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][
+      dayOfWeekStats.indexOf(Math.max(...dayOfWeekStats))
+    ];
+
+    return {
+      topMerchants,
+      categoryAnalysis,
+      paymentAnalysis,
+      totalTransactions: expenses.length,
+      totalSpent: expenses.reduce((sum, exp) => sum + Number(exp.totalAmount || 0), 0),
+      avgTransactionValue: expenses.reduce((sum, exp) => sum + Number(exp.totalAmount || 0), 0) / expenses.length,
+      mostActiveDay,
+      dayOfWeekDistribution: dayOfWeekStats
+    };
+  }, [expenses]);
+
   const dailyTotals = useMemo(() => {
     const accumulator = {};
 
@@ -995,6 +1134,8 @@ const formatDateDisplay = (iso) => {
         mood: coachMood
       },
       recentExpenses,
+      allExpenses: allExpensesForCoach,
+      spendingPatterns,
       dailyTotals,
       expenseCount: totalEntries
     };
@@ -1015,6 +1156,8 @@ const formatDateDisplay = (iso) => {
     totalRemaining,
     overallBudgetDelta,
     recentExpenses,
+    allExpensesForCoach,
+    spendingPatterns,
     dailyTotals,
     categoryLeaders,
     coachMood
@@ -1032,7 +1175,10 @@ const formatDateDisplay = (iso) => {
       categoryLeaders: analysisData.categoryLeaders,
       comparisonTotals: analysisData.comparison?.totals || null,
       mood: analysisData.preferences?.mood || null,
-      recentExpenseIds: (analysisData.recentExpenses || []).map(item => item.id || `${item.date}:${item.merchantName}`)
+      recentExpenseIds: (analysisData.recentExpenses || []).map(item => item.id || `${item.date}:${item.merchantName}`),
+      allExpenseCount: (analysisData.allExpenses || []).length,
+      topMerchant: analysisData.spendingPatterns?.topMerchants?.[0]?.name || null,
+      topCategory: analysisData.spendingPatterns?.categoryAnalysis?.[0]?.category || null
     });
   }, [analysisData]);
   if (loading && !summary) {
