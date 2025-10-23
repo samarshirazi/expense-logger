@@ -149,6 +149,15 @@ export const updateItemCategory = async (expenseId, itemIndex, category) => {
   }
 };
 
+export const createExpense = async (expenseData) => {
+  try {
+    const response = await api.post('/expenses', expenseData);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to create expense'));
+  }
+};
+
 export const updateExpense = async (id, updates) => {
   try {
     const response = await api.patch(`/expenses/${id}`, updates);

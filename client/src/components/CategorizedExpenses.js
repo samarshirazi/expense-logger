@@ -41,7 +41,15 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [actionItem, setActionItem] = useState(null);
-  const [editForm, setEditForm] = useState({ description: '', totalPrice: '', date: '', currency: 'USD' });
+  const [editForm, setEditForm] = useState({
+    description: '',
+    totalPrice: '',
+    date: '',
+    currency: 'USD',
+    merchantName: '',
+    category: '',
+    paymentMethod: ''
+  });
 
   const [isMobileView, setIsMobileView] = useState(false);
   const [showAiPanel, setShowAiPanel] = useState(false);
@@ -483,20 +491,31 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
     try {
       if (actionItem.itemIndex === -1) {
+        // Editing whole expense
         const updates = {
-          merchantName: editForm.description,
+          merchantName: editForm.merchantName || editForm.description,
           totalAmount: parseFloat(editForm.totalPrice),
-          date: editForm.date
+          date: editForm.date,
+          category: editForm.category,
+          paymentMethod: editForm.paymentMethod || null
         };
         await updateExpense(actionItem.expenseId, updates);
       } else {
+        // Editing individual item
         const updates = {
           description: editForm.description,
           totalPrice: parseFloat(editForm.totalPrice),
-          date: editForm.date
+          category: editForm.category
         };
         await updateExpenseItem(actionItem.expenseId, actionItem.itemIndex, updates);
-        await updateExpense(actionItem.expenseId, { date: editForm.date });
+
+        // Also update expense-level fields
+        const expenseUpdates = {
+          date: editForm.date,
+          merchantName: editForm.merchantName,
+          paymentMethod: editForm.paymentMethod || null
+        };
+        await updateExpense(actionItem.expenseId, expenseUpdates);
       }
 
       setShowEditModal(false);
@@ -516,10 +535,13 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     if (!item) return;
     setActionItem(item);
     setEditForm({
-      description: item.description || item.merchantName,
-      totalPrice: item.totalPrice || 0,
+      description: item.description || item.merchantName || '',
+      totalPrice: item.totalPrice || item.totalAmount || 0,
       date: item.date || '',
-      currency: item.currency || 'USD'
+      currency: item.currency || 'USD',
+      merchantName: item.merchantName || '',
+      category: item.category || '',
+      paymentMethod: item.paymentMethod || ''
     });
     setShowEditModal(true);
   }, []);
@@ -1341,8 +1363,19 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       {showEditModal && (
         <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="modal-content edit-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Edit Item</h3>
+            <h3>Edit Expense</h3>
             <form onSubmit={handleEditSubmit}>
+              <div className="form-group">
+                <label htmlFor="merchantName">Merchant Name</label>
+                <input
+                  type="text"
+                  id="merchantName"
+                  value={editForm.merchantName}
+                  onChange={(e) => setEditForm({ ...editForm, merchantName: e.target.value })}
+                  placeholder="e.g., Walmart, Amazon"
+                />
+              </div>
+
               <div className="form-group">
                 <label htmlFor="description">Description</label>
                 <input
@@ -1351,11 +1384,12 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                   value={editForm.description}
                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                   required
+                  placeholder="e.g., Groceries, Gas"
                 />
               </div>
 
               <div className="form-group">
-                <label htmlFor="totalPrice">Price</label>
+                <label htmlFor="totalPrice">Cost</label>
                 <input
                   type="number"
                   id="totalPrice"
@@ -1363,7 +1397,25 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                   value={editForm.totalPrice}
                   onChange={(e) => setEditForm({ ...editForm, totalPrice: e.target.value })}
                   required
+                  placeholder="0.00"
                 />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="category">Category</label>
+                <select
+                  id="category"
+                  value={editForm.category}
+                  onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                  required
+                >
+                  <option value="">Select Category</option>
+                  <option value="Food">🍔 Food</option>
+                  <option value="Transport">🚗 Transport</option>
+                  <option value="Shopping">🛍️ Shopping</option>
+                  <option value="Bills">💡 Bills</option>
+                  <option value="Other">📦 Other</option>
+                </select>
               </div>
 
               <div className="form-group">
@@ -1375,6 +1427,23 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                   onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
                   required
                 />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="paymentMethod">Payment Method</label>
+                <select
+                  id="paymentMethod"
+                  value={editForm.paymentMethod}
+                  onChange={(e) => setEditForm({ ...editForm, paymentMethod: e.target.value })}
+                >
+                  <option value="">Select Payment Method</option>
+                  <option value="Cash">💵 Cash</option>
+                  <option value="Credit Card">💳 Credit Card</option>
+                  <option value="Debit Card">💳 Debit Card</option>
+                  <option value="Mobile Payment">📱 Mobile Payment</option>
+                  <option value="Bank Transfer">🏦 Bank Transfer</option>
+                  <option value="Other">💰 Other</option>
+                </select>
               </div>
 
               <div className="modal-actions">

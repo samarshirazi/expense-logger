@@ -10,6 +10,10 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
+.log-expense-panel.full-width {
+  grid-column: 1 / -1;
+}
+
 @media (min-width: 992px) {
   .log-expense {
     grid-template-columns: repeat(2, minmax(0, 1fr));
