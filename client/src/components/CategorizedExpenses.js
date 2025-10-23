@@ -885,7 +885,8 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
               <button className="ai-review-button" onClick={handleAiReviewClick}>
                 <span className="ai-icon">🤖</span>
                 Review with AI
-            </button>
+              </button>
+            </div>
           </div>
 
           <div className="category-pill-bar">
