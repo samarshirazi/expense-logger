@@ -182,20 +182,14 @@ function ManualExpenseForm({ onExpenseAdded, expenses = [] }) {
               Payment Method
               <span className="optional">(optional)</span>
             </label>
-            <select
+            <input
+              type="text"
               id="paymentMethod"
               name="paymentMethod"
               value={formData.paymentMethod}
               onChange={handleChange}
-            >
-              <option value="">Select Payment Method</option>
-              <option value="Cash">💵 Cash</option>
-              <option value="Credit Card">💳 Credit Card</option>
-              <option value="Debit Card">💳 Debit Card</option>
-              <option value="Mobile Payment">📱 Mobile Payment</option>
-              <option value="Bank Transfer">🏦 Bank Transfer</option>
-              <option value="Other">💰 Other</option>
-            </select>
+              placeholder="e.g., Cash, Credit Card, Debit Card, Venmo, PayPal"
+            />
           </div>
         </div>
 

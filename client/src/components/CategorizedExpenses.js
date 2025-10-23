@@ -1431,19 +1431,13 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
               <div className="form-group">
                 <label htmlFor="paymentMethod">Payment Method</label>
-                <select
+                <input
+                  type="text"
                   id="paymentMethod"
                   value={editForm.paymentMethod}
                   onChange={(e) => setEditForm({ ...editForm, paymentMethod: e.target.value })}
-                >
-                  <option value="">Select Payment Method</option>
-                  <option value="Cash">💵 Cash</option>
-                  <option value="Credit Card">💳 Credit Card</option>
-                  <option value="Debit Card">💳 Debit Card</option>
-                  <option value="Mobile Payment">📱 Mobile Payment</option>
-                  <option value="Bank Transfer">🏦 Bank Transfer</option>
-                  <option value="Other">💰 Other</option>
-                </select>
+                  placeholder="e.g., Cash, Credit Card, Debit Card, Venmo"
+                />
               </div>
 
               <div className="modal-actions">
