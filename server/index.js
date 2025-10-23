@@ -7,7 +7,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: t
 
 const { processReceiptWithAI, parseManualEntry, generateCoachInsights } = require('./services/aiService');
 const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('./services/googleDriveService');
-const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable, updateExpenseCategory, updateItemCategory, updateExpense } = require('./services/supabaseService');
+const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable, updateExpenseCategory, updateItemCategory, updateExpense, createCategoryLearningTable, learnCategoryCorrection, getLearnedCategories } = require('./services/supabaseService');
 const { signUp, signIn, signOut, requireAuth } = require('./services/authService');
 const { saveSubscription, sendPushToUser, createPushSubscriptionsTable } = require('./services/notificationService');
 
@@ -218,6 +218,52 @@ app.post('/api/manual-entry', requireAuth, async (req, res) => {
     console.error('Error processing manual entry:', error);
     res.status(500).json({
       error: 'Failed to process manual entry',
+      details: error.message
+    });
+  }
+});
+
+// Category Learning endpoints
+app.post('/api/category-learning', requireAuth, async (req, res) => {
+  try {
+    const { merchantName, description, category } = req.body;
+
+    if (!category) {
+      return res.status(400).json({ error: 'Category is required' });
+    }
+
+    const result = await learnCategoryCorrection(
+      req.user.id,
+      merchantName,
+      description,
+      category
+    );
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error learning category:', error);
+    res.status(500).json({
+      error: 'Failed to learn category correction',
+      details: error.message
+    });
+  }
+});
+
+app.get('/api/category-learning', requireAuth, async (req, res) => {
+  try {
+    const learned = await getLearnedCategories(req.user.id);
+
+    res.json({
+      success: true,
+      data: learned
+    });
+  } catch (error) {
+    console.error('Error getting learned categories:', error);
+    res.status(500).json({
+      error: 'Failed to get learned categories',
       details: error.message
     });
   }
@@ -763,6 +809,9 @@ async function startServer() {
 
     // Create push subscriptions table if it doesn't exist
     await createPushSubscriptionsTable();
+
+    // Create category learning table if it doesn't exist
+    await createCategoryLearningTable();
 
     app.listen(PORT, () => {
       console.log(`✅ Server running on port ${PORT}`);

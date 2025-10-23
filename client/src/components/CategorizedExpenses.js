@@ -34,7 +34,7 @@ const DEFAULT_BUDGET = {
   Other: 100
 };
 
-function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRefresh, dateRange }) {
+function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRefresh, dateRange, onSwitchToLog }) {
   const [categorizedExpenses, setCategorizedExpenses] = useState(createEmptyBoard);
   const [monthlyBudgets, setMonthlyBudgets] = useState({});
   const [error, setError] = useState(null);
@@ -68,6 +68,10 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   const [mobileEditItem, setMobileEditItem] = useState(null);
   const [showMobileAdjust, setShowMobileAdjust] = useState(false);
   const [mobileLongPressActive, setMobileLongPressActive] = useState(false);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [customCategories, setCustomCategories] = useState([]);
+  const [categoryForm, setCategoryForm] = useState({ id: '', name: '', icon: '', color: '' });
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
 
   const isUpdatingRef = useRef(false);
   const categorizedExpensesRef = useRef(createEmptyBoard());
@@ -115,6 +119,28 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       window.removeEventListener('budgetUpdated', handleBudgetUpdate);
     };
   }, []);
+
+  // Load custom categories from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('customCategories');
+    if (saved) {
+      try {
+        setCustomCategories(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load custom categories:', e);
+      }
+    }
+  }, []);
+
+  // Save custom categories to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('customCategories', JSON.stringify(customCategories));
+  }, [customCategories]);
+
+  // Merge default and custom categories
+  const allCategories = useMemo(() => {
+    return [...CATEGORIES, ...customCategories];
+  }, [customCategories]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -766,6 +792,68 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     };
   }, [activeCategory, isMobileView]);
 
+  // Category management functions
+  const handleAddCategory = () => {
+    if (!categoryForm.name || !categoryForm.icon || !categoryForm.color) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    const newCategory = {
+      id: categoryForm.name.replace(/\s+/g, ''),
+      name: categoryForm.name,
+      icon: categoryForm.icon,
+      color: categoryForm.color,
+      gradient: `linear-gradient(135deg, ${categoryForm.color} 0%, ${categoryForm.color}cc 100%)`
+    };
+
+    setCustomCategories(prev => [...prev, newCategory]);
+    setCategoryForm({ id: '', name: '', icon: '', color: '' });
+  };
+
+  const handleEditCategory = (category) => {
+    setEditingCategoryId(category.id);
+    setCategoryForm({
+      id: category.id,
+      name: category.name,
+      icon: category.icon,
+      color: category.color
+    });
+  };
+
+  const handleUpdateCategory = () => {
+    if (!categoryForm.name || !categoryForm.icon || !categoryForm.color) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    setCustomCategories(prev => prev.map(cat =>
+      cat.id === editingCategoryId
+        ? {
+            ...cat,
+            name: categoryForm.name,
+            icon: categoryForm.icon,
+            color: categoryForm.color,
+            gradient: `linear-gradient(135deg, ${categoryForm.color} 0%, ${categoryForm.color}cc 100%)`
+          }
+        : cat
+    ));
+
+    setEditingCategoryId(null);
+    setCategoryForm({ id: '', name: '', icon: '', color: '' });
+  };
+
+  const handleDeleteCategory = (categoryId) => {
+    if (window.confirm('Are you sure you want to delete this category? Expenses in this category will be moved to "Other".')) {
+      setCustomCategories(prev => prev.filter(cat => cat.id !== categoryId));
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCategoryId(null);
+    setCategoryForm({ id: '', name: '', icon: '', color: '' });
+  };
+
   return (
     <div className={`categorized-expenses ${isMobileView ? 'mobile-view' : ''}`}>
       {/* Mobile Compact Header */}
@@ -773,7 +861,10 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         <div className="mobile-compact-header">
           <div className="mobile-header-row">
             <h2 className="mobile-title">Categories</h2>
-            <button className="mobile-adjust-btn" onClick={() => setShowMobileAdjust(true)}>Adjust</button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="mobile-adjust-btn" onClick={() => setShowCategoryManager(true)}>⚙️</button>
+              <button className="mobile-adjust-btn" onClick={() => setShowMobileAdjust(true)}>Adjust</button>
+            </div>
           </div>
           <button className="ai-chip-mobile" onClick={handleAiReviewClick}>
             💬 Review with AI
@@ -786,14 +877,19 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
               <h2>Review &amp; Categorize</h2>
               <p className="board-subtitle">Organize spending with a responsive, AI-assisted command center.</p>
             </div>
-            <button className="ai-review-button" onClick={handleAiReviewClick}>
-              <span className="ai-icon">🤖</span>
-              Review with AI
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="ai-review-button" onClick={() => setShowCategoryManager(true)}>
+                <span className="ai-icon">⚙️</span>
+                Manage Categories
+              </button>
+              <button className="ai-review-button" onClick={handleAiReviewClick}>
+                <span className="ai-icon">🤖</span>
+                Review with AI
             </button>
           </div>
 
           <div className="category-pill-bar">
-            {CATEGORIES.map(category => (
+            {allCategories.map(category => (
               <button
                 key={category.id}
                 className={`category-pill ${activeCategory === category.id ? 'active' : ''}`}
@@ -817,7 +913,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       {/* Mobile Compact 2-Column Grid */}
       {isMobileView ? (
         <div className="mobile-category-grid">
-          {CATEGORIES.map(category => {
+          {allCategories.map(category => {
             const items = categorizedExpenses[category.id] || [];
             const total = getCategoryTotal(category.id);
             const progress = getCategoryProgress(category.id);
@@ -852,7 +948,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="board-wrapper" ref={boardWrapperRef}>
-            {CATEGORIES.map(category => {
+            {allCategories.map(category => {
             const items = categorizedExpenses[category.id] || [];
             return (
               <div key={category.id} className="category-row">
@@ -1126,7 +1222,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                   value={mobileEditItem.category}
                   onChange={(e) => setMobileEditItem({...mobileEditItem, category: e.target.value})}
                 >
-                  {CATEGORIES.map(cat => (
+                  {allCategories.map(cat => (
                     <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
                   ))}
                 </select>
@@ -1162,7 +1258,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                 View and manage your category budgets. Tap a category card to see detailed spending.
               </p>
               <div className="mobile-adjust-categories">
-                {CATEGORIES.map(category => {
+                {allCategories.map(category => {
                   const total = getCategoryTotal(category.id);
                   const progress = getCategoryProgress(category.id);
                   return (
@@ -1228,7 +1324,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
             <div className="bottom-sheet-section">
               <div className="section-label">Move to category</div>
               <div className="category-chip-grid">
-                {CATEGORIES.map(category => (
+                {allCategories.map(category => (
                   <button
                     key={category.id}
                     className={`category-chip ${category.id === activeBottomSheetItem.category ? 'active' : ''}`}
@@ -1271,7 +1367,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         </div>
       )}
 
-      <button className="floating-add-button" onClick={() => onExpenseSelect && onExpenseSelect(null)}>
+      <button className="floating-add-button" onClick={() => onSwitchToLog && onSwitchToLog()}>
         ＋ Add Expense
       </button>
 
@@ -1453,6 +1549,91 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Category Manager Modal */}
+      {showCategoryManager && (
+        <div className="modal-overlay" onClick={() => setShowCategoryManager(false)}>
+          <div className="modal-content category-manager-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Manage Categories</h3>
+              <button className="modal-close" onClick={() => setShowCategoryManager(false)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+              <div className="category-form">
+                <h4>{editingCategoryId ? 'Edit Category' : 'Add New Category'}</h4>
+                <div className="form-group">
+                  <label>Name</label>
+                  <input
+                    type="text"
+                    value={categoryForm.name}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                    placeholder="e.g., Entertainment"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Icon (Emoji)</label>
+                  <input
+                    type="text"
+                    value={categoryForm.icon}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
+                    placeholder="🎬"
+                    maxLength="2"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Color</label>
+                  <input
+                    type="color"
+                    value={categoryForm.color}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                  />
+                </div>
+                <div className="form-actions">
+                  {editingCategoryId ? (
+                    <>
+                      <button className="btn btn-cancel" onClick={handleCancelEdit}>Cancel</button>
+                      <button className="btn btn-primary" onClick={handleUpdateCategory}>Update</button>
+                    </>
+                  ) : (
+                    <button className="btn btn-primary" onClick={handleAddCategory}>Add Category</button>
+                  )}
+                </div>
+              </div>
+
+              <div className="categories-list">
+                <h4>Default Categories</h4>
+                <div className="category-items">
+                  {CATEGORIES.map(category => (
+                    <div key={category.id} className="category-item" style={{ borderLeft: `4px solid ${category.color}` }}>
+                      <span className="category-item-icon">{category.icon}</span>
+                      <span className="category-item-name">{category.name}</span>
+                      <span className="category-item-badge">Default</span>
+                    </div>
+                  ))}
+                </div>
+
+                {customCategories.length > 0 && (
+                  <>
+                    <h4 style={{ marginTop: '20px' }}>Custom Categories</h4>
+                    <div className="category-items">
+                      {customCategories.map(category => (
+                        <div key={category.id} className="category-item" style={{ borderLeft: `4px solid ${category.color}` }}>
+                          <span className="category-item-icon">{category.icon}</span>
+                          <span className="category-item-name">{category.name}</span>
+                          <div className="category-item-actions">
+                            <button className="btn-icon" onClick={() => handleEditCategory(category)}>✏️</button>
+                            <button className="btn-icon" onClick={() => handleDeleteCategory(category.id)}>🗑️</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -621,6 +621,83 @@ async function updateExpense(id, expenseData, userId, userToken = null) {
   }
 }
 
+async function createCategoryLearningTable() {
+  try {
+    const supabase = initSupabase();
+
+    const { error } = await supabase.rpc('exec_sql', {
+      sql: `
+        CREATE TABLE IF NOT EXISTS category_learning (
+          id SERIAL PRIMARY KEY,
+          user_id UUID NOT NULL,
+          merchant_name VARCHAR(255),
+          description_pattern VARCHAR(255),
+          learned_category VARCHAR(50) NOT NULL,
+          confidence_score INTEGER DEFAULT 1,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(user_id, merchant_name, description_pattern)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_category_learning_user_merchant ON category_learning(user_id, merchant_name);
+        CREATE INDEX IF NOT EXISTS idx_category_learning_user_desc ON category_learning(user_id, description_pattern);
+      `
+    });
+
+    if (error) {
+      console.warn('Category learning table may already exist:', error.message);
+    } else {
+      console.log('✅ Category learning table ready');
+    }
+  } catch (error) {
+    console.warn('Note: Category learning table setup skipped:', error.message);
+  }
+}
+
+async function learnCategoryCorrection(userId, merchantName, description, category) {
+  try {
+    const supabase = initSupabase();
+
+    const { data, error } = await supabase
+      .from('category_learning')
+      .upsert({
+        user_id: userId,
+        merchant_name: merchantName || null,
+        description_pattern: description || null,
+        learned_category: category,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,merchant_name,description_pattern'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error learning category:', error);
+    throw error;
+  }
+}
+
+async function getLearnedCategories(userId) {
+  try {
+    const supabase = initSupabase();
+
+    const { data, error } = await supabase
+      .from('category_learning')
+      .select('*')
+      .eq('user_id', userId)
+      .order('confidence_score', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting learned categories:', error);
+    return [];
+  }
+}
+
 module.exports = {
   initSupabase,
   testConnection,
@@ -633,5 +710,8 @@ module.exports = {
   subscribeToExpenses,
   updateExpenseCategory,
   updateItemCategory,
-  updateExpense
+  updateExpense,
+  createCategoryLearningTable,
+  learnCategoryCorrection,
+  getLearnedCategories
 };

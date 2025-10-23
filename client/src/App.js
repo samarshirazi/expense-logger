@@ -535,6 +535,7 @@ function App() {
               onCategoryUpdate={handleCategoryUpdate}
               onRefresh={loadExpenses}
               dateRange={dateRange}
+              onSwitchToLog={() => setActiveView('log')}
             />
           </div>
         )}
