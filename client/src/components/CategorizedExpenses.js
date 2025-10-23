@@ -19,15 +19,24 @@ const createEmptyBoard = () =>
 const CARD_LONG_PRESS_DELAY = 420;
 
 const CATEGORIES = [
-  { id: 'Food', name: 'Food', icon: '🍔', color: '#ff6b6b', gradient: 'linear-gradient(135deg, #ff6b6b 0%, #ff8585 100%)', budget: 450 },
-  { id: 'Transport', name: 'Transport', icon: '🚗', color: '#4ecdc4', gradient: 'linear-gradient(135deg, #4ecdc4 0%, #76e3da 100%)', budget: 220 },
-  { id: 'Shopping', name: 'Shopping', icon: '🛍️', color: '#45b7d1', gradient: 'linear-gradient(135deg, #45b7d1 0%, #6fd0e6 100%)', budget: 300 },
-  { id: 'Bills', name: 'Bills', icon: '💡', color: '#f9ca24', gradient: 'linear-gradient(135deg, #f9ca24 0%, #ffd866 100%)', budget: 380 },
-  { id: 'Other', name: 'Other', icon: '📦', color: '#95afc0', gradient: 'linear-gradient(135deg, #95afc0 0%, #b7c7d3 100%)', budget: 200 }
+  { id: 'Food', name: 'Food', icon: '🍔', color: '#ff6b6b', gradient: 'linear-gradient(135deg, #ff6b6b 0%, #ff8585 100%)' },
+  { id: 'Transport', name: 'Transport', icon: '🚗', color: '#4ecdc4', gradient: 'linear-gradient(135deg, #4ecdc4 0%, #76e3da 100%)' },
+  { id: 'Shopping', name: 'Shopping', icon: '🛍️', color: '#45b7d1', gradient: 'linear-gradient(135deg, #45b7d1 0%, #6fd0e6 100%)' },
+  { id: 'Bills', name: 'Bills', icon: '💡', color: '#f9ca24', gradient: 'linear-gradient(135deg, #f9ca24 0%, #ffd866 100%)' },
+  { id: 'Other', name: 'Other', icon: '📦', color: '#95afc0', gradient: 'linear-gradient(135deg, #95afc0 0%, #b7c7d3 100%)' }
 ];
+
+const DEFAULT_BUDGET = {
+  Food: 500,
+  Transport: 200,
+  Shopping: 300,
+  Bills: 400,
+  Other: 100
+};
 
 function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRefresh, dateRange }) {
   const [categorizedExpenses, setCategorizedExpenses] = useState(createEmptyBoard);
+  const [monthlyBudgets, setMonthlyBudgets] = useState({});
   const [error, setError] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -58,6 +67,41 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   const longPressTimeoutRef = useRef(null);
   const columnRefs = useRef({});
   const boardWrapperRef = useRef(null);
+
+  // Load budgets from localStorage
+  useEffect(() => {
+    const loadBudgets = () => {
+      const saved = localStorage.getItem('monthlyBudgets');
+      if (saved) {
+        setMonthlyBudgets(JSON.parse(saved));
+      } else {
+        // Initialize with default budget for current month
+        const currentMonth = new Date().toISOString().substring(0, 7);
+        const initialBudgets = { [currentMonth]: { ...DEFAULT_BUDGET } };
+        setMonthlyBudgets(initialBudgets);
+        localStorage.setItem('monthlyBudgets', JSON.stringify(initialBudgets));
+      }
+    };
+
+    loadBudgets();
+
+    // Listen for storage changes (in case budgets are updated in another tab/component)
+    const handleStorageChange = (e) => {
+      if (e.key === 'monthlyBudgets' && e.newValue) {
+        setMonthlyBudgets(JSON.parse(e.newValue));
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also check for localStorage changes every second (for same-tab updates)
+    const interval = setInterval(loadBudgets, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -188,17 +232,32 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }, []);
 
+  // Helper function to get budget for a category
+  const getCategoryBudget = useCallback((categoryId) => {
+    const currentMonth = dateRange?.startDate
+      ? dateRange.startDate.substring(0, 7)
+      : new Date().toISOString().substring(0, 7);
+
+    const currentBudget = monthlyBudgets[currentMonth];
+    if (currentBudget && currentBudget[categoryId] !== undefined) {
+      return currentBudget[categoryId];
+    }
+
+    // Fallback to default budget
+    return DEFAULT_BUDGET[categoryId] || 0;
+  }, [monthlyBudgets, dateRange]);
+
   const getCategoryTotal = useCallback((categoryId) => {
     const items = categorizedExpenses[categoryId] || [];
     return items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
   }, [categorizedExpenses]);
 
   const getCategoryProgress = useCallback((categoryId) => {
-    const category = CATEGORIES.find(c => c.id === categoryId);
-    if (!category) return 0;
+    const budget = getCategoryBudget(categoryId);
+    if (budget === 0) return 0;
     const total = getCategoryTotal(categoryId);
-    return Math.min((total / category.budget) * 100, 100);
-  }, [getCategoryTotal]);
+    return Math.min((total / budget) * 100, 100);
+  }, [getCategoryTotal, getCategoryBudget]);
 
   const closeUndoToast = useCallback(() => {
     setShowUndoToast(false);
@@ -875,9 +934,9 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                       <div className="mobile-sheet-stats">
                         <span>Spent: <strong style={{ color: category.color }}>{formatCurrency(total)}</strong></span>
                         <span className="stat-divider">•</span>
-                        <span>Budget: <strong>{formatCurrency(category.budget)}</strong></span>
+                        <span>Budget: <strong>{formatCurrency(getCategoryBudget(category.id))}</strong></span>
                         <span className="stat-divider">•</span>
-                        <span>Left: <strong>{formatCurrency(category.budget - total)}</strong></span>
+                        <span>Left: <strong>{formatCurrency(getCategoryBudget(category.id) - total)}</strong></span>
                       </div>
                       <div className="mobile-sheet-progress">
                         <div
@@ -1067,7 +1126,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                       <div className="mobile-adjust-cat-info">
                         <div className="mobile-adjust-cat-row">
                           <span>Budget:</span>
-                          <strong>{formatCurrency(category.budget)}</strong>
+                          <strong>{formatCurrency(getCategoryBudget(category.id))}</strong>
                         </div>
                         <div className="mobile-adjust-cat-row">
                           <span>Spent:</span>

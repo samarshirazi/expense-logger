@@ -33,16 +33,25 @@ const ReceiptUpload = ({ onExpenseAdded }) => {
   // Helper function to check budget thresholds
   const checkBudgetThresholds = useCallback(async (addedExpense) => {
     try {
+      console.log('🔔 Checking budget thresholds for receipt...', addedExpense);
+
       // Get monthly budgets from localStorage
       const monthlyBudgets = JSON.parse(localStorage.getItem('monthlyBudgets') || '{}');
       const currentMonth = getMonthKey(new Date().toISOString().split('T')[0]);
       const currentBudget = monthlyBudgets[currentMonth];
 
-      if (!currentBudget) return;
+      console.log('📊 Current budget:', currentBudget);
+
+      if (!currentBudget) {
+        console.log('❌ No budget found for current month');
+        return;
+      }
 
       // Get all expenses from localStorage
       const allExpensesStr = localStorage.getItem('expenses');
       let allExpenses = allExpensesStr ? JSON.parse(allExpensesStr) : [];
+
+      console.log('💰 Total expenses loaded:', allExpenses.length);
 
       // Calculate current spending by category for the month
       const monthSpending = {
@@ -79,33 +88,49 @@ const ReceiptUpload = ({ onExpenseAdded }) => {
         monthSpending[category] += addedExpense.totalAmount || 0;
       }
 
+      console.log('📈 Month spending by category:', monthSpending);
+
       // Check for categories approaching or exceeding budget
       const THRESHOLD = 0.85; // 85% of budget
       const permissionState = getNotificationPermissionState();
 
-      Object.keys(monthSpending).forEach(async (category) => {
+      console.log('🔐 Notification permission:', permissionState);
+
+      for (const category of Object.keys(monthSpending)) {
         const budget = currentBudget[category] || 0;
         const spent = monthSpending[category] || 0;
         const percentage = budget > 0 ? (spent / budget) * 100 : 0;
 
-        if (percentage >= 100 && permissionState === 'granted') {
-          // Over budget
-          await showLocalNotification('Budget Exceeded! ⚠️', {
-            body: `You've exceeded your ${category} budget! Spent $${spent.toFixed(2)} of $${budget.toFixed(2)} (${Math.round(percentage)}%)`,
-            icon: '/icon-192.svg',
-            tag: `budget-warning-${category}`,
-            data: { category, percentage }
-          });
-        } else if (percentage >= THRESHOLD * 100 && percentage < 100 && permissionState === 'granted') {
-          // Close to budget
-          await showLocalNotification('Budget Alert 💡', {
-            body: `You're close to your ${category} budget limit! Spent $${spent.toFixed(2)} of $${budget.toFixed(2)} (${Math.round(percentage)}%)`,
-            icon: '/icon-192.svg',
-            tag: `budget-alert-${category}`,
-            data: { category, percentage }
-          });
+        console.log(`📊 ${category}: $${spent.toFixed(2)} / $${budget.toFixed(2)} (${percentage.toFixed(1)}%)`);
+
+        if (budget === 0) continue;
+
+        if (percentage >= 100) {
+          console.log(`⚠️ ${category} OVER BUDGET!`);
+          if (permissionState === 'granted') {
+            await showLocalNotification('Budget Exceeded! ⚠️', {
+              body: `You've exceeded your ${category} budget! Spent $${spent.toFixed(2)} of $${budget.toFixed(2)} (${Math.round(percentage)}%)`,
+              icon: '/icon-192.svg',
+              tag: `budget-warning-${category}`,
+              data: { category, percentage }
+            });
+          } else {
+            console.log('❌ Cannot show notification - permission not granted');
+          }
+        } else if (percentage >= THRESHOLD * 100) {
+          console.log(`💡 ${category} approaching budget limit!`);
+          if (permissionState === 'granted') {
+            await showLocalNotification('Budget Alert 💡', {
+              body: `You're close to your ${category} budget limit! Spent $${spent.toFixed(2)} of $${budget.toFixed(2)} (${Math.round(percentage)}%)`,
+              icon: '/icon-192.svg',
+              tag: `budget-alert-${category}`,
+              data: { category, percentage }
+            });
+          } else {
+            console.log('❌ Cannot show notification - permission not granted');
+          }
         }
-      });
+      }
     } catch (err) {
       console.warn('Failed to check budget thresholds:', err);
     }
