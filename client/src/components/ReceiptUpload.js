@@ -133,7 +133,7 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
     } catch (err) {
       console.warn('Failed to check budget thresholds:', err);
     }
-  }, [getMonthKey]);
+  }, [getMonthKey, expenses]);
 
   const handleFileUpload = useCallback(async (file) => {
     setUploading(true);
