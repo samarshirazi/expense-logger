@@ -223,6 +223,61 @@ app.post('/api/manual-entry', requireAuth, async (req, res) => {
   }
 });
 
+// Create expense directly (for manual expense form)
+app.post('/api/expenses', requireAuth, async (req, res) => {
+  try {
+    const expenseData = req.body;
+
+    // Validate required fields
+    if (!expenseData.date) {
+      return res.status(400).json({ error: 'Date is required' });
+    }
+    if (!expenseData.totalAmount || expenseData.totalAmount <= 0) {
+      return res.status(400).json({ error: 'Valid amount is required' });
+    }
+
+    console.log('Creating manual expense...');
+    const expenseId = await saveExpense({
+      ...expenseData,
+      originalFilename: null,
+      driveFileId: null,
+      uploadDate: new Date().toISOString()
+    }, req.user.id, req.token);
+
+    // Send push notification
+    try {
+      const notificationPayload = {
+        title: 'Expense Added!',
+        body: `${expenseData.merchantName || expenseData.description} - $${expenseData.totalAmount}`,
+        icon: '/icon-192.svg',
+        badge: '/icon-192.svg',
+        tag: `expense-${expenseId}`,
+        data: {
+          url: '/',
+          expenseId: expenseId
+        }
+      };
+      await sendPushToUser(req.user.id, notificationPayload, req.token);
+    } catch (notifError) {
+      console.warn('⚠️  Failed to send push notification:', notifError.message);
+    }
+
+    res.json({
+      success: true,
+      expenseId,
+      expense: expenseData,
+      message: 'Expense added successfully'
+    });
+
+  } catch (error) {
+    console.error('Error creating expense:', error);
+    res.status(500).json({
+      error: 'Failed to create expense',
+      details: error.message
+    });
+  }
+});
+
 // Category Learning endpoints
 app.post('/api/category-learning', requireAuth, async (req, res) => {
   try {
