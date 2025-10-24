@@ -500,7 +500,7 @@ function App() {
               expenses={expenses}
               timelineState={sharedTimelineState}
               onTimelineStateChange={setSharedTimelineState}
-              adjustEnabled={activeView !== 'expenses'}
+              adjustEnabled={true}
             />
           </div>
         )}
