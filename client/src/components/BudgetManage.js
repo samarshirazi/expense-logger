@@ -98,28 +98,32 @@ function BudgetManage({ expenses, dateRange }) {
       return expense.date && expense.date.startsWith(selectedMonth);
     });
 
-    const monthTotals = {
-      Food: 0,
-      Transport: 0,
-      Shopping: 0,
-      Bills: 0,
-      Other: 0
-    };
+    // Initialize totals for all categories (default + custom)
+    const monthTotals = {};
+    CATEGORIES.forEach(cat => {
+      monthTotals[cat.id] = 0;
+    });
 
     monthExpenses.forEach(expense => {
       if (expense.items && expense.items.length > 0) {
         expense.items.forEach(item => {
           const itemCategory = item.category || 'Other';
+          if (!monthTotals[itemCategory]) {
+            monthTotals[itemCategory] = 0;
+          }
           monthTotals[itemCategory] += item.totalPrice || 0;
         });
       } else {
         const category = expense.category || 'Other';
+        if (!monthTotals[category]) {
+          monthTotals[category] = 0;
+        }
         monthTotals[category] += expense.totalAmount || 0;
       }
     });
 
     setMonthSpending(monthTotals);
-  }, [expenses, dateRange, selectedMonth]);
+  }, [expenses, dateRange, selectedMonth, CATEGORIES]);
 
   const currentBudget = monthlyBudgets[selectedMonth] || { ...DEFAULT_BUDGET };
 
@@ -131,8 +135,10 @@ function BudgetManage({ expenses, dateRange }) {
   };
 
   const getPercentage = (actual, budget) => {
-    if (budget === 0) return 0;
-    return (actual / budget) * 100;
+    if (!budget || budget === 0) return 0;
+    if (!actual || isNaN(actual)) return 0;
+    const percentage = (actual / budget) * 100;
+    return isNaN(percentage) ? 0 : percentage;
   };
 
   const getProgressColor = (percentage) => {

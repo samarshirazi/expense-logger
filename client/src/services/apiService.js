@@ -151,7 +151,7 @@ export const updateItemCategory = async (expenseId, itemIndex, category) => {
 
 export const createExpense = async (expenseData) => {
   try {
-    const response = await api.post('/expenses', expenseData);
+    const response = await api.post('/manual-entry', expenseData);
     return response.data;
   } catch (error) {
     throw new Error(extractApiError(error, 'Failed to create expense'));
