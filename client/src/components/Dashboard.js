@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 import authService from '../services/authService';
 import './Dashboard.css';
 import AICoachPanel from './AICoachPanel';
@@ -330,7 +331,10 @@ const formatPercent = (value) => {
 
 const formatDateDisplay = (iso) => {
   if (!iso) return '—';
-  const date = new Date(iso);
+  // Parse YYYY-MM-DD format properly to avoid timezone issues
+  const [year, month, day] = iso.split('-').map(Number);
+  if (!year || !month || !day) return '—';
+  const date = new Date(year, month - 1, day);
   if (Number.isNaN(date.getTime())) return '—';
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
@@ -371,7 +375,7 @@ const formatDateDisplay = (iso) => {
         remaining
       };
     });
-  }, [progressSummary, summary, categoryBudget]);
+  }, [progressSummary, summary, categoryBudget, CATEGORIES]);
 
   const categoryDetailsRange = useMemo(() => {
     const totals = summary?.itemCategoryTotals || {};
@@ -388,7 +392,7 @@ const formatDateDisplay = (iso) => {
         remaining
       };
     });
-  }, [summary, categoryBudget]);
+  }, [summary, categoryBudget, CATEGORIES]);
 
   const totalSpent = useMemo(
     () => categoryDetails.reduce((sum, detail) => sum + detail.spent, 0),
@@ -601,8 +605,13 @@ const formatDateDisplay = (iso) => {
     }
 
     return Object.entries(accumulator)
-      .map(([date, total]) => ({ date, total }))
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .map(([date, total]) => {
+        // Parse the date string (YYYY-MM-DD) using local date to avoid timezone issues
+        const [year, month, day] = date.split('-').map(Number);
+        const localDate = new Date(year, month - 1, day);
+        return { date, total, sortDate: localDate };
+      })
+      .sort((a, b) => a.sortDate - b.sortDate);
   }, [summary, expenses]);
 
   const categoryLeaders = useMemo(() => {
@@ -710,7 +719,7 @@ const formatDateDisplay = (iso) => {
     };
 
     return result;
-  }, [summary, expenses]);
+  }, [summary, expenses, CATEGORIES]);
 
   const categoryLookup = useMemo(() => {
     const map = {};
@@ -718,7 +727,7 @@ const formatDateDisplay = (iso) => {
       map[category.id] = category;
     });
     return map;
-  }, []);
+  }, [CATEGORIES]);
 
   const categorySpentMap = useMemo(() => {
     const map = {};
@@ -757,7 +766,7 @@ const formatDateDisplay = (iso) => {
     });
 
     return result;
-  }, [comparisonSummary, categorySpentMap]);
+  }, [comparisonSummary, categorySpentMap, CATEGORIES]);
 
   const topCategoryDetail = useMemo(() => {
     if (!categoryDetails.length) {
@@ -880,6 +889,224 @@ const formatDateDisplay = (iso) => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  }, [expenses]);
+
+  const exportToExcelDaily = useCallback(() => {
+    // Group expenses by date
+    const expensesByDate = {};
+
+    (expenses || []).forEach(expense => {
+      if (!expense?.date) return;
+
+      if (!expensesByDate[expense.date]) {
+        expensesByDate[expense.date] = [];
+      }
+
+      // If expense has items, add each item separately
+      if (expense.items && expense.items.length > 0) {
+        expense.items.forEach(item => {
+          expensesByDate[expense.date].push({
+            date: expense.date,
+            merchant: expense.merchantName || 'Unknown',
+            product: item.description || 'Item',
+            category: item.category || expense.category || 'Other',
+            cost: Number(item.totalPrice) || 0
+          });
+        });
+      } else {
+        // Add whole expense as single item
+        expensesByDate[expense.date].push({
+          date: expense.date,
+          merchant: expense.merchantName || 'Unknown',
+          product: expense.description || expense.merchantName || 'Expense',
+          category: expense.category || 'Other',
+          cost: Number(expense.totalAmount) || 0
+        });
+      }
+    });
+
+    // Create daily sheets data
+    const dailySheets = [];
+    const sortedDates = Object.keys(expensesByDate).sort();
+
+    sortedDates.forEach(date => {
+      const items = expensesByDate[date];
+      const sheetData = [];
+
+      // Add header
+      sheetData.push({
+        'Date': formatDateDisplay(date),
+        'Merchant': '',
+        'Product': '',
+        'Category': '',
+        'Cost': ''
+      });
+
+      // Add all items
+      let dailyTotal = 0;
+      items.forEach(item => {
+        sheetData.push({
+          'Date': '',
+          'Merchant': item.merchant,
+          'Product': item.product,
+          'Category': item.category,
+          'Cost': item.cost.toFixed(2)
+        });
+        dailyTotal += item.cost;
+      });
+
+      // Add total row
+      sheetData.push({
+        'Date': '',
+        'Merchant': '',
+        'Product': '',
+        'Category': 'TOTAL',
+        'Cost': dailyTotal.toFixed(2)
+      });
+
+      // Add empty row for spacing
+      sheetData.push({
+        'Date': '',
+        'Merchant': '',
+        'Product': '',
+        'Category': '',
+        'Cost': ''
+      });
+
+      dailySheets.push({ date, data: sheetData });
+    });
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+
+    // Create a single sheet with all daily data
+    const allDailyData = [];
+    dailySheets.forEach(sheet => {
+      allDailyData.push(...sheet.data);
+    });
+
+    const ws = XLSX.utils.json_to_sheet(allDailyData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Daily Spending');
+
+    // Generate filename with date range
+    const startDate = dateRange?.startDate || 'all';
+    const endDate = dateRange?.endDate || 'time';
+    const filename = `expense-report-daily-${startDate}-to-${endDate}.xlsx`;
+
+    // Download
+    XLSX.writeFile(wb, filename);
+  }, [expenses, dateRange]);
+
+  const exportToExcelMonthly = useCallback(() => {
+    // Group expenses by month
+    const expensesByMonth = {};
+
+    (expenses || []).forEach(expense => {
+      if (!expense?.date) return;
+      const monthKey = expense.date.substring(0, 7); // YYYY-MM
+
+      if (!expensesByMonth[monthKey]) {
+        expensesByMonth[monthKey] = [];
+      }
+
+      // If expense has items, add each item separately
+      if (expense.items && expense.items.length > 0) {
+        expense.items.forEach(item => {
+          expensesByMonth[monthKey].push({
+            date: expense.date,
+            merchant: expense.merchantName || 'Unknown',
+            product: item.description || 'Item',
+            category: item.category || expense.category || 'Other',
+            cost: Number(item.totalPrice) || 0
+          });
+        });
+      } else {
+        // Add whole expense as single item
+        expensesByMonth[monthKey].push({
+          date: expense.date,
+          merchant: expense.merchantName || 'Unknown',
+          product: expense.description || expense.merchantName || 'Expense',
+          category: expense.category || 'Other',
+          cost: Number(expense.totalAmount) || 0
+        });
+      }
+    });
+
+    // Create monthly sheets data
+    const monthlySheets = [];
+    const sortedMonths = Object.keys(expensesByMonth).sort();
+
+    sortedMonths.forEach(month => {
+      const items = expensesByMonth[month];
+      const sheetData = [];
+
+      // Add month header
+      const [year, monthNum] = month.split('-');
+      const monthName = new Date(year, monthNum - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+      sheetData.push({
+        'Month': monthName,
+        'Date': '',
+        'Merchant': '',
+        'Product': '',
+        'Category': '',
+        'Cost': ''
+      });
+
+      // Add all items
+      let monthlyTotal = 0;
+      items.forEach(item => {
+        sheetData.push({
+          'Month': '',
+          'Date': formatDateDisplay(item.date),
+          'Merchant': item.merchant,
+          'Product': item.product,
+          'Category': item.category,
+          'Cost': item.cost.toFixed(2)
+        });
+        monthlyTotal += item.cost;
+      });
+
+      // Add total row
+      sheetData.push({
+        'Month': '',
+        'Date': '',
+        'Merchant': '',
+        'Product': '',
+        'Category': 'TOTAL',
+        'Cost': monthlyTotal.toFixed(2)
+      });
+
+      // Add empty row for spacing
+      sheetData.push({
+        'Month': '',
+        'Date': '',
+        'Merchant': '',
+        'Product': '',
+        'Category': '',
+        'Cost': ''
+      });
+
+      monthlySheets.push({ month, data: sheetData });
+    });
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+
+    // Create a single sheet with all monthly data
+    const allMonthlyData = [];
+    monthlySheets.forEach(sheet => {
+      allMonthlyData.push(...sheet.data);
+    });
+
+    const ws = XLSX.utils.json_to_sheet(allMonthlyData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Monthly Spending');
+
+    // Generate filename
+    const filename = `expense-report-monthly-${new Date().toISOString().split('T')[0]}.xlsx`;
+
+    // Download
+    XLSX.writeFile(wb, filename);
   }, [expenses]);
 
   const exportToPDF = useCallback(() => {
@@ -1168,7 +1395,8 @@ const formatDateDisplay = (iso) => {
     spendingPatterns,
     dailyTotals,
     categoryLeaders,
-    coachMood
+    coachMood,
+    CATEGORIES
   ]);
 
   const analysisKey = useMemo(() => {
@@ -1326,8 +1554,10 @@ const formatDateDisplay = (iso) => {
               </div>
             </div>
             <div className="summary-actions">
-              <button type="button" className="summary-export-btn" onClick={exportToCSV}>Export CSV</button>
-              <button type="button" className="summary-export-btn" onClick={exportToPDF}>Export PDF</button>
+              <button type="button" className="summary-export-btn" onClick={exportToCSV}>📄 CSV</button>
+              <button type="button" className="summary-export-btn" onClick={exportToExcelDaily}>📊 Excel (Daily)</button>
+              <button type="button" className="summary-export-btn" onClick={exportToExcelMonthly}>📈 Excel (Monthly)</button>
+              <button type="button" className="summary-export-btn" onClick={exportToPDF}>🖨️ PDF</button>
             </div>
           </div>
         </div>

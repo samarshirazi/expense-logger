@@ -10,7 +10,6 @@ import {
   learnCategoryCorrection
 } from '../services/apiService';
 import {
-  getAllCategories,
   getCustomCategories,
   addCategory,
   updateCategory,
@@ -19,21 +18,7 @@ import {
 } from '../services/categoryService';
 import './CategorizedExpenses.css';
 
-const createEmptyBoard = () =>
-  CATEGORIES.reduce((acc, category) => {
-    acc[category.id] = [];
-    return acc;
-  }, {});
-
 const CARD_LONG_PRESS_DELAY = 420;
-
-const CATEGORIES = [
-  { id: 'Food', name: 'Food', icon: '🍔', color: '#ff6b6b', gradient: 'linear-gradient(135deg, #ff6b6b 0%, #ff8585 100%)' },
-  { id: 'Transport', name: 'Transport', icon: '🚗', color: '#4ecdc4', gradient: 'linear-gradient(135deg, #4ecdc4 0%, #76e3da 100%)' },
-  { id: 'Shopping', name: 'Shopping', icon: '🛍️', color: '#45b7d1', gradient: 'linear-gradient(135deg, #45b7d1 0%, #6fd0e6 100%)' },
-  { id: 'Bills', name: 'Bills', icon: '💡', color: '#f9ca24', gradient: 'linear-gradient(135deg, #f9ca24 0%, #ffd866 100%)' },
-  { id: 'Other', name: 'Other', icon: '📦', color: '#95afc0', gradient: 'linear-gradient(135deg, #95afc0 0%, #b7c7d3 100%)' }
-];
 
 const DEFAULT_BUDGET = {
   Food: 500,
@@ -44,7 +29,7 @@ const DEFAULT_BUDGET = {
 };
 
 function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRefresh, dateRange, onSwitchToLog }) {
-  const [categorizedExpenses, setCategorizedExpenses] = useState(createEmptyBoard);
+  const [categorizedExpenses, setCategorizedExpenses] = useState({});
   const [monthlyBudgets, setMonthlyBudgets] = useState({});
   const [error, setError] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -72,7 +57,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   const [showUndoToast, setShowUndoToast] = useState(false);
 
   const [activeBottomSheetItem, setActiveBottomSheetItem] = useState(null);
-  const [activeCategory, setActiveCategory] = useState(CATEGORIES[0].id);
+  const [activeCategory, setActiveCategory] = useState('Food');
   const [expandedCategoryId, setExpandedCategoryId] = useState(null);
   const [mobileEditItem, setMobileEditItem] = useState(null);
   const [showMobileAdjust, setShowMobileAdjust] = useState(false);
@@ -83,7 +68,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   const [editingCategoryId, setEditingCategoryId] = useState(null);
 
   const isUpdatingRef = useRef(false);
-  const categorizedExpensesRef = useRef(createEmptyBoard());
+  const categorizedExpensesRef = useRef({});
   const undoTimerRef = useRef(null);
   const longPressTimeoutRef = useRef(null);
   const columnRefs = useRef({});
@@ -175,7 +160,11 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
       return;
     }
 
-    const organized = createEmptyBoard();
+    // Create empty board using all categories (default + custom)
+    const organized = {};
+    allCategories.forEach(category => {
+      organized[category.id] = [];
+    });
 
     filteredExpenses.forEach(expense => {
       if (expense.items && expense.items.length > 0) {
@@ -195,6 +184,8 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
           if (organized[itemCategory]) {
             organized[itemCategory].push(enrichedItem);
           } else {
+            // If category doesn't exist, add it to Other
+            if (!organized.Other) organized.Other = [];
             organized.Other.push(enrichedItem);
           }
         });
@@ -216,6 +207,8 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         if (organized[category]) {
           organized[category].push(fallbackItem);
         } else {
+          // If category doesn't exist, add it to Other
+          if (!organized.Other) organized.Other = [];
           organized.Other.push(fallbackItem);
         }
       }
@@ -223,7 +216,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
     setCategorizedExpenses(organized);
     categorizedExpensesRef.current = organized;
-  }, [filteredExpenses]);
+  }, [filteredExpenses, allCategories]);
 
   useEffect(() => {
     return () => {
@@ -328,10 +321,10 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     const previousState = JSON.parse(JSON.stringify(categorizedExpensesRef.current));
 
     setCategorizedExpenses(prev => {
-      const clone = CATEGORIES.reduce((acc, category) => {
-        acc[category.id] = [...(prev[category.id] || [])];
-        return acc;
-      }, {});
+      const clone = {};
+      allCategories.forEach(category => {
+        clone[category.id] = [...(prev[category.id] || [])];
+      });
 
       if (!clone[sourceCategory]) {
         clone[sourceCategory] = [];
@@ -420,7 +413,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         }, 400);
       }
     }
-  }, [closeUndoToast, onCategoryUpdate, onRefresh]);
+  }, [closeUndoToast, onCategoryUpdate, onRefresh, allCategories]);
 
   const handleDragEnd = (result) => {
     const { destination, source, draggableId } = result;
@@ -766,7 +759,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
   useEffect(() => {
     if (!isMobileView) {
-      setActiveCategory(CATEGORIES[0].id);
+      setActiveCategory(allCategories[0]?.id || 'Other');
       return;
     }
 
@@ -809,7 +802,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         window.cancelAnimationFrame(animationFrame);
       }
     };
-  }, [activeCategory, isMobileView]);
+  }, [activeCategory, isMobileView, allCategories]);
 
   // Auto-suggest emoji based on category name
   const suggestEmoji = (name) => {
@@ -1170,7 +1163,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
           <div className="mobile-bottom-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-sheet-handle" />
             {(() => {
-              const category = CATEGORIES.find(c => c.id === expandedCategoryId);
+              const category = allCategories.find(c => c.id === expandedCategoryId);
               const items = categorizedExpenses[expandedCategoryId] || [];
               const total = getCategoryTotal(expandedCategoryId);
               const progress = getCategoryProgress(expandedCategoryId);

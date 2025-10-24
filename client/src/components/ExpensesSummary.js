@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import * as XLSX from 'xlsx';
 import './ExpensesSummary.css';
 import { updateExpense } from '../services/apiService';
 
@@ -368,6 +369,194 @@ function ExpensesSummary({
     URL.revokeObjectURL(url);
   };
 
+  const exportToExcelDaily = () => {
+    // Group expenses by date
+    const expensesByDate = {};
+
+    sortedExpenses.forEach(expense => {
+      if (!expense?.date) return;
+
+      if (!expensesByDate[expense.date]) {
+        expensesByDate[expense.date] = [];
+      }
+
+      // If expense has items, add each item separately
+      if (expense.items && expense.items.length > 0) {
+        expense.items.forEach(item => {
+          expensesByDate[expense.date].push({
+            merchant: expense.merchantName || 'Unknown',
+            product: item.description || 'Item',
+            category: item.category || expense.category || 'Other',
+            cost: Number(item.totalPrice) || 0
+          });
+        });
+      } else {
+        // Add whole expense as single item
+        expensesByDate[expense.date].push({
+          merchant: expense.merchantName || 'Unknown',
+          product: expense.description || expense.merchantName || 'Expense',
+          category: expense.category || 'Other',
+          cost: Number(expense.totalAmount) || 0
+        });
+      }
+    });
+
+    // Create daily sheets data
+    const sheetData = [];
+    const sortedDates = Object.keys(expensesByDate).sort();
+
+    sortedDates.forEach(date => {
+      const items = expensesByDate[date];
+
+      // Add date header
+      sheetData.push({
+        'Date': formatDate(date),
+        'Merchant': '',
+        'Product': '',
+        'Category': '',
+        'Cost': ''
+      });
+
+      // Add all items
+      let dailyTotal = 0;
+      items.forEach(item => {
+        sheetData.push({
+          'Date': '',
+          'Merchant': item.merchant,
+          'Product': item.product,
+          'Category': item.category,
+          'Cost': item.cost.toFixed(2)
+        });
+        dailyTotal += item.cost;
+      });
+
+      // Add total row
+      sheetData.push({
+        'Date': '',
+        'Merchant': '',
+        'Product': '',
+        'Category': 'TOTAL',
+        'Cost': dailyTotal.toFixed(2)
+      });
+
+      // Add empty row for spacing
+      sheetData.push({
+        'Date': '',
+        'Merchant': '',
+        'Product': '',
+        'Category': '',
+        'Cost': ''
+      });
+    });
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(sheetData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Daily Spending');
+
+    const filename = `expenses-daily-${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  };
+
+  const exportToExcelMonthly = () => {
+    // Group expenses by month
+    const expensesByMonth = {};
+
+    sortedExpenses.forEach(expense => {
+      if (!expense?.date) return;
+      const monthKey = expense.date.substring(0, 7); // YYYY-MM
+
+      if (!expensesByMonth[monthKey]) {
+        expensesByMonth[monthKey] = [];
+      }
+
+      // If expense has items, add each item separately
+      if (expense.items && expense.items.length > 0) {
+        expense.items.forEach(item => {
+          expensesByMonth[monthKey].push({
+            date: expense.date,
+            merchant: expense.merchantName || 'Unknown',
+            product: item.description || 'Item',
+            category: item.category || expense.category || 'Other',
+            cost: Number(item.totalPrice) || 0
+          });
+        });
+      } else {
+        // Add whole expense as single item
+        expensesByMonth[monthKey].push({
+          date: expense.date,
+          merchant: expense.merchantName || 'Unknown',
+          product: expense.description || expense.merchantName || 'Expense',
+          category: expense.category || 'Other',
+          cost: Number(expense.totalAmount) || 0
+        });
+      }
+    });
+
+    // Create monthly sheets data
+    const sheetData = [];
+    const sortedMonths = Object.keys(expensesByMonth).sort();
+
+    sortedMonths.forEach(month => {
+      const items = expensesByMonth[month];
+
+      // Add month header
+      const [year, monthNum] = month.split('-');
+      const monthName = new Date(year, monthNum - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+      sheetData.push({
+        'Month': monthName,
+        'Date': '',
+        'Merchant': '',
+        'Product': '',
+        'Category': '',
+        'Cost': ''
+      });
+
+      // Add all items
+      let monthlyTotal = 0;
+      items.forEach(item => {
+        sheetData.push({
+          'Month': '',
+          'Date': formatDateShort(item.date),
+          'Merchant': item.merchant,
+          'Product': item.product,
+          'Category': item.category,
+          'Cost': item.cost.toFixed(2)
+        });
+        monthlyTotal += item.cost;
+      });
+
+      // Add total row
+      sheetData.push({
+        'Month': '',
+        'Date': '',
+        'Merchant': '',
+        'Product': '',
+        'Category': 'TOTAL',
+        'Cost': monthlyTotal.toFixed(2)
+      });
+
+      // Add empty row for spacing
+      sheetData.push({
+        'Month': '',
+        'Date': '',
+        'Merchant': '',
+        'Product': '',
+        'Category': '',
+        'Cost': ''
+      });
+    });
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(sheetData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Monthly Spending');
+
+    const filename = `expenses-monthly-${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  };
+
   const handleAddExpense = () => {
     if (onAddExpense) {
       onAddExpense();
@@ -376,11 +565,24 @@ function ExpensesSummary({
     }
   };
 
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
   const handleExport = () => {
     if (onExport) {
       onExport(sortedExpenses);
     } else {
+      setShowExportMenu(!showExportMenu);
+    }
+  };
+
+  const handleExportOption = (type) => {
+    setShowExportMenu(false);
+    if (type === 'csv') {
       exportToCSV();
+    } else if (type === 'excel-daily') {
+      exportToExcelDaily();
+    } else if (type === 'excel-monthly') {
+      exportToExcelMonthly();
     }
   };
 
@@ -491,9 +693,79 @@ function ExpensesSummary({
           <button type="button" className="expenses-btn ghost" onClick={toggleFilters}>
             {showFilters ? 'Hide Filters' : 'Filters'}
           </button>
-          <button type="button" className="expenses-btn ghost" onClick={handleExport}>
-            Export
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button type="button" className="expenses-btn ghost" onClick={handleExport}>
+              Export {showExportMenu ? '▲' : '▼'}
+            </button>
+            {showExportMenu && (
+              <div style={{
+                position: 'absolute',
+                right: 0,
+                top: '100%',
+                marginTop: '4px',
+                backgroundColor: 'white',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                minWidth: '180px',
+                zIndex: 1000
+              }}>
+                <button
+                  onClick={() => handleExportOption('csv')}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    borderBottom: '1px solid #eee'
+                  }}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                  onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                >
+                  📄 Export as CSV
+                </button>
+                <button
+                  onClick={() => handleExportOption('excel-daily')}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    borderBottom: '1px solid #eee'
+                  }}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                  onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                >
+                  📊 Excel (Daily)
+                </button>
+                <button
+                  onClick={() => handleExportOption('excel-monthly')}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                  onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                >
+                  📈 Excel (Monthly)
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
