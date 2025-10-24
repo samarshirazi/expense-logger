@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './BudgetManage.css';
+import { getAllCategories } from '../services/categoryService';
 
 // Helper function to format date in local timezone
 const toLocalDateString = (date) => {
@@ -22,14 +23,6 @@ const getPreviousMonthKey = (monthKey) => {
   return `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
 };
 
-const CATEGORIES = [
-  { id: 'Food', name: 'Food', icon: '🍔', color: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)' },
-  { id: 'Transport', name: 'Transport', icon: '🚗', color: 'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)' },
-  { id: 'Shopping', name: 'Shopping', icon: '🛍️', color: 'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)' },
-  { id: 'Bills', name: 'Bills', icon: '💡', color: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' },
-  { id: 'Other', name: 'Other', icon: '📦', color: 'linear-gradient(135deg, #c2e9fb 0%, #a1c4fd 100%)' }
-];
-
 const DEFAULT_BUDGET = {
   Food: 500,
   Transport: 200,
@@ -39,6 +32,7 @@ const DEFAULT_BUDGET = {
 };
 
 function BudgetManage({ expenses, dateRange }) {
+  const [CATEGORIES, setCATEGORIES] = useState(getAllCategories());
   // Per-month budgets stored as { "2024-01": { Food: 500, ... }, "2024-02": { ... } }
   const [monthlyBudgets, setMonthlyBudgets] = useState(() => {
     const saved = localStorage.getItem('monthlyBudgets');
@@ -71,6 +65,19 @@ function BudgetManage({ expenses, dateRange }) {
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Listen for category updates
+  useEffect(() => {
+    const handleCategoriesUpdated = () => {
+      setCATEGORIES(getAllCategories());
+    };
+
+    window.addEventListener('categoriesUpdated', handleCategoriesUpdated);
+
+    return () => {
+      window.removeEventListener('categoriesUpdated', handleCategoriesUpdated);
+    };
   }, []);
 
   // Initialize budget for current month if not exists

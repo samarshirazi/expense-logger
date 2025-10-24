@@ -8,6 +8,14 @@ import {
   updateExpense,
   updateExpenseItem
 } from '../services/apiService';
+import {
+  getAllCategories,
+  getCustomCategories,
+  addCategory,
+  updateCategory,
+  deleteCategory as deleteCategoryService,
+  getDefaultCategories
+} from '../services/categoryService';
 import './CategorizedExpenses.css';
 
 const createEmptyBoard = () =>
@@ -120,26 +128,25 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     };
   }, []);
 
-  // Load custom categories from localStorage
+  // Load custom categories and listen for changes
   useEffect(() => {
-    const saved = localStorage.getItem('customCategories');
-    if (saved) {
-      try {
-        setCustomCategories(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to load custom categories:', e);
-      }
-    }
+    const loadCategories = () => {
+      setCustomCategories(getCustomCategories());
+    };
+
+    loadCategories();
+
+    // Listen for category updates from other components
+    window.addEventListener('categoriesUpdated', loadCategories);
+
+    return () => {
+      window.removeEventListener('categoriesUpdated', loadCategories);
+    };
   }, []);
 
-  // Save custom categories to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('customCategories', JSON.stringify(customCategories));
-  }, [customCategories]);
-
-  // Merge default and custom categories
+  // Merge default and custom categories - getAllCategories already merges them
   const allCategories = useMemo(() => {
-    return [...CATEGORIES, ...customCategories];
+    return [...getDefaultCategories(), ...customCategories];
   }, [customCategories]);
 
   useEffect(() => {
@@ -894,22 +901,14 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
   // Category management functions
   const handleAddCategory = () => {
-    if (!categoryForm.name || !categoryForm.color) {
-      alert('Please fill in name and color');
+    if (!categoryForm.name) {
+      alert('Please enter a category name');
       return;
     }
 
     const icon = categoryForm.icon || suggestEmoji(categoryForm.name);
+    addCategory(categoryForm.name, icon);
 
-    const newCategory = {
-      id: categoryForm.name.replace(/\s+/g, ''),
-      name: categoryForm.name,
-      icon: icon,
-      color: categoryForm.color,
-      gradient: `linear-gradient(135deg, ${categoryForm.color} 0%, ${categoryForm.color}cc 100%)`
-    };
-
-    setCustomCategories(prev => [...prev, newCategory]);
     setCategoryForm({ id: '', name: '', icon: '', color: '' });
   };
 
@@ -924,24 +923,16 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   };
 
   const handleUpdateCategory = () => {
-    if (!categoryForm.name || !categoryForm.color) {
-      alert('Please fill in name and color');
+    if (!categoryForm.name) {
+      alert('Please enter a category name');
       return;
     }
 
     const icon = categoryForm.icon || suggestEmoji(categoryForm.name);
-
-    setCustomCategories(prev => prev.map(cat =>
-      cat.id === editingCategoryId
-        ? {
-            ...cat,
-            name: categoryForm.name,
-            icon: icon,
-            color: categoryForm.color,
-            gradient: `linear-gradient(135deg, ${categoryForm.color} 0%, ${categoryForm.color}cc 100%)`
-          }
-        : cat
-    ));
+    updateCategory(editingCategoryId, {
+      name: categoryForm.name,
+      icon: icon
+    });
 
     setEditingCategoryId(null);
     setCategoryForm({ id: '', name: '', icon: '', color: '' });
@@ -949,7 +940,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
 
   const handleDeleteCategory = (categoryId) => {
     if (window.confirm('Are you sure you want to delete this category? Expenses in this category will be moved to "Other".')) {
-      setCustomCategories(prev => prev.filter(cat => cat.id !== categoryId));
+      deleteCategoryService(categoryId);
     }
   };
 
@@ -1690,14 +1681,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                     maxLength="2"
                   />
                 </div>
-                <div className="form-group">
-                  <label>Color</label>
-                  <input
-                    type="color"
-                    value={categoryForm.color}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
-                  />
-                </div>
                 <div className="form-actions">
                   {editingCategoryId ? (
                     <>
@@ -1713,7 +1696,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
               <div className="categories-list">
                 <h4>Default Categories</h4>
                 <div className="category-items">
-                  {CATEGORIES.map(category => (
+                  {getDefaultCategories().map(category => (
                     <div key={category.id} className="category-item" style={{ borderLeft: `4px solid ${category.color}` }}>
                       <span className="category-item-icon">{category.icon}</span>
                       <span className="category-item-name">{category.name}</span>

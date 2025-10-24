@@ -3,14 +3,7 @@ import axios from 'axios';
 import authService from '../services/authService';
 import './Dashboard.css';
 import AICoachPanel from './AICoachPanel';
-
-const CATEGORIES = [
-  { id: 'Food', name: 'Food', icon: '🍔', color: '#ff6b6b' },
-  { id: 'Transport', name: 'Transport', icon: '🚗', color: '#4ecdc4' },
-  { id: 'Shopping', name: 'Shopping', icon: '🛍️', color: '#45b7d1' },
-  { id: 'Bills', name: 'Bills', icon: '💡', color: '#f9ca24' },
-  { id: 'Other', name: 'Other', icon: '📦', color: '#95afc0' }
-];
+import { getAllCategories } from '../services/categoryService';
 
 const DEFAULT_BUDGET = {
   Food: 500,
@@ -106,8 +99,9 @@ const getPreviousDateRange = (range) => {
 
 const ensureBudgetShape = (candidate) => {
   const shaped = {};
+  const categories = getAllCategories();
 
-  CATEGORIES.forEach(category => {
+  categories.forEach(category => {
     const rawValue = candidate?.[category.id];
     const numericValue = typeof rawValue === 'number' ? rawValue : parseFloat(rawValue);
     shaped[category.id] = Number.isFinite(numericValue) ? numericValue : 0;
@@ -152,6 +146,7 @@ const getEffectiveBudgetForMonth = (monthKey) => {
 };
 
 function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggle = () => {}, coachHasUnread = false, onCoachUnreadChange = () => {}, coachMood = "motivator_serious" }) {
+  const [CATEGORIES, setCATEGORIES] = useState(getAllCategories());
   const [summary, setSummary] = useState(null);
   const [progressSummary, setProgressSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -160,6 +155,19 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
   const summarySignatureRef = useRef(null);
   const isCoachOpenRef = useRef(isCoachOpen);
   const loadedDateRangeRef = useRef(null);
+
+  // Listen for category updates
+  useEffect(() => {
+    const handleCategoriesUpdated = () => {
+      setCATEGORIES(getAllCategories());
+    };
+
+    window.addEventListener('categoriesUpdated', handleCategoriesUpdated);
+
+    return () => {
+      window.removeEventListener('categoriesUpdated', handleCategoriesUpdated);
+    };
+  }, []);
 
   const loadSummary = useCallback(async (force = false) => {
     // Skip if already loaded for this date range and not forcing refresh

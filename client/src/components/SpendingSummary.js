@@ -3,6 +3,7 @@ import axios from 'axios';
 import authService from '../services/authService';
 import TimeNavigator from './TimeNavigator';
 import './SpendingSummary.css';
+import { getAllCategories } from '../services/categoryService';
 
 // Helper function to format date in local timezone (avoids timezone shift)
 const toLocalDateString = (date) => {
@@ -12,15 +13,8 @@ const toLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-const CATEGORIES = [
-  { id: 'Food', name: 'Food', icon: '🍔', color: '#ff6b6b' },
-  { id: 'Transport', name: 'Transport', icon: '🚗', color: '#4ecdc4' },
-  { id: 'Shopping', name: 'Shopping', icon: '🛍️', color: '#45b7d1' },
-  { id: 'Bills', name: 'Bills', icon: '💡', color: '#f9ca24' },
-  { id: 'Other', name: 'Other', icon: '📦', color: '#95afc0' }
-];
-
 function SpendingSummary({ onClose, expenses = [] }) {
+  const [CATEGORIES, setCATEGORIES] = useState(getAllCategories());
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState(() => {
@@ -66,6 +60,19 @@ function SpendingSummary({ onClose, expenses = [] }) {
   useEffect(() => {
     loadSummary();
   }, [loadSummary]);
+
+  // Listen for category updates
+  useEffect(() => {
+    const handleCategoriesUpdated = () => {
+      setCATEGORIES(getAllCategories());
+    };
+
+    window.addEventListener('categoriesUpdated', handleCategoriesUpdated);
+
+    return () => {
+      window.removeEventListener('categoriesUpdated', handleCategoriesUpdated);
+    };
+  }, []);
 
   const handleDateRangeChange = (range) => {
     setDateRange(range);
