@@ -259,4 +259,146 @@ export const learnCategoryCorrection = async (merchantName, description, categor
   }
 };
 
+// ============================================================
+// INCOME AND SAVINGS API METHODS
+// ============================================================
+
+// Income Sources
+export const getIncomeSources = async (month = null) => {
+  try {
+    const params = month ? { month } : {};
+    const response = await api.get('/income-sources', { params });
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to fetch income sources'));
+  }
+};
+
+export const createIncomeSource = async (incomeData) => {
+  try {
+    const response = await api.post('/income-sources', incomeData);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to create income source'));
+  }
+};
+
+export const updateIncomeSource = async (id, updates) => {
+  try {
+    const response = await api.patch(`/income-sources/${id}`, updates);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to update income source'));
+  }
+};
+
+export const deleteIncomeSource = async (id) => {
+  try {
+    const response = await api.delete(`/income-sources/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to delete income source'));
+  }
+};
+
+// Extra Income
+export const getExtraIncome = async (startDate = null, endDate = null) => {
+  try {
+    const params = {};
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+    const response = await api.get('/extra-income', { params });
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to fetch extra income'));
+  }
+};
+
+export const createExtraIncome = async (incomeData) => {
+  try {
+    const response = await api.post('/extra-income', incomeData);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to create extra income'));
+  }
+};
+
+export const deleteExtraIncome = async (id) => {
+  try {
+    const response = await api.delete(`/extra-income/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to delete extra income'));
+  }
+};
+
+// Savings
+export const getSavingsBalance = async () => {
+  try {
+    const response = await api.get('/savings/balance');
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to fetch savings balance'));
+  }
+};
+
+export const getSavingsTransactions = async (limit = 50, offset = 0) => {
+  try {
+    const response = await api.get('/savings/transactions', {
+      params: { limit, offset }
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to fetch savings transactions'));
+  }
+};
+
+export const createSavingsTransaction = async (transactionData) => {
+  try {
+    const response = await api.post('/savings/transactions', transactionData);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to create savings transaction'));
+  }
+};
+
+// Savings Goals
+export const getSavingsGoals = async (includeCompleted = false) => {
+  try {
+    const response = await api.get('/savings/goals', {
+      params: { includeCompleted }
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to fetch savings goals'));
+  }
+};
+
+export const createSavingsGoal = async (goalData) => {
+  try {
+    const response = await api.post('/savings/goals', goalData);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to create savings goal'));
+  }
+};
+
+export const updateSavingsGoal = async (id, updates) => {
+  try {
+    const response = await api.patch(`/savings/goals/${id}`, updates);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to update savings goal'));
+  }
+};
+
+export const deleteSavingsGoal = async (id) => {
+  try {
+    const response = await api.delete(`/savings/goals/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to delete savings goal'));
+  }
+};
+
 export default api;

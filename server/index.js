@@ -7,7 +7,16 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: t
 
 const { processReceiptWithAI, parseManualEntry, generateCoachInsights } = require('./services/aiService');
 const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('./services/googleDriveService');
-const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable, updateExpenseCategory, updateItemCategory, updateExpense, createCategoryLearningTable, learnCategoryCorrection, getLearnedCategories } = require('./services/supabaseService');
+const {
+  saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable,
+  updateExpenseCategory, updateItemCategory, updateExpense, createCategoryLearningTable,
+  learnCategoryCorrection, getLearnedCategories,
+  // Income and Savings
+  saveIncomeSource, getIncomeSources, updateIncomeSource, deleteIncomeSource,
+  saveExtraIncome, getExtraIncome, deleteExtraIncome,
+  saveSavingsTransaction, getSavingsTransactions, getSavingsBalance,
+  saveSavingsGoal, getSavingsGoals, updateSavingsGoal, deleteSavingsGoal
+} = require('./services/supabaseService');
 const { signUp, signIn, signOut, requireAuth } = require('./services/authService');
 const { saveSubscription, sendPushToUser, createPushSubscriptionsTable } = require('./services/notificationService');
 
@@ -826,6 +835,302 @@ app.delete('/api/expenses/:id', requireAuth, async (req, res) => {
       error: 'Failed to delete expense',
       details: error.message
     });
+  }
+});
+
+// ============================================================
+// INCOME SOURCES ENDPOINTS
+// ============================================================
+
+// Get all income sources for user (optionally filtered by month)
+app.get('/api/income-sources', requireAuth, async (req, res) => {
+  try {
+    const { month } = req.query;
+    const incomeSources = await getIncomeSources(req.user.id, month || null, req.token);
+    res.json(incomeSources);
+  } catch (error) {
+    console.error('Error fetching income sources:', error);
+    res.status(500).json({ error: 'Failed to fetch income sources', details: error.message });
+  }
+});
+
+// Create a new income source
+app.post('/api/income-sources', requireAuth, async (req, res) => {
+  try {
+    const incomeData = req.body;
+
+    if (!incomeData.sourceName || !incomeData.amount || !incomeData.month) {
+      return res.status(400).json({ error: 'Source name, amount, and month are required' });
+    }
+
+    const result = await saveIncomeSource(incomeData, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      incomeSource: result,
+      message: 'Income source added successfully'
+    });
+  } catch (error) {
+    console.error('Error creating income source:', error);
+    res.status(500).json({ error: 'Failed to create income source', details: error.message });
+  }
+});
+
+// Update an income source
+app.patch('/api/income-sources/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Income source ID is required' });
+    }
+
+    const result = await updateIncomeSource(id, updates, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      incomeSource: result,
+      message: 'Income source updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating income source:', error);
+    res.status(500).json({ error: 'Failed to update income source', details: error.message });
+  }
+});
+
+// Delete an income source
+app.delete('/api/income-sources/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Income source ID is required' });
+    }
+
+    await deleteIncomeSource(id, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      message: 'Income source deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting income source:', error);
+    res.status(500).json({ error: 'Failed to delete income source', details: error.message });
+  }
+});
+
+// ============================================================
+// EXTRA INCOME ENDPOINTS
+// ============================================================
+
+// Get extra income entries (optionally filtered by date range)
+app.get('/api/extra-income', requireAuth, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const extraIncome = await getExtraIncome(req.user.id, startDate || null, endDate || null, req.token);
+    res.json(extraIncome);
+  } catch (error) {
+    console.error('Error fetching extra income:', error);
+    res.status(500).json({ error: 'Failed to fetch extra income', details: error.message });
+  }
+});
+
+// Create a new extra income entry
+app.post('/api/extra-income', requireAuth, async (req, res) => {
+  try {
+    const incomeData = req.body;
+
+    if (!incomeData.description || !incomeData.amount || !incomeData.date || !incomeData.destination) {
+      return res.status(400).json({ error: 'Description, amount, date, and destination are required' });
+    }
+
+    if (!['budget', 'savings'].includes(incomeData.destination)) {
+      return res.status(400).json({ error: 'Destination must be either "budget" or "savings"' });
+    }
+
+    const result = await saveExtraIncome(incomeData, req.user.id, req.token);
+
+    // If destination is savings, also create a savings transaction
+    if (incomeData.destination === 'savings') {
+      await saveSavingsTransaction({
+        amount: incomeData.amount,
+        transactionType: 'deposit',
+        source: 'extra_income',
+        description: `Extra income: ${incomeData.description}`,
+        date: incomeData.date
+      }, req.user.id, req.token);
+    }
+
+    res.json({
+      success: true,
+      extraIncome: result,
+      message: 'Extra income added successfully'
+    });
+  } catch (error) {
+    console.error('Error creating extra income:', error);
+    res.status(500).json({ error: 'Failed to create extra income', details: error.message });
+  }
+});
+
+// Delete an extra income entry
+app.delete('/api/extra-income/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Extra income ID is required' });
+    }
+
+    await deleteExtraIncome(id, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      message: 'Extra income deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting extra income:', error);
+    res.status(500).json({ error: 'Failed to delete extra income', details: error.message });
+  }
+});
+
+// ============================================================
+// SAVINGS ENDPOINTS
+// ============================================================
+
+// Get savings balance
+app.get('/api/savings/balance', requireAuth, async (req, res) => {
+  try {
+    const balance = await getSavingsBalance(req.user.id, req.token);
+    res.json(balance);
+  } catch (error) {
+    console.error('Error fetching savings balance:', error);
+    res.status(500).json({ error: 'Failed to fetch savings balance', details: error.message });
+  }
+});
+
+// Get savings transactions
+app.get('/api/savings/transactions', requireAuth, async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    const transactions = await getSavingsTransactions(
+      req.user.id,
+      parseInt(limit),
+      parseInt(offset),
+      req.token
+    );
+    res.json(transactions);
+  } catch (error) {
+    console.error('Error fetching savings transactions:', error);
+    res.status(500).json({ error: 'Failed to fetch savings transactions', details: error.message });
+  }
+});
+
+// Create a savings transaction (deposit or withdrawal)
+app.post('/api/savings/transactions', requireAuth, async (req, res) => {
+  try {
+    const transactionData = req.body;
+
+    if (!transactionData.amount || !transactionData.transactionType || !transactionData.source || !transactionData.date) {
+      return res.status(400).json({ error: 'Amount, transaction type, source, and date are required' });
+    }
+
+    if (!['deposit', 'withdrawal'].includes(transactionData.transactionType)) {
+      return res.status(400).json({ error: 'Transaction type must be either "deposit" or "withdrawal"' });
+    }
+
+    const result = await saveSavingsTransaction(transactionData, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      transaction: result,
+      message: 'Savings transaction recorded successfully'
+    });
+  } catch (error) {
+    console.error('Error creating savings transaction:', error);
+    res.status(500).json({ error: 'Failed to create savings transaction', details: error.message });
+  }
+});
+
+// ============================================================
+// SAVINGS GOALS ENDPOINTS
+// ============================================================
+
+// Get all savings goals
+app.get('/api/savings/goals', requireAuth, async (req, res) => {
+  try {
+    const { includeCompleted } = req.query;
+    const goals = await getSavingsGoals(req.user.id, includeCompleted === 'true', req.token);
+    res.json(goals);
+  } catch (error) {
+    console.error('Error fetching savings goals:', error);
+    res.status(500).json({ error: 'Failed to fetch savings goals', details: error.message });
+  }
+});
+
+// Create a new savings goal
+app.post('/api/savings/goals', requireAuth, async (req, res) => {
+  try {
+    const goalData = req.body;
+
+    if (!goalData.goalName || !goalData.targetAmount) {
+      return res.status(400).json({ error: 'Goal name and target amount are required' });
+    }
+
+    const result = await saveSavingsGoal(goalData, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      goal: result,
+      message: 'Savings goal created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating savings goal:', error);
+    res.status(500).json({ error: 'Failed to create savings goal', details: error.message });
+  }
+});
+
+// Update a savings goal
+app.patch('/api/savings/goals/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Goal ID is required' });
+    }
+
+    const result = await updateSavingsGoal(id, updates, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      goal: result,
+      message: 'Savings goal updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating savings goal:', error);
+    res.status(500).json({ error: 'Failed to update savings goal', details: error.message });
+  }
+});
+
+// Delete a savings goal
+app.delete('/api/savings/goals/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Goal ID is required' });
+    }
+
+    await deleteSavingsGoal(id, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      message: 'Savings goal deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting savings goal:', error);
+    res.status(500).json({ error: 'Failed to delete savings goal', details: error.message });
   }
 });
 

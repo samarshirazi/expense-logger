@@ -8,6 +8,7 @@ import CategorizedExpenses from './components/CategorizedExpenses';
 import ExpensesSummary from './components/ExpensesSummary';
 import BudgetManage from './components/BudgetManage';
 import SpendingSummary from './components/SpendingSummary';
+import IncomeSavings from './components/IncomeSavings';
 import Auth from './components/Auth';
 import NotificationPrompt from './components/NotificationPrompt';
 import TimeNavigator from './components/TimeNavigator';
@@ -546,6 +547,13 @@ function App() {
               expenses={expenses}
               dateRange={dateRange}
             />
+          </div>
+        )}
+
+        {activeView === 'income-savings' && (
+          <div className="view-container no-timeline">
+            {renderOptionsToggleButton('inline')}
+            <IncomeSavings />
           </div>
         )}
 

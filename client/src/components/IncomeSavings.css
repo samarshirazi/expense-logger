@@ -1,0 +1,626 @@
+.income-savings-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.income-savings-header {
+  margin-bottom: 30px;
+}
+
+.income-savings-header h1 {
+  margin: 0 0 20px 0;
+  font-size: 28px;
+  color: var(--text-primary);
+}
+
+.tab-buttons {
+  display: flex;
+  gap: 10px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.tab-button {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+  color: var(--text-primary);
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.tab-button.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+.error-message {
+  padding: 12px;
+  margin-bottom: 20px;
+  background-color: #fee;
+  color: #c33;
+  border-radius: 8px;
+  border: 1px solid #fcc;
+}
+
+.success-message {
+  padding: 12px;
+  margin-bottom: 20px;
+  background-color: #efe;
+  color: #3a3;
+  border-radius: 8px;
+  border: 1px solid #cfc;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* SECTION STYLES */
+.section {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+/* INCOME TAB */
+.total-income-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.total-label {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+
+.total-amount {
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.month-selector input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.income-sources-list,
+.extra-income-list {
+  margin-bottom: 20px;
+}
+
+.income-source-item,
+.extra-income-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  transition: background 0.2s ease;
+}
+
+.income-source-item:hover,
+.extra-income-item:hover {
+  background: var(--bg-hover);
+}
+
+.source-info,
+.income-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.source-name,
+.income-desc {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.source-amount {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.income-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.income-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.income-amount {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.income-destination {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.income-destination.budget {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.income-destination.savings {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+/* SAVINGS TAB */
+.savings-balance-card {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  padding: 32px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.savings-balance-card h2 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  opacity: 0.9;
+}
+
+.balance-amount {
+  font-size: 48px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.balance-info {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.transactions-list {
+  margin-top: 20px;
+}
+
+.transaction-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  border-left: 4px solid transparent;
+}
+
+.transaction-item.deposit {
+  border-left-color: #4caf50;
+}
+
+.transaction-item.withdrawal {
+  border-left-color: #f44336;
+}
+
+.transaction-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transaction-type {
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.transaction-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.transaction-date {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.transaction-amount {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.transaction-amount.deposit {
+  color: #4caf50;
+}
+
+.transaction-amount.withdrawal {
+  color: #f44336;
+}
+
+/* GOALS TAB */
+.unallocated-savings-card {
+  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.unallocated-savings-card h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: #5d4037;
+}
+
+.unallocated-amount {
+  font-size: 36px;
+  font-weight: bold;
+  color: #3e2723;
+  margin-bottom: 8px;
+}
+
+.unallocated-info {
+  margin: 0;
+  font-size: 14px;
+  color: #6d4c41;
+}
+
+.goals-list {
+  margin-bottom: 20px;
+}
+
+.goal-item {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  border: 2px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.goal-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.goal-item.completed {
+  border-color: #4caf50;
+  background: #f1f8e9;
+}
+
+.goal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.goal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.goal-description {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.goal-progress {
+  margin-bottom: 16px;
+}
+
+.progress-bar {
+  height: 24px;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  transition: width 0.5s ease;
+  border-radius: 12px;
+}
+
+.progress-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.progress-percentage {
+  color: var(--text-secondary);
+  font-weight: normal;
+  margin-left: 8px;
+}
+
+.goal-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.goal-completed-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #4caf50;
+  color: white;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* BUTTONS */
+.add-button {
+  width: 100%;
+  padding: 14px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.add-button:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.delete-button,
+.allocate-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.delete-button {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.delete-button:hover {
+  background-color: #ffcdd2;
+}
+
+.allocate-button {
+  width: 100%;
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.allocate-button:hover {
+  background-color: #bbdefb;
+}
+
+.delete-button-small {
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.delete-button-small:hover {
+  color: #c62828;
+}
+
+/* FORMS */
+.income-form,
+.extra-income-form,
+.savings-transaction-form,
+.goal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.income-form input,
+.extra-income-form input,
+.savings-transaction-form input,
+.goal-form input,
+.goal-form textarea {
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.income-form input:focus,
+.extra-income-form input:focus,
+.savings-transaction-form input:focus,
+.goal-form input:focus,
+.goal-form textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.destination-selector {
+  margin-top: 8px;
+}
+
+.destination-selector label:first-child {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: var(--input-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.radio-option:hover {
+  border-color: var(--primary-color);
+  background: var(--bg-hover);
+}
+
+.radio-option input[type="radio"] {
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.radio-option span {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.form-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.submit-button,
+.cancel-button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submit-button {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.submit-button:hover {
+  background-color: var(--primary-hover);
+}
+
+.cancel-button {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.cancel-button:hover {
+  background-color: var(--bg-secondary);
+}
+
+/* MOBILE RESPONSIVE */
+@media (max-width: 768px) {
+  .income-savings-container {
+    padding: 12px;
+  }
+
+  .income-savings-header h1 {
+    font-size: 24px;
+  }
+
+  .tab-button {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .section {
+    padding: 16px;
+  }
+
+  .total-amount {
+    font-size: 28px;
+  }
+
+  .balance-amount {
+    font-size: 36px;
+  }
+
+  .income-source-item,
+  .extra-income-item,
+  .transaction-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .income-details {
+    align-items: flex-start;
+  }
+
+  .form-buttons {
+    flex-direction: column;
+  }
+}

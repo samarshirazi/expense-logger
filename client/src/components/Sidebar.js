@@ -7,6 +7,7 @@ function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOp
     { id: 'expenses', icon: '💰', label: 'Expenses', description: 'View all expenses' },
     { id: 'categories', icon: '📂', label: 'Categories', description: 'Organize by category' },
     { id: 'manage', icon: '🎯', label: 'Manage', description: 'Budgets & Goals' },
+    { id: 'income-savings', icon: '💵', label: 'Income & Savings', description: 'Track income & goals' },
     { id: 'log', icon: '🧾', label: 'Log Expense', description: 'Upload or type quickly' },
     { id: 'settings', icon: '⚙️', label: 'Settings', description: 'Notifications & preferences' },
     { id: 'coach', icon: '🤖', label: 'AI Coach', description: 'Insights & advice', isCoach: true }
