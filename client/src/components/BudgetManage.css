@@ -75,7 +75,7 @@
 
 /* Main Content Grid */
 .budget-main-content {
-  padding: 0 2rem 2rem 2rem;
+  padding: 0 2rem 8rem 2rem; /* Increased bottom padding from 2rem to 8rem to prevent action bar overlap */
   background: #ffffff !important;
 }
 
@@ -315,12 +315,13 @@
 /* AI Panel */
 .budget-right-column {
   position: sticky;
-  top: 2rem;
+  top: 3rem; /* Increased from 2rem to give more space at top */
   height: fit-content;
 }
 
 .ai-panel {
   background: white;
+  overflow: visible; /* Ensure icon isn't clipped */
 }
 
 /* Mobile AI Panel */
@@ -832,7 +833,7 @@
   }
 
   .budget-main-content {
-    padding: 0 1rem 1rem 1rem;
+    padding: 0 1rem 7rem 1rem; /* Increased bottom padding for mobile to prevent overlap */
   }
 
   .budget-header-content {
@@ -949,7 +950,7 @@
   }
 
   .budget-main-content {
-    padding: 0 0.75rem 0.75rem 0.75rem;
+    padding: 0 0.75rem 7rem 0.75rem; /* Increased bottom padding for small mobile to prevent overlap */
   }
 
   .budget-title-section h1 {
