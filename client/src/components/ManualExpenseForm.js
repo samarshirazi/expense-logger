@@ -1,19 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createExpense } from '../services/apiService';
 import './ManualExpenseForm.css';
+import { getAllCategories } from '../services/categoryService';
+
+// Helper to get local date string without timezone shift
+const getLocalDateString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 function ManualExpenseForm({ onExpenseAdded, expenses = [] }) {
+  const [categories, setCategories] = useState(getAllCategories());
   const [formData, setFormData] = useState({
     merchantName: '',
     description: '',
     totalAmount: '',
     category: '',
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateString(),
     paymentMethod: ''
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+
+  // Listen for category updates
+  useEffect(() => {
+    const handleCategoriesUpdated = () => {
+      setCategories(getAllCategories());
+    };
+
+    window.addEventListener('categoriesUpdated', handleCategoriesUpdated);
+
+    return () => {
+      window.removeEventListener('categoriesUpdated', handleCategoriesUpdated);
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -56,7 +80,7 @@ function ManualExpenseForm({ onExpenseAdded, expenses = [] }) {
         description: '',
         totalAmount: '',
         category: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateString(),
         paymentMethod: ''
       });
 
@@ -152,11 +176,11 @@ function ManualExpenseForm({ onExpenseAdded, expenses = [] }) {
               required
             >
               <option value="">Select Category</option>
-              <option value="Food">🍔 Food</option>
-              <option value="Transport">🚗 Transport</option>
-              <option value="Shopping">🛍️ Shopping</option>
-              <option value="Bills">💡 Bills</option>
-              <option value="Other">📦 Other</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.icon} {cat.name}
+                </option>
+              ))}
             </select>
           </div>
         </div>

@@ -245,4 +245,18 @@ export const signOut = async () => {
   }
 };
 
+export const learnCategoryCorrection = async (merchantName, description, category) => {
+  try {
+    const response = await api.post('/category-learning', {
+      merchantName,
+      description,
+      category
+    });
+    return response.data;
+  } catch (error) {
+    console.warn('Category learning failed:', error);
+    // Don't throw error - learning is a background operation
+  }
+};
+
 export default api;

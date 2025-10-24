@@ -423,10 +423,9 @@ function subscribeToExpenses(callback) {
 
 async function updateExpenseCategory(id, category, userId, userToken = null) {
   try {
-    // Validate category
-    const validCategories = ['Food', 'Transport', 'Shopping', 'Bills', 'Other'];
-    if (!validCategories.includes(category)) {
-      throw new Error(`Invalid category. Must be one of: ${validCategories.join(', ')}`);
+    // Validate category is not empty
+    if (!category || typeof category !== 'string') {
+      throw new Error('Invalid category. Category must be a non-empty string.');
     }
 
     // Create Supabase client with user's access token for RLS
@@ -475,10 +474,9 @@ async function updateExpenseCategory(id, category, userId, userToken = null) {
 
 async function updateItemCategory(expenseId, itemIndex, category, userId, userToken = null) {
   try {
-    // Validate category
-    const validCategories = ['Food', 'Transport', 'Shopping', 'Bills', 'Other'];
-    if (!validCategories.includes(category)) {
-      throw new Error(`Invalid category. Must be one of: ${validCategories.join(', ')}`);
+    // Validate category is not empty
+    if (!category || typeof category !== 'string') {
+      throw new Error('Invalid category. Category must be a non-empty string.');
     }
 
     // Create Supabase client with user's access token for RLS

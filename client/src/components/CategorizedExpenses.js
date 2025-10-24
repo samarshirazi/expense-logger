@@ -6,7 +6,8 @@ import {
   deleteExpense,
   deleteExpenseItem,
   updateExpense,
-  updateExpenseItem
+  updateExpenseItem,
+  learnCategoryCorrection
 } from '../services/apiService';
 import {
   getAllCategories,
@@ -382,6 +383,17 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
         }
       } else {
         await updateItemCategory(movedItem.expenseId, movedItem.itemIndex, destinationCategory);
+      }
+
+      // Learn from this category correction (background operation)
+      if (movedItem.merchantName || movedItem.description) {
+        learnCategoryCorrection(
+          movedItem.merchantName || '',
+          movedItem.description || '',
+          destinationCategory
+        ).catch(err => {
+          console.warn('Failed to learn category correction:', err);
+        });
       }
 
       if (onRefresh) {
