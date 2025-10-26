@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   getIncomeSources,
   createIncomeSource,
-  updateIncomeSource,
   deleteIncomeSource,
   getExtraIncome,
   createExtraIncome,
-  deleteExtraIncome,
   getSavingsBalance,
   getSavingsTransactions,
   createSavingsTransaction,
@@ -69,11 +67,7 @@ function IncomeSavings() {
   });
 
   // Load data on mount and tab change
-  useEffect(() => {
-    loadData();
-  }, [activeTab, currentMonth]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -98,7 +92,11 @@ function IncomeSavings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, currentMonth]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Income Source handlers
   const handleAddIncomeSource = async (e) => {
@@ -270,6 +268,7 @@ function IncomeSavings() {
 
       {error && <div className="error-message">{error}</div>}
       {success && <div className="success-message">{success}</div>}
+      {loading && <div className="loading-message">Loading data...</div>}
 
       {/* INCOME TAB */}
       {activeTab === 'income' && (
