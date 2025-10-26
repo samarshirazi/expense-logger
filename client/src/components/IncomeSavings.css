@@ -110,13 +110,39 @@
   font-weight: bold;
 }
 
-.month-selector input {
-  padding: 8px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
+.period-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-secondary, #f4f5fb);
+  border-radius: 999px;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.3));
+  color: var(--text-primary, #1f2937);
   font-size: 14px;
-  background: var(--input-bg);
-  color: var(--text-primary);
+  font-weight: 500;
+  box-shadow: 0 6px 18px rgba(76, 81, 191, 0.12);
+}
+
+.period-display .period-icon {
+  font-size: 16px;
+}
+
+.period-label-text,
+.period-view-mode {
+  white-space: nowrap;
+}
+
+.period-label-text {
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+}
+
+.period-view-mode {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .income-sources-list,
@@ -405,20 +431,31 @@
 .add-button {
   width: 100%;
   padding: 14px;
-  background-color: var(--primary-color);
-  color: white;
+  background: linear-gradient(135deg, var(--primary-color, #645cff) 0%, var(--primary-hover, #5145d8) 100%);
+  color: #ffffff;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 10px 24px rgba(81, 69, 216, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 .add-button:hover {
-  background-color: var(--primary-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, var(--primary-hover, #5145d8) 0%, var(--primary-color, #645cff) 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px rgba(81, 69, 216, 0.28);
+}
+
+.add-button:focus-visible {
+  outline: 3px solid rgba(81, 69, 216, 0.45);
+  outline-offset: 3px;
 }
 
 .delete-button,
@@ -555,30 +592,42 @@
 .cancel-button {
   flex: 1;
   padding: 12px;
-  border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 .submit-button {
-  background-color: var(--primary-color);
-  color: white;
+  background: linear-gradient(135deg, var(--primary-color, #645cff) 0%, var(--primary-hover, #5145d8) 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 8px 20px rgba(81, 69, 216, 0.24);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
 .submit-button:hover {
-  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(81, 69, 216, 0.3);
 }
 
 .cancel-button {
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
+  background-color: transparent;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.4));
+  color: var(--text-primary, #1f2937);
+  box-shadow: inset 0 0 0 rgba(0, 0, 0, 0);
 }
 
 .cancel-button:hover {
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-secondary, rgba(148, 163, 184, 0.08));
+  box-shadow: inset 0 0 0 rgba(0, 0, 0, 0);
+}
+
+.submit-button:focus-visible,
+.cancel-button:focus-visible {
+  outline: 3px solid rgba(81, 69, 216, 0.45);
+  outline-offset: 3px;
 }
 
 /* MOBILE RESPONSIVE */

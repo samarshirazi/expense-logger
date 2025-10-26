@@ -1,0 +1,307 @@
+.grocery-card {
+  background: var(--surface, #ffffff);
+  border-radius: 24px;
+  padding: 24px 26px;
+  border: 1px solid rgba(118, 100, 255, 0.16);
+  box-shadow: 0 20px 44px rgba(148, 163, 184, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.grocery-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.grocery-header h2 {
+  margin: 0;
+  font-size: 22px;
+  color: var(--text-primary, #1f2937);
+}
+
+.grocery-subtitle {
+  margin: 6px 0 0 0;
+  color: var(--text-secondary, #6b7280);
+  font-size: 14px;
+}
+
+.grocery-count {
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: rgba(118, 100, 255, 0.14);
+  color: var(--primary, #645cff);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.grocery-status {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(5, 150, 105, 0.22);
+  color: #047857;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.grocery-error {
+  background: rgba(244, 114, 182, 0.15);
+  border: 1px solid rgba(236, 72, 153, 0.3);
+  color: #be185d;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.grocery-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.grocery-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.grocery-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.grocery-field label {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-secondary, #6b7280);
+  font-weight: 600;
+}
+
+.grocery-field input {
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  padding: 11px 12px;
+  font-size: 14px;
+  background: var(--surface-muted, #f3f4ff);
+  color: var(--text-primary, #1f2937);
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.grocery-field input:focus {
+  outline: none;
+  border-color: var(--primary, #645cff);
+  box-shadow: 0 0 0 3px rgba(118, 100, 255, 0.2);
+}
+
+.grocery-form-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.grocery-submit {
+  background: linear-gradient(135deg, var(--primary, #645cff) 0%, var(--primary-dark, #5145d8) 100%);
+  border: none;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 26px;
+  cursor: pointer;
+  box-shadow: 0 14px 32px rgba(118, 100, 255, 0.28);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.grocery-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px rgba(118, 100, 255, 0.34);
+}
+
+.grocery-submit:focus-visible {
+  outline: 3px solid rgba(118, 100, 255, 0.35);
+  outline-offset: 3px;
+}
+
+.grocery-clear {
+  background: rgba(118, 100, 255, 0.08);
+  color: var(--primary, #645cff);
+  border: 1px solid rgba(118, 100, 255, 0.24);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.grocery-clear:hover {
+  background: rgba(118, 100, 255, 0.16);
+  transform: translateY(-1px);
+}
+
+.grocery-quick-add {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.grocery-quick-add button {
+  background: rgba(148, 163, 184, 0.16);
+  border: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.grocery-quick-add button:hover {
+  background: rgba(118, 100, 255, 0.22);
+  color: var(--primary, #645cff);
+  transform: translateY(-1px);
+}
+
+.grocery-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.grocery-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  background: var(--surface-muted, #f3f4ff);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  padding: 14px 18px;
+  transition: border 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.grocery-item:hover {
+  border-color: rgba(118, 100, 255, 0.3);
+  box-shadow: 0 10px 24px rgba(118, 100, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.grocery-item.completed {
+  opacity: 0.65;
+  background: rgba(148, 163, 184, 0.16);
+}
+
+.grocery-item-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+}
+
+.grocery-item input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  cursor: pointer;
+  accent-color: var(--primary, #645cff);
+}
+
+.grocery-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.grocery-item-name {
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  font-size: 15px;
+}
+
+.grocery-item.completed .grocery-item-name {
+  text-decoration: line-through;
+}
+
+.grocery-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.grocery-item-notes {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(118, 100, 255, 0.15);
+  color: var(--primary, #645cff);
+}
+
+.grocery-delete {
+  background: transparent;
+  border: none;
+  color: #f87171;
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.grocery-delete:hover {
+  background: rgba(248, 113, 113, 0.16);
+  transform: scale(1.05);
+}
+
+.grocery-empty {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-secondary, #6b7280);
+  font-style: italic;
+  background: rgba(148, 163, 184, 0.14);
+  border-radius: 16px;
+}
+
+@media (max-width: 720px) {
+  .grocery-card {
+    padding: 20px;
+  }
+
+  .grocery-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .grocery-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grocery-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .grocery-submit,
+  .grocery-clear {
+    width: 100%;
+    text-align: center;
+  }
+}

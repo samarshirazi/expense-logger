@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import './ExpensesSummary.css';
+import GroceryList from './GroceryList';
 import { updateExpense } from '../services/apiService';
 
 const CATEGORY_META = {
@@ -861,6 +862,8 @@ function ExpensesSummary({
           </button>
         </div>
       </div>
+
+      <GroceryList />
 
       <div className="expenses-table-wrapper">
         <table className="expenses-table">

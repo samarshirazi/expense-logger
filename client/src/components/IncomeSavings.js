@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   getIncomeSources,
   createIncomeSource,
@@ -15,7 +15,90 @@ import {
 } from '../services/apiService';
 import './IncomeSavings.css';
 
-function IncomeSavings() {
+const toLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getMonthRange = (date) => {
+  const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  return {
+    startDate: toLocalDateString(startOfMonth),
+    endDate: toLocalDateString(endOfMonth)
+  };
+};
+
+const getMonthParamFromDate = (dateString) => {
+  if (!dateString) return null;
+  const parts = dateString.split('-');
+  if (parts.length < 2) return null;
+  const [year, month] = parts;
+  return `${year}-${month}-01`;
+};
+
+const formatPeriodLabel = (startDate, endDate) => {
+  if (!startDate || !endDate) return 'All time';
+
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return 'All time';
+  }
+
+  const monthStart = new Date(start.getFullYear(), start.getMonth(), 1);
+  const monthEnd = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+  const isFullMonth = start.getTime() === monthStart.getTime() && end.getTime() === monthEnd.getTime();
+
+  if (isFullMonth) {
+    return start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  const startLabel = start.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: start.getFullYear() === end.getFullYear() ? undefined : 'numeric'
+  });
+
+  const endLabel = end.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+
+  return `${startLabel} – ${endLabel}`;
+};
+
+const friendlyIncomeError = (message) => {
+  if (!message) return 'Failed to load data';
+  if (/income_sources|extra_income|savings_transactions|savings_goals/i.test(message)) {
+    return 'Income & savings tables are not set up yet. Please run the Supabase migration found at server/migrations/20250124000001_income_savings.sql and reload.';
+  }
+  return message;
+};
+
+function IncomeSavings({ dateRange, timelineState }) {
+  const defaultRange = useMemo(() => getMonthRange(new Date()), []);
+  const effectiveStart = dateRange?.startDate || defaultRange.startDate;
+  const effectiveEnd = dateRange?.endDate || defaultRange.endDate;
+  const effectiveRange = useMemo(() => ({
+    startDate: effectiveStart,
+    endDate: effectiveEnd
+  }), [effectiveStart, effectiveEnd]);
+  const monthParam = useMemo(() => getMonthParamFromDate(effectiveRange.startDate), [effectiveRange.startDate]);
+  const periodLabel = useMemo(
+    () => formatPeriodLabel(effectiveRange.startDate, effectiveRange.endDate),
+    [effectiveRange.endDate, effectiveRange.startDate]
+  );
+  const rawViewMode = timelineState?.viewMode || 'month';
+  const capitalizedViewMode = `${rawViewMode.charAt(0).toUpperCase()}${rawViewMode.slice(1)}`;
+  const resolveErrorMessage = useCallback(
+    (err, fallback) => friendlyIncomeError(err?.message || fallback),
+    []
+  );
+
   const [activeTab, setActiveTab] = useState('income'); // 'income', 'savings', 'goals'
   const [incomeSources, setIncomeSources] = useState([]);
   const [extraIncome, setExtraIncome] = useState([]);
@@ -26,38 +109,32 @@ function IncomeSavings() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Current month for income sources
-  const [currentMonth, setCurrentMonth] = useState(() => {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
-  });
-
   // Form states
   const [showIncomeForm, setShowIncomeForm] = useState(false);
   const [showExtraIncomeForm, setShowExtraIncomeForm] = useState(false);
   const [showSavingsTransactionForm, setShowSavingsTransactionForm] = useState(false);
   const [showGoalForm, setShowGoalForm] = useState(false);
 
-  const [incomeFormData, setIncomeFormData] = useState({
+  const [incomeFormData, setIncomeFormData] = useState(() => ({
     sourceName: '',
     amount: '',
-    month: currentMonth
-  });
+    month: monthParam
+  }));
 
-  const [extraIncomeFormData, setExtraIncomeFormData] = useState({
+  const [extraIncomeFormData, setExtraIncomeFormData] = useState(() => ({
     description: '',
     amount: '',
-    date: new Date().toISOString().split('T')[0],
+    date: effectiveRange.endDate || new Date().toISOString().split('T')[0],
     destination: 'savings', // Default to savings
     notes: ''
-  });
+  }));
 
-  const [savingsTransactionFormData, setSavingsTransactionFormData] = useState({
+  const [savingsTransactionFormData, setSavingsTransactionFormData] = useState(() => ({
     amount: '',
     transactionType: 'deposit',
     description: '',
-    date: new Date().toISOString().split('T')[0]
-  });
+    date: effectiveRange.endDate || new Date().toISOString().split('T')[0]
+  }));
 
   const [goalFormData, setGoalFormData] = useState({
     goalName: '',
@@ -66,15 +143,46 @@ function IncomeSavings() {
     description: ''
   });
 
-  // Load data on mount and tab change
+  useEffect(() => {
+    if (monthParam && !showIncomeForm) {
+      setIncomeFormData(prev => ({
+        ...prev,
+        month: monthParam
+      }));
+    }
+  }, [monthParam, showIncomeForm]);
+
+  useEffect(() => {
+    if (effectiveRange.endDate && !showExtraIncomeForm) {
+      setExtraIncomeFormData(prev => ({
+        ...prev,
+        date: effectiveRange.endDate
+      }));
+    }
+  }, [effectiveRange.endDate, showExtraIncomeForm]);
+
+  useEffect(() => {
+    if (effectiveRange.endDate && !showSavingsTransactionForm) {
+      setSavingsTransactionFormData(prev => ({
+        ...prev,
+        date: effectiveRange.endDate
+      }));
+    }
+  }, [effectiveRange.endDate, showSavingsTransactionForm]);
+
+  // Load data on mount and when dependencies change
   const loadData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
       if (activeTab === 'income') {
-        const sources = await getIncomeSources(currentMonth);
+        const monthFilter = monthParam || null;
+        const sources = await getIncomeSources(monthFilter);
         setIncomeSources(sources);
-        const extra = await getExtraIncome();
+        const extra = await getExtraIncome(
+          effectiveRange.startDate || null,
+          effectiveRange.endDate || null
+        );
         setExtraIncome(extra);
       } else if (activeTab === 'savings') {
         const balance = await getSavingsBalance();
@@ -88,11 +196,17 @@ function IncomeSavings() {
         setSavingsBalance(balance);
       }
     } catch (err) {
-      setError(err.message || 'Failed to load data');
+      setError(resolveErrorMessage(err, 'Failed to load data'));
     } finally {
       setLoading(false);
     }
-  }, [activeTab, currentMonth]);
+  }, [
+    activeTab,
+    effectiveRange.endDate,
+    effectiveRange.startDate,
+    monthParam,
+    resolveErrorMessage
+  ]);
 
   useEffect(() => {
     loadData();
@@ -107,14 +221,19 @@ function IncomeSavings() {
     try {
       await createIncomeSource({
         ...incomeFormData,
+        month: monthParam || incomeFormData.month,
         amount: parseFloat(incomeFormData.amount)
       });
       setSuccess('Income source added successfully!');
       setShowIncomeForm(false);
-      setIncomeFormData({ sourceName: '', amount: '', month: currentMonth });
+      setIncomeFormData({
+        sourceName: '',
+        amount: '',
+        month: monthParam || incomeFormData.month
+      });
       loadData();
     } catch (err) {
-      setError(err.message || 'Failed to add income source');
+      setError(resolveErrorMessage(err, 'Failed to add income source'));
     }
   };
 
@@ -128,7 +247,7 @@ function IncomeSavings() {
       setSuccess('Income source deleted successfully!');
       loadData();
     } catch (err) {
-      setError(err.message || 'Failed to delete income source');
+      setError(resolveErrorMessage(err, 'Failed to delete income source'));
     }
   };
 
@@ -148,13 +267,13 @@ function IncomeSavings() {
       setExtraIncomeFormData({
         description: '',
         amount: '',
-        date: new Date().toISOString().split('T')[0],
+        date: effectiveRange.endDate || new Date().toISOString().split('T')[0],
         destination: 'savings',
         notes: ''
       });
       loadData();
     } catch (err) {
-      setError(err.message || 'Failed to add extra income');
+      setError(resolveErrorMessage(err, 'Failed to add extra income'));
     }
   };
 
@@ -176,11 +295,11 @@ function IncomeSavings() {
         amount: '',
         transactionType: 'deposit',
         description: '',
-        date: new Date().toISOString().split('T')[0]
+        date: effectiveRange.endDate || new Date().toISOString().split('T')[0]
       });
       loadData();
     } catch (err) {
-      setError(err.message || 'Failed to record transaction');
+      setError(resolveErrorMessage(err, 'Failed to record transaction'));
     }
   };
 
@@ -201,7 +320,7 @@ function IncomeSavings() {
       setGoalFormData({ goalName: '', targetAmount: '', targetDate: '', description: '' });
       loadData();
     } catch (err) {
-      setError(err.message || 'Failed to create goal');
+      setError(resolveErrorMessage(err, 'Failed to create goal'));
     }
   };
 
@@ -215,7 +334,7 @@ function IncomeSavings() {
       setSuccess('Goal deleted successfully!');
       loadData();
     } catch (err) {
-      setError(err.message || 'Failed to delete goal');
+      setError(resolveErrorMessage(err, 'Failed to delete goal'));
     }
   };
 
@@ -229,7 +348,7 @@ function IncomeSavings() {
       setSuccess('Amount allocated to goal!');
       loadData();
     } catch (err) {
-      setError(err.message || 'Failed to allocate to goal');
+      setError(resolveErrorMessage(err, 'Failed to allocate to goal'));
     }
   };
 
@@ -276,17 +395,19 @@ function IncomeSavings() {
           <div className="section">
             <div className="section-header">
               <h2>Monthly Income</h2>
-              <div className="month-selector">
-                <input
-                  type="month"
-                  value={currentMonth.substring(0, 7)}
-                  onChange={(e) => setCurrentMonth(`${e.target.value}-01`)}
-                />
+              <div
+                className="period-display"
+                aria-live="polite"
+                title={`${capitalizedViewMode} view`}
+              >
+                <span className="period-icon" role="img" aria-hidden="true">🗓️</span>
+                <span className="period-label-text">{periodLabel}</span>
+                <span className="period-view-mode">{capitalizedViewMode} view</span>
               </div>
             </div>
 
             <div className="total-income-card">
-              <div className="total-label">Total Monthly Income</div>
+              <div className="total-label">Total Income • {periodLabel}</div>
               <div className="total-amount">${totalMonthlyIncome.toFixed(2)}</div>
             </div>
 

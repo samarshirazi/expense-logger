@@ -490,8 +490,8 @@ function App() {
           />
         )}
 
-        {/* Shared TimeNavigator for Dashboard, Expenses, Categories, and Manage */}
-        {['dashboard', 'expenses', 'categories', 'manage'].includes(activeView) && (
+        {/* Shared TimeNavigator for Dashboard, Expenses, Categories, Manage, and Income & Savings */}
+        {['dashboard', 'expenses', 'categories', 'manage', 'income-savings'].includes(activeView) && (
           <div className={`shared-timeline-container ${showOptionsButton ? 'with-button' : 'without-button'}`}>
             {/* Options Button - inside timeline container, positioned above TimeNavigator */}
             {renderOptionsToggleButton('floating')}
@@ -551,9 +551,12 @@ function App() {
         )}
 
         {activeView === 'income-savings' && (
-          <div className="view-container no-timeline">
+          <div className="view-container">
             {renderOptionsToggleButton('inline')}
-            <IncomeSavings />
+            <IncomeSavings
+              dateRange={dateRange}
+              timelineState={sharedTimelineState}
+            />
           </div>
         )}
 
