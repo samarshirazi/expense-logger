@@ -37,6 +37,7 @@ function App() {
   const [showOptionsButton, setShowOptionsButton] = useState(true);
   const [isCoachOpen, setIsCoachOpen] = useState(false);
   const [coachHasUnread, setCoachHasUnread] = useState(false);
+  const [pendingGroceryExpense, setPendingGroceryExpense] = useState(null);
   const [themePreference, setThemePreference] = useState(() => {
     if (typeof window === 'undefined') return 'system';
     try {
@@ -177,6 +178,30 @@ function App() {
     );
   };
 
+  const handleCreateExpenseFromGrocery = useCallback((item) => {
+    if (!item || !item.totalAmount) {
+      setExpensesMode('summary');
+      setActiveView('log');
+      return;
+    }
+
+    const totalAmount = Number.parseFloat(item.totalAmount) || 0;
+    const date = item.date || toLocalDateString(new Date());
+
+    setPendingGroceryExpense({
+      merchantName: item.merchantName || item.description || item.name || 'Groceries',
+      description: item.description || item.name || 'Grocery purchase',
+      totalAmount,
+      date,
+      category: item.category || 'Food',
+      paymentMethod: item.paymentMethod || '',
+      notes: item.notes || ''
+    });
+
+    setExpensesMode('summary');
+    setActiveView('log');
+  }, []);
+
   const applyTheme = useCallback((value) => {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
@@ -195,6 +220,12 @@ function App() {
   useEffect(() => {
     applyTheme(themePreference);
   }, [themePreference, applyTheme]);
+
+  useEffect(() => {
+    if (activeView !== 'expenses') {
+      setExpensesMode('summary');
+    }
+  }, [activeView]);
 
   useEffect(() => {
     if (activeView !== 'expenses') {
@@ -535,6 +566,7 @@ function App() {
             {expensesMode === 'shopping' ? (
               <GroceryListPage
                 onBack={() => setExpensesMode('summary')}
+                onCreateExpense={handleCreateExpenseFromGrocery}
               />
             ) : (
               <ExpensesSummary
@@ -586,7 +618,12 @@ function App() {
               <h1>Log Expense</h1>
               <p>Upload receipts or add expenses manually</p>
             </div>
-            <LogExpense onExpenseAdded={handleExpenseAdded} expenses={expenses} />
+            <LogExpense
+              onExpenseAdded={handleExpenseAdded}
+              expenses={expenses}
+              prefillExpense={pendingGroceryExpense}
+              onPrefillConsumed={() => setPendingGroceryExpense(null)}
+            />
           </div>
         )}
 

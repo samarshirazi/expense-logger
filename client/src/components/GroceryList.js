@@ -4,6 +4,13 @@ import './GroceryList.css';
 const STORAGE_KEY = 'expenses-grocery-list';
 const QUICK_SUGGESTIONS = ['Milk', 'Eggs', 'Bread', 'Fresh fruit', 'Coffee', 'Paper towels'];
 
+const toLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const buildItem = (overrides = {}) => ({
   id: (typeof crypto !== 'undefined' && crypto.randomUUID)
     ? crypto.randomUUID()
@@ -11,7 +18,10 @@ const buildItem = (overrides = {}) => ({
   name: '',
   quantity: '',
   notes: '',
+  price: null,
+  plannedDate: toLocalDateString(new Date()),
   purchased: false,
+  purchasedAt: null,
   createdAt: new Date().toISOString(),
   updatedAt: null,
   ...overrides
@@ -26,18 +36,26 @@ const sortItems = (list) => {
   });
 };
 
-function GroceryList() {
+const isWithinRange = (dateStr, range) => {
+  if (!dateStr) return false;
+  if (!range?.startDate || !range?.endDate) return true;
+  return dateStr >= range.startDate && dateStr <= range.endDate;
+};
+
+function GroceryList({
+  onItemsChange = () => {},
+  dateRange,
+  selectedDate,
+  onAddExpense,
+  defaultCategory = 'Food'
+}) {
   const [items, setItems] = useState([]);
-  const [formValues, setFormValues] = useState({ name: '', quantity: '', notes: '' });
+  const [formValues, setFormValues] = useState({ name: '', quantity: '', notes: '', price: '' });
   const [error, setError] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const statusTimeoutRef = useRef(null);
   const nameInputRef = useRef(null);
 
-  const remainingCount = useMemo(
-    () => items.filter(item => !item.purchased).length,
-    [items]
-  );
   const hasPurchased = useMemo(
     () => items.some(item => item.purchased),
     [items]
@@ -50,7 +68,17 @@ function GroceryList() {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          setItems(sortItems(parsed));
+          const hydrated = parsed.map(item => ({
+            ...item,
+            price: typeof item.price === 'number'
+              ? item.price
+              : item.price
+                ? Number.parseFloat(item.price)
+                : null,
+            plannedDate: item.plannedDate || toLocalDateString(new Date(item.createdAt || Date.now())),
+            purchasedAt: item.purchasedAt || null
+          }));
+          setItems(sortItems(hydrated));
         }
       }
     } catch (err) {
@@ -81,8 +109,12 @@ function GroceryList() {
     }
   }, [error, formValues.name]);
 
+  useEffect(() => {
+    onItemsChange(items);
+  }, [items, onItemsChange]);
+
   const resetForm = () => {
-    setFormValues({ name: '', quantity: '', notes: '' });
+    setFormValues({ name: '', quantity: '', notes: '', price: '' });
   };
 
   const focusNameField = () => {
@@ -117,6 +149,9 @@ function GroceryList() {
 
     const quantity = formValues.quantity.trim();
     const notes = formValues.notes.trim();
+    const parsedPrice = formValues.price ? Number.parseFloat(formValues.price) : null;
+    const priceValue = Number.isFinite(parsedPrice) && parsedPrice !== null ? parsedPrice : null;
+    const plannedDate = selectedDate || toLocalDateString(new Date());
 
     const existingActive = items.find(
       item => item.name.toLowerCase() === name.toLowerCase() && !item.purchased
@@ -133,7 +168,10 @@ function GroceryList() {
           ...next[index],
           quantity: quantity || next[index].quantity,
           notes: notes || next[index].notes,
+          price: priceValue !== null ? priceValue : next[index].price,
+          plannedDate,
           purchased: false,
+          purchasedAt: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -143,7 +181,9 @@ function GroceryList() {
       next.unshift(buildItem({
         name,
         quantity,
-        notes
+        notes,
+        price: priceValue,
+        plannedDate
       }));
       return sortItems(next);
     });
@@ -164,9 +204,11 @@ function GroceryList() {
 
     setItems(prev => sortItems(prev.map(item => {
       if (item.id !== id) return item;
+      const purchased = !item.purchased;
       return {
         ...item,
-        purchased: !item.purchased,
+        purchased,
+        purchasedAt: purchased ? toLocalDateString(new Date()) : null,
         updatedAt: new Date().toISOString()
       };
     })));
@@ -197,6 +239,34 @@ function GroceryList() {
     focusNameField();
   };
 
+  const handleAddExpense = (item) => {
+    if (!onAddExpense || item.price === null) return;
+    const expensePayload = {
+      description: item.name,
+      totalAmount: item.price,
+      date: item.purchasedAt || item.plannedDate,
+      category: defaultCategory,
+      merchantName: item.name,
+      notes: item.notes,
+      quantity: item.quantity
+    };
+    onAddExpense(expensePayload);
+  };
+
+  const outstandingItems = useMemo(() => {
+    if (!dateRange) return items.filter(item => !item.purchased);
+    return items.filter(item => !item.purchased && isWithinRange(item.plannedDate, dateRange));
+  }, [items, dateRange]);
+
+  const purchasedItems = useMemo(() => {
+    if (!dateRange) return items.filter(item => item.purchased);
+    return items.filter(item => item.purchased && isWithinRange(item.purchasedAt, dateRange));
+  }, [items, dateRange]);
+
+  const spentTotal = useMemo(() => {
+    return purchasedItems.reduce((sum, item) => sum + (item.price || 0), 0);
+  }, [purchasedItems]);
+
   return (
     <div className="grocery-card" aria-labelledby="grocery-list-heading">
       <div className="grocery-header">
@@ -206,8 +276,13 @@ function GroceryList() {
             Stay ahead of your shopping runs and keep the essentials close at hand.
           </p>
         </div>
-        <div className="grocery-count" aria-live="polite">
-          {remainingCount === 0 ? 'All caught up!' : `${remainingCount} to buy`}
+        <div className="grocery-stats" aria-live="polite">
+          <div className="grocery-count">
+            {outstandingItems.length === 0 ? 'All caught up!' : `${outstandingItems.length} to buy`}
+          </div>
+          <div className="grocery-count spent">
+            Spent: ${spentTotal.toFixed(2)}
+          </div>
         </div>
       </div>
 
@@ -237,6 +312,23 @@ function GroceryList() {
               value={formValues.quantity}
               onChange={handleInputChange('quantity')}
             />
+          </div>
+        </div>
+        <div className="grocery-form-grid">
+          <div className="grocery-field">
+            <label htmlFor="grocery-price">Price (optional)</label>
+            <div className="input-with-prefix">
+              <span className="prefix">$</span>
+              <input
+                id="grocery-price"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={formValues.price}
+                onChange={handleInputChange('price')}
+              />
+            </div>
           </div>
         </div>
         <div className="grocery-field">
@@ -285,42 +377,123 @@ function GroceryList() {
             Nothing on the list yet. Add a few items you plan to grab next.
           </li>
         ) : (
-          items.map(item => (
-            <li
-              key={item.id}
-              className={`grocery-item ${item.purchased ? 'completed' : ''}`}
-            >
-              <div className="grocery-item-left">
-                <input
-                  type="checkbox"
-                  checked={item.purchased}
-                  onChange={() => toggleItem(item.id)}
-                  aria-label={item.purchased ? `Mark ${item.name} as not purchased` : `Mark ${item.name} as purchased`}
-                />
-                <div className="grocery-item-text">
-                  <div className="grocery-item-name">{item.name}</div>
-                  {(item.quantity || item.notes) && (
+          <>
+            {outstandingItems.length > 0 && (
+              <li className="grocery-section-label">Upcoming</li>
+            )}
+            {outstandingItems.map(item => (
+              <li
+                key={item.id}
+                className={`grocery-item ${item.purchased ? 'completed' : ''}`}
+              >
+                <div className="grocery-item-left">
+                  <input
+                    type="checkbox"
+                    checked={item.purchased}
+                    onChange={() => toggleItem(item.id)}
+                    aria-label={item.purchased ? `Mark ${item.name} as not purchased` : `Mark ${item.name} as purchased`}
+                  />
+                  <div className="grocery-item-text">
+                    <div className="grocery-item-name">{item.name}</div>
                     <div className="grocery-item-meta">
                       {item.quantity && (
                         <span className="grocery-item-quantity">Qty: {item.quantity}</span>
+                      )}
+                      {item.price !== null && (
+                        <span className="grocery-item-price">${item.price.toFixed(2)}</span>
+                      )}
+                      {item.plannedDate && (
+                        <span className="grocery-item-date">Planned: {item.plannedDate}</span>
                       )}
                       {item.notes && (
                         <span className="grocery-item-notes">{item.notes}</span>
                       )}
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-              <button
-                type="button"
-                className="grocery-delete"
-                aria-label={`Remove ${item.name}`}
-                onClick={() => removeItem(item.id)}
+                <div className="grocery-item-actions">
+                  {item.price !== null && (
+                    <button
+                      type="button"
+                      className="grocery-add-expense"
+                      onClick={() => handleAddExpense(item)}
+                    >
+                      Add Expense
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="grocery-delete"
+                    aria-label={`Remove ${item.name}`}
+                    onClick={() => removeItem(item.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+              </li>
+            ))}
+
+            {purchasedItems.length > 0 && (
+              <li className="grocery-section-label">Purchased</li>
+            )}
+            {purchasedItems.map(item => (
+              <li
+                key={item.id}
+                className="grocery-item completed purchased"
               >
-                ×
-              </button>
-            </li>
-          ))
+                <div className="grocery-item-left">
+                  <input
+                    type="checkbox"
+                    checked={item.purchased}
+                    onChange={() => toggleItem(item.id)}
+                    aria-label={`Mark ${item.name} as not purchased`}
+                  />
+                  <div className="grocery-item-text">
+                    <div className="grocery-item-name">{item.name}</div>
+                    <div className="grocery-item-meta">
+                      {item.quantity && (
+                        <span className="grocery-item-quantity">Qty: {item.quantity}</span>
+                      )}
+                      {item.price !== null && (
+                        <span className="grocery-item-price">${item.price.toFixed(2)}</span>
+                      )}
+                      {item.purchasedAt && (
+                        <span className="grocery-item-date">Bought: {item.purchasedAt}</span>
+                      )}
+                      {item.notes && (
+                        <span className="grocery-item-notes">{item.notes}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="grocery-item-actions">
+                  {item.price !== null && (
+                    <button
+                      type="button"
+                      className="grocery-add-expense"
+                      onClick={() => handleAddExpense(item)}
+                    >
+                      Add Expense
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="grocery-delete"
+                    aria-label={`Remove ${item.name}`}
+                    onClick={() => removeItem(item.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+              </li>
+            ))}
+
+            {outstandingItems.length === 0 && purchasedItems.length === 0 && (
+              <li className="grocery-empty">
+                No items in this period. Add a new item or adjust the timeline above.
+              </li>
+            )}
+          </>
         )}
       </ul>
     </div>

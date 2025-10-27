@@ -28,6 +28,12 @@
   font-size: 14px;
 }
 
+.grocery-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .grocery-count {
   padding: 8px 18px;
   border-radius: 999px;
@@ -36,6 +42,11 @@
   font-weight: 600;
   font-size: 13px;
   letter-spacing: 0.04em;
+}
+
+.grocery-count.spent {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
 }
 
 .grocery-status {
@@ -91,6 +102,32 @@
   background: var(--surface-muted, #f3f4ff);
   color: var(--text-primary, #1f2937);
   transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-with-prefix {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-muted, #f3f4ff);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 12px;
+  padding: 0 12px;
+}
+
+.input-with-prefix .prefix {
+  font-weight: 600;
+  color: var(--text-secondary, #6b7280);
+}
+
+.input-with-prefix input {
+  border: none;
+  background: transparent;
+  padding: 10px 0;
+  flex: 1;
+}
+
+.input-with-prefix input:focus {
+  outline: none;
 }
 
 .grocery-field input:focus {
@@ -244,6 +281,15 @@
   color: var(--text-secondary, #6b7280);
 }
 
+.grocery-item-price {
+  font-weight: 600;
+  color: var(--primary, #645cff);
+}
+
+.grocery-item-date {
+  color: var(--text-secondary, #6b7280);
+}
+
 .grocery-item-notes {
   padding: 2px 8px;
   border-radius: 999px;
@@ -271,6 +317,41 @@
   transform: scale(1.05);
 }
 
+.grocery-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.grocery-add-expense {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.grocery-add-expense:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(16, 185, 129, 0.2);
+}
+
+.grocery-section-label {
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #6b7280);
+  padding: 6px 4px;
+}
+
+.grocery-item.purchased {
+  opacity: 0.75;
+}
+
 .grocery-empty {
   text-align: center;
   padding: 20px;
@@ -290,6 +371,12 @@
     align-items: flex-start;
   }
 
+  .grocery-stats {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
   .grocery-form-grid {
     grid-template-columns: 1fr;
   }
@@ -303,5 +390,16 @@
   .grocery-clear {
     width: 100%;
     text-align: center;
+  }
+
+  .grocery-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .grocery-item-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 }

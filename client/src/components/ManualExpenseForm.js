@@ -12,7 +12,7 @@ const getLocalDateString = () => {
   return `${year}-${month}-${day}`;
 };
 
-function ManualExpenseForm({ onExpenseAdded, expenses = [] }) {
+function ManualExpenseForm({ onExpenseAdded, expenses = [], prefill = null, onPrefillConsumed = () => {} }) {
   const [categories, setCategories] = useState(getAllCategories());
   const [formData, setFormData] = useState({
     merchantName: '',
@@ -38,6 +38,24 @@ function ManualExpenseForm({ onExpenseAdded, expenses = [] }) {
       window.removeEventListener('categoriesUpdated', handleCategoriesUpdated);
     };
   }, []);
+
+  useEffect(() => {
+    if (!prefill) return;
+
+    setFormData({
+      merchantName: prefill.merchantName || '',
+      description: prefill.description || '',
+      totalAmount: prefill.totalAmount ? String(prefill.totalAmount) : '',
+      category: prefill.category || 'Food',
+      date: prefill.date || getLocalDateString(),
+      paymentMethod: prefill.paymentMethod || ''
+    });
+
+    setError(null);
+    setSuccess(null);
+
+    onPrefillConsumed();
+  }, [prefill, onPrefillConsumed]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
