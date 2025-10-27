@@ -9,6 +9,7 @@ import ExpensesSummary from './components/ExpensesSummary';
 import BudgetManage from './components/BudgetManage';
 import SpendingSummary from './components/SpendingSummary';
 import IncomeSavings from './components/IncomeSavings';
+import GroceryListPage from './components/GroceryListPage';
 import Auth from './components/Auth';
 import NotificationPrompt from './components/NotificationPrompt';
 import TimeNavigator from './components/TimeNavigator';
@@ -75,6 +76,7 @@ function App() {
     viewMode: 'month',
     currentDate: new Date()
   });
+  const [expensesMode, setExpensesMode] = useState('summary');
 
   // Shared date range for all sections
   const [dateRange, setDateRange] = useState(() => {
@@ -193,6 +195,12 @@ function App() {
   useEffect(() => {
     applyTheme(themePreference);
   }, [themePreference, applyTheme]);
+
+  useEffect(() => {
+    if (activeView !== 'expenses') {
+      setExpensesMode('summary');
+    }
+  }, [activeView]);
 
   const handleThemeChange = useCallback((value) => {
     setThemePreference(value);
@@ -490,8 +498,11 @@ function App() {
           />
         )}
 
-        {/* Shared TimeNavigator for Dashboard, Expenses, Categories, Manage, and Income & Savings */}
-        {['dashboard', 'expenses', 'categories', 'manage', 'income-savings'].includes(activeView) && (
+        {/* Shared TimeNavigator for selected views */}
+        {(
+          ['dashboard', 'categories', 'manage', 'income-savings'].includes(activeView) ||
+          (activeView === 'expenses' && expensesMode === 'summary')
+        ) && (
           <div className={`shared-timeline-container ${showOptionsButton ? 'with-button' : 'without-button'}`}>
             {/* Options Button - inside timeline container, positioned above TimeNavigator */}
             {renderOptionsToggleButton('floating')}
@@ -519,12 +530,20 @@ function App() {
         </div>
 
         {activeView === 'expenses' && (
-          <div className="view-container">
-            <ExpensesSummary
-              expenses={expenses}
-              dateRange={dateRange}
-              onExpenseUpdated={handleExpenseUpdated}
-            />
+          <div className={`view-container ${expensesMode === 'shopping' ? 'no-timeline' : ''}`}>
+            {renderOptionsToggleButton('inline')}
+            {expensesMode === 'shopping' ? (
+              <GroceryListPage
+                onBack={() => setExpensesMode('summary')}
+              />
+            ) : (
+              <ExpensesSummary
+                expenses={expenses}
+                dateRange={dateRange}
+                onExpenseUpdated={handleExpenseUpdated}
+                onOpenShoppingList={() => setExpensesMode('shopping')}
+              />
+            )}
           </div>
         )}
 

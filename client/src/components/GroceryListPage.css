@@ -1,0 +1,111 @@
+.grocery-page {
+  padding: 28px 32px 140px;
+  background: linear-gradient(180deg, #f8f7ff 0%, #ffffff 50%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.grocery-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.grocery-page-title h1 {
+  margin: 0 0 8px 0;
+  font-size: 32px;
+  color: var(--text-primary, #1f2937);
+}
+
+.grocery-page-title p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-secondary, #6b7280);
+  max-width: 520px;
+}
+
+.grocery-page-back {
+  border: none;
+  background: rgba(118, 100, 255, 0.12);
+  color: var(--primary, #645cff);
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.grocery-page-back:hover {
+  transform: translateY(-1px);
+  background: rgba(118, 100, 255, 0.2);
+  box-shadow: 0 12px 22px rgba(118, 100, 255, 0.2);
+}
+
+.grocery-page-back:focus-visible {
+  outline: 3px solid rgba(118, 100, 255, 0.4);
+  outline-offset: 3px;
+}
+
+.grocery-page-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.grocery-page-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(79, 70, 229, 0.08);
+  border: 1px solid rgba(79, 70, 229, 0.18);
+  border-radius: 16px;
+  padding: 16px 18px;
+  color: var(--text-secondary, #4b5563);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.grocery-page-tip span {
+  font-size: 22px;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.grocery-page-tip p {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .grocery-page {
+    padding: 24px 20px 120px;
+  }
+
+  .grocery-page-title h1 {
+    font-size: 28px;
+  }
+
+  .grocery-page-back {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .grocery-page {
+    padding: 20px 16px 100px;
+  }
+
+  .grocery-page-title h1 {
+    font-size: 26px;
+  }
+
+  .grocery-page-title p {
+    font-size: 14px;
+  }
+}

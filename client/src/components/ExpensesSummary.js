@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import './ExpensesSummary.css';
-import GroceryList from './GroceryList';
 import { updateExpense } from '../services/apiService';
 
 const CATEGORY_META = {
@@ -96,7 +95,8 @@ function ExpensesSummary({
   onAddExpense,
   onFiltersToggle,
   onExport,
-  onExpenseUpdated = () => {}
+  onExpenseUpdated = () => {},
+  onOpenShoppingList = () => {}
 }) {
   const defaultFilters = {
     search: '',
@@ -128,7 +128,6 @@ function ExpensesSummary({
   });
   const [isSaving, setIsSaving] = useState(false);
   const [editError, setEditError] = useState('');
-  const [showGroceryList, setShowGroceryList] = useState(false);
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }));
@@ -313,23 +312,6 @@ function ExpensesSummary({
     setIsSaving(false);
     setEditError('');
   }, [selectedExpense]);
-
-  useEffect(() => {
-    if (!showGroceryList) {
-      return;
-    }
-
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        setShowGroceryList(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [showGroceryList]);
 
   const selectedExpenseMeta = useMemo(() => {
     if (!selectedExpense) {
@@ -715,7 +697,7 @@ function ExpensesSummary({
           <button
             type="button"
             className="expenses-btn ghost"
-            onClick={() => setShowGroceryList(true)}
+            onClick={onOpenShoppingList}
           >
             🛒 Shopping List
           </button>
@@ -1218,31 +1200,6 @@ function ExpensesSummary({
         </div>
       )}
 
-      {showGroceryList && (
-        <div
-          className="grocery-overlay"
-          onClick={() => setShowGroceryList(false)}
-          role="presentation"
-        >
-          <div
-            className="grocery-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="grocery-list-heading"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="grocery-modal-close"
-              aria-label="Close shopping list"
-              onClick={() => setShowGroceryList(false)}
-            >
-              ×
-            </button>
-            <GroceryList />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
