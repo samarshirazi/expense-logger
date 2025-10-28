@@ -160,6 +160,52 @@ async function createExpensesTable() {
   }
 }
 
+async function createIncomeSavingsTables() {
+  try {
+    const supabase = initSupabase();
+
+    // Check if tables exist by trying to select from them
+    const { error: incomeError } = await supabase
+      .from('income_sources')
+      .select('id')
+      .limit(1);
+
+    const { error: extraIncomeError } = await supabase
+      .from('extra_income')
+      .select('id')
+      .limit(1);
+
+    const { error: savingsError } = await supabase
+      .from('savings_transactions')
+      .select('id')
+      .limit(1);
+
+    const { error: goalsError } = await supabase
+      .from('savings_goals')
+      .select('id')
+      .limit(1);
+
+    if (!incomeError && !extraIncomeError && !savingsError && !goalsError) {
+      console.log('✅ Income & Savings tables already exist');
+      return true;
+    }
+
+    console.log('📝 Income & Savings tables need to be created');
+    console.log('⚠️  Please run the SQL migration file: server/migrations/20250124000001_income_savings.sql');
+    console.log('   You can run it in your Supabase SQL Editor at: https://supabase.com/dashboard/project/_/sql');
+
+    // Read and log the migration file path for easy access
+    const migrationPath = require('path').join(__dirname, '..', 'migrations', '20250124000001_income_savings.sql');
+    console.log(`   Migration file location: ${migrationPath}`);
+
+    return false;
+
+  } catch (error) {
+    console.error('❌ Error checking income/savings tables:', error.message);
+    return false;
+  }
+}
+
 async function saveExpense(expenseData, userId, userToken = null) {
   try {
     // Create Supabase client with user's access token for RLS
@@ -1252,6 +1298,7 @@ module.exports = {
   initSupabase,
   testConnection,
   createExpensesTable,
+  createIncomeSavingsTables,
   saveExpense,
   getExpenses,
   getExpenseById,

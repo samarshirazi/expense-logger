@@ -532,7 +532,7 @@ function App() {
         {/* Shared TimeNavigator for selected views */}
         {(
           ['dashboard', 'categories', 'manage', 'income-savings'].includes(activeView) ||
-          (activeView === 'expenses' && expensesMode === 'summary')
+          (activeView === 'expenses' && (expensesMode === 'summary' || expensesMode === 'shopping'))
         ) && (
           <div className={`shared-timeline-container ${showOptionsButton ? 'with-button' : 'without-button'}`}>
             {/* Options Button - inside timeline container, positioned above TimeNavigator */}
@@ -561,12 +561,13 @@ function App() {
         </div>
 
         {activeView === 'expenses' && (
-          <div className={`view-container ${expensesMode === 'shopping' ? 'no-timeline' : ''}`}>
+          <div className="view-container">
             {renderOptionsToggleButton('inline')}
             {expensesMode === 'shopping' ? (
               <GroceryListPage
                 onBack={() => setExpensesMode('summary')}
                 onCreateExpense={handleCreateExpenseFromGrocery}
+                dateRange={dateRange}
               />
             ) : (
               <ExpensesSummary

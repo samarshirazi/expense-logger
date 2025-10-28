@@ -10,7 +10,7 @@ const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('./services/googl
 const {
   saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable,
   updateExpenseCategory, updateItemCategory, updateExpense, createCategoryLearningTable,
-  learnCategoryCorrection, getLearnedCategories,
+  learnCategoryCorrection, getLearnedCategories, createIncomeSavingsTables,
   // Income and Savings
   saveIncomeSource, getIncomeSources, updateIncomeSource, deleteIncomeSource,
   saveExtraIncome, getExtraIncome, deleteExtraIncome,
@@ -1172,6 +1172,9 @@ async function startServer() {
 
     // Create category learning table if it doesn't exist
     await createCategoryLearningTable();
+
+    // Check/create income and savings tables
+    await createIncomeSavingsTables();
 
     app.listen(PORT, () => {
       console.log(`✅ Server running on port ${PORT}`);
