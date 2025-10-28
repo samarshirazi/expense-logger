@@ -19,6 +19,37 @@ const AI_PROVIDERS = {
   STUB: 'stub',
 };
 
+const VIEW_CONTEXT_DETAILS = {
+  dashboard: {
+    area: 'your dashboard overview',
+    instruction: 'The user opened the coach from the dashboard; keep answers grounded in overall trends, comparisons, and the big picture.'
+  },
+  expenses: {
+    area: 'your expenses',
+    instruction: 'The user is viewing individual expenses; focus on transactions, recent activity, and spending totals.'
+  },
+  categories: {
+    area: 'category spending',
+    instruction: 'Highlight category-level habits, over/under spend, and notable shifts.'
+  },
+  manage: {
+    area: 'your budgets and goals',
+    instruction: 'Center the response on category budgets, remaining amounts, and goal progress.'
+  },
+  'income-savings': {
+    area: 'income and savings',
+    instruction: 'Emphasize income inflows, savings momentum, and goal tracking.'
+  },
+  log: {
+    area: 'expense logging',
+    instruction: 'Help them capture clean data—call out missing details, recent uploads, or data quality gaps.'
+  },
+  settings: {
+    area: 'settings',
+    instruction: 'Address preferences, notifications, and coach settings when relevant.'
+  }
+};
+
 function initOpenAI() {
   if (!process.env.OPENAI_API_KEY) {
     return null;
@@ -888,100 +919,164 @@ async function generateCoachInsights({ conversation = [], analysis }) {
         }))
     : [];
 
-  const systemPrompt = `You are "Finch", an empathetic financial coach living inside a budgeting app with deep memory of all user expenses.
-You study the provided JSON snapshot containing complete expense history, spending patterns, merchant analytics, and budget data.
-Goals:
-- Remember and reference the user's complete spending history (all expenses, dates, merchants, and patterns).
-- Identify what they spend most money on by analyzing categoryAnalysis and topMerchants in spendingPatterns.
-- Highlight notable changes in spending versus prior periods when data is available.
-- Surface category-level overages, savings opportunities, and budget adherence.
-- Point out merchant frequency patterns (e.g., "You've visited Starbucks 12 times this month").
-- Note spending habits by day of week when relevant (e.g., "You tend to spend more on weekends").
-- Reference specific past purchases to show you remember their habits.
-- Provide data-driven insights using avgTransactionValue, totalTransactions, and payment method preferences.
-- Encourage the user with actionable, present-focused suggestions based on their actual behavior.
-- Never claim certainty about the future or make forecasts; focus on observed trends.
-- Keep responses under 200 words. Favor a conversational voice over rigid bullet lists; mix short paragraphs with quick highlights when helpful.
-- Speak like a supportive friend who actually remembers their habits—naturally weave in numbers and specific details instead of listing them generically.
-- Avoid generic financial disclaimers.
-- Wrap up with one encouraging note or a high-five for progress.`;
+  const viewContext = analysis?.context?.activeView || null;
+  const viewDetails = viewContext ? (VIEW_CONTEXT_DETAILS[viewContext] || null) : null;
+
+  const systemPrompt = `You are "Finch", an empathetic financial coach living inside a budgeting app with deep memory of user expenses.
+You receive a JSON snapshot containing transaction history, category budgets, merchant patterns, and comparisons. Treat it as your single source of truth.
+Core principles:
+- Answer only the specific question the user asked; skip broad dashboards or unrelated summaries unless they explicitly request them.
+- Pull concrete numbers, comparisons, or patterns from the snapshot that directly support your answer.
+- If the data cannot answer the question, say so briefly and point them to the closest metric or a practical next step.
+- Skip greetings or sign-offs unless the user uses them—jump straight into helpful guidance.
+- Keep responses under 120 words. Vary sentence structure so the reply feels conversational, not templated.
+- Match the requested coach mood in your tone while staying constructive.
+- Ask for clarification when the question is ambiguous, and never speculate beyond the provided data.`;
 
   const analysisPayload = truncateMessageContent(JSON.stringify(analysis));
   const moodPreference = analysis?.preferences?.mood || 'motivator_serious';
   const moodInstructions = {
-    motivator_roast: 'Tone: playful, sarcastic, meme-friendly. Purpose: entertain first, educate second. Lean into bold one-liners (e.g., “$87 on coffee? You investing in Starbucks?”) while still pointing out what matters.',
-    motivator_serious: 'Blend motivating energy with professional, accountable guidance—keep things direct, constructive, and grounded in the numbers.'
+    motivator_roast: 'Tone: playful and candid—deliver the answer with a witty nudge while staying helpful and specific.',
+    motivator_serious: 'Tone: steady, encouraging, and professional—focus on clarity and actionable guidance.'
   };
   const personaInstruction = moodInstructions[moodPreference] || moodInstructions.motivator_serious;
 
   if (provider === AI_PROVIDERS.STUB) {
-    const topCategory = analysis?.categorySummary?.[0];
-    const topCategoryName = topCategory?.categoryName ?? 'one of your tracked buckets';
-    const leaderSummary = topCategory?.categoryId ? analysis?.categoryLeaders?.[topCategory.categoryId] : null;
-    const topMerchant = leaderSummary?.topMerchants?.[0];
+    const areaLabel = viewDetails?.area || 'your finances';
+    const formatCurrency = (value) => {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) {
+        return '$0.00';
+      }
+      return `$${numeric.toFixed(2)}`;
+    };
 
-    // Enhanced analytics from spendingPatterns
-    const patterns = analysis?.spendingPatterns;
-    const topMerchantFromPatterns = patterns?.topMerchants?.[0];
-    const topCategoryFromPatterns = patterns?.categoryAnalysis?.[0];
-    const avgTransaction = patterns?.avgTransactionValue;
-    const mostActiveDay = patterns?.mostActiveDay;
-    const totalExpenses = patterns?.totalTransactions || 0;
+    const totalSpending = Number(analysis?.totals?.spending ?? 0);
+    const expenseCount = Number(analysis?.expenseCount ?? 0);
+    const averageExpense = Number(analysis?.totals?.average ?? 0);
+    const budgetDelta = Number(analysis?.totals?.deltaVsBudget ?? 0);
 
-    const merchantBlurb = topMerchant
-      ? ` Most of that is flowing to ${topMerchant.name} (~$${Number(topMerchant.total ?? 0).toFixed(2)} across ${topMerchant.count} visits).`
-      : topMerchantFromPatterns
-      ? ` Your top spending spot is ${topMerchantFromPatterns.name} with $${topMerchantFromPatterns.totalSpent.toFixed(2)} across ${topMerchantFromPatterns.count} visits.`
-      : '';
+    const categorySummary = Array.isArray(analysis?.categorySummary)
+      ? analysis.categorySummary
+      : [];
 
-    const patternInsight = mostActiveDay
-      ? ` I've noticed you tend to spend more on ${mostActiveDay}s.`
-      : '';
+    const topCategory = categorySummary.reduce((best, current) => {
+      if (!current || typeof current.spent !== 'number') {
+        return best;
+      }
+      if (!best || current.spent > best.spent) {
+        return current;
+      }
+      return best;
+    }, null);
 
-    const avgInsight = avgTransaction && totalExpenses > 5
-      ? ` Your average transaction is around $${avgTransaction.toFixed(2)}.`
-      : '';
+    const patterns = analysis?.spendingPatterns || {};
+    const topMerchant = Array.isArray(patterns.topMerchants) ? patterns.topMerchants[0] : null;
+    const mostActiveDay = patterns?.mostActiveDay || null;
 
-    const roastClosingLines = [
-      "Keep hustling—but maybe cool it on the $6 cold brew flex 😅",
-      "Your budget's on life support. Time to bench that 'treat yo self' for a hot minute 🔥",
-      "Go off, big spender—but let your wallet breathe this week, yeah? 💸"
-    ];
+    const lastUserMessage = sanitizedConversation
+      .filter(message => message.role === 'user')
+      .pop()?.content?.trim();
 
-    const seriousClosingLines = [
-      "Stay steady and keep logging; I'll keep the insights sharp.",
-      "Nice momentum—let's keep decisions data-driven and intentional.",
-      "You're building great habits; keep the discipline strong and the receipts coming."
-    ];
+    if (!lastUserMessage) {
+      return {
+        message: `I'm ready whenever you have a question about ${areaLabel}.`,
+        usage: null
+      };
+    }
 
-    const pickClosing = (list) => list[Math.floor(Math.random() * list.length)];
-    const closingLine = moodPreference === 'motivator_roast'
-      ? pickClosing(roastClosingLines)
-      : pickClosing(seriousClosingLines);
+    const question = lastUserMessage.toLowerCase();
+    const responseParts = [];
+
+    if (question.includes('budget') || question.includes('goal')) {
+      if (Number.isFinite(budgetDelta) && budgetDelta !== 0) {
+        responseParts.push(
+          budgetDelta > 0
+            ? `You're under budget by ${formatCurrency(Math.abs(budgetDelta))} overall.`
+            : `You're over budget by ${formatCurrency(Math.abs(budgetDelta))} overall.`
+        );
+      }
+      if (topCategory && Number.isFinite(topCategory.remaining)) {
+        responseParts.push(
+          topCategory.remaining >= 0
+            ? `${topCategory.categoryName} still has ${formatCurrency(topCategory.remaining)} left.`
+            : `${topCategory.categoryName} is over by ${formatCurrency(Math.abs(topCategory.remaining))}.`
+        );
+      }
+    } else if (question.includes('category')) {
+      if (topCategory) {
+        responseParts.push(
+          `${topCategory.categoryName} is leading at ${formatCurrency(topCategory.spent)} this period.`
+        );
+        if (Number.isFinite(topCategory.budget) && topCategory.budget > 0) {
+          const remaining = Number(topCategory.remaining ?? 0);
+          responseParts.push(
+            remaining >= 0
+              ? `You've used ${formatCurrency(topCategory.spent)} of the ${formatCurrency(topCategory.budget)} budget.`
+              : `That's ${formatCurrency(Math.abs(remaining))} over its ${formatCurrency(topCategory.budget)} budget.`
+          );
+        }
+      }
+      if (mostActiveDay) {
+        responseParts.push(`Spending peaks on ${mostActiveDay}s right now.`);
+      }
+    } else if (question.includes('merchant')) {
+      if (topMerchant) {
+        const merchantTotal = Number(topMerchant.total ?? topMerchant.totalSpent ?? 0);
+        responseParts.push(
+          `${topMerchant.name} is your most visited spot with ${topMerchant.count || 0} purchases totaling ${formatCurrency(merchantTotal)}.`
+        );
+      } else {
+        responseParts.push("I don't see a clear top merchant in this snapshot.");
+      }
+    } else if (question.includes('income') || question.includes('saving')) {
+      responseParts.push(
+        `I don't see dedicated income tracking here yet, but total spending sits at ${formatCurrency(totalSpending)} across ${expenseCount} expenses.`
+      );
+    } else {
+      responseParts.push(
+        `You've logged ${expenseCount} expenses totaling ${formatCurrency(totalSpending)} so far.`
+      );
+      if (topCategory) {
+        responseParts.push(
+          `${topCategory.categoryName} accounts for ${formatCurrency(topCategory.spent)}, and the average transaction lands around ${formatCurrency(averageExpense)}.`
+        );
+      }
+    }
+
+    if (!responseParts.length) {
+      responseParts.push("I don't have enough data to answer that yet—try syncing more expenses.");
+    }
 
     return {
-      message: `Here's what I'm seeing across all ${totalExpenses} transactions: your total spending this period is $${analysis?.totals?.spending?.toFixed?.(2) ?? '—'}, with ${analysis?.expenseCount ?? 'no'} logged purchases. You're still sitting on $${analysis?.totals?.remaining?.toFixed?.(2) ?? '—'} of buffer overall.
-
-The category you're spending most on is ${topCategoryFromPatterns?.category || topCategoryName}.${merchantBlurb}${avgInsight}${patternInsight}
-
-${closingLine}`,
+      message: responseParts.join(' '),
       usage: null
     };
   }
 
+  const viewInstruction = viewDetails
+    ? `The user is currently focused on ${viewDetails.area}. ${viewDetails.instruction}`
+    : null;
+
   const messages = [
     { role: 'system', content: systemPrompt },
     { role: 'system', content: `Persona guidelines: ${personaInstruction}` },
-    {
-      role: 'user',
-      content: `Here is the latest expense snapshot in JSON format:
+  ];
+
+  if (viewInstruction) {
+    messages.push({ role: 'system', content: viewInstruction });
+  }
+
+  messages.push({
+    role: 'user',
+    content: `Here is the latest expense snapshot in JSON format:
 \`\`\`json
 ${analysisPayload}
 \`\`\`
 Please use it for all of your guidance.`
-    },
-    ...sanitizedConversation
-  ];
+  });
+
+  messages.push(...sanitizedConversation);
 
   if (provider === AI_PROVIDERS.OPENAI) {
     const openaiClient = initOpenAI();

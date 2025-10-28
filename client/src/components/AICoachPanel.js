@@ -2,7 +2,17 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { requestCoachInsights } from '../services/apiService';
 import './AICoachPanel.css';
 
-const AUTO_REFRESH_PROMPT = 'Please review the latest expense snapshot and share updated insights for the user.';
+const VIEW_CONTEXT_COPY = {
+  dashboard: { topic: 'your dashboard overview', placeholder: 'dashboard trends' },
+  expenses: { topic: 'your expenses', placeholder: 'your expenses' },
+  categories: { topic: 'your categories', placeholder: 'category spending' },
+  manage: { topic: 'your budgets and goals', placeholder: 'budgets or goals' },
+  'income-savings': { topic: 'income and savings', placeholder: 'income or savings' },
+  log: { topic: 'logging expenses', placeholder: 'recent uploads or manual entries' },
+  settings: { topic: 'your settings', placeholder: 'settings or preferences' }
+};
+
+const getContextCopy = (view) => VIEW_CONTEXT_COPY[view] || { topic: 'your finances', placeholder: 'your finances' };
 
 function AICoachPanel({
   isOpen,
@@ -10,7 +20,8 @@ function AICoachPanel({
   analysisData,
   analysisKey,
   onRefreshHandled,
-  onAssistantMessage
+  onAssistantMessage,
+  contextView = 'dashboard'
 }) {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -19,27 +30,48 @@ function AICoachPanel({
   const lastAnalysisKeyRef = useRef(null);
   const inputRef = useRef(null);
   const listRef = useRef(null);
+  const wasOpenRef = useRef(false);
+  const conversationContextRef = useRef(null);
 
-  const fetchInsights = useCallback(async ({ mode, userMessage } = {}) => {
+  const contextCopy = useMemo(() => getContextCopy(contextView), [contextView]);
+  const greetingMessage = useMemo(() => `Hello! Need any help with ${contextCopy.topic}?`, [contextCopy.topic]);
+  const enrichedAnalysis = useMemo(() => {
     if (!analysisData) {
+      return null;
+    }
+    return {
+      ...analysisData,
+      context: {
+        activeView: contextView
+      }
+    };
+  }, [analysisData, contextView]);
+
+  const hasConversation = useMemo(() => messages.length > 0, [messages.length]);
+  const hasUserQuestion = useMemo(
+    () => messages.some(message => message.role === 'user'),
+    [messages]
+  );
+
+  const fetchInsights = useCallback(async ({ userMessage, retry = false } = {}) => {
+    if (!enrichedAnalysis) {
       return;
     }
 
-    const isAuto = mode === 'auto';
+    conversationContextRef.current = contextView;
+
     const baseConversation = messages.map(message => ({
       role: message.role,
       content: message.content
     }));
 
-    const payloadConversation = isAuto && baseConversation.length === 0
-      ? []
+    const conversationPayload = userMessage
+      ? [...baseConversation, { role: 'user', content: userMessage }]
       : baseConversation;
 
-    const conversationWithPrompt = isAuto
-      ? [...payloadConversation, { role: 'user', content: AUTO_REFRESH_PROMPT }]
-      : userMessage
-        ? [...payloadConversation, { role: 'user', content: userMessage }]
-        : payloadConversation;
+    if (!userMessage && !retry && conversationPayload.length === 0) {
+      return;
+    }
 
     if (userMessage) {
       setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
@@ -50,8 +82,8 @@ function AICoachPanel({
 
     try {
       const response = await requestCoachInsights({
-        conversation: conversationWithPrompt,
-        analysis: analysisData
+        conversation: conversationPayload,
+        analysis: enrichedAnalysis
       });
 
       const assistantMessage = {
@@ -59,7 +91,7 @@ function AICoachPanel({
         content: response.message
       };
 
-      setMessages(prev => [...(userMessage ? prev : baseConversation), assistantMessage]);
+      setMessages(prev => [...prev, assistantMessage]);
       setNeedsRefresh(false);
       lastAnalysisKeyRef.current = analysisKey;
       if (onRefreshHandled) {
@@ -74,28 +106,34 @@ function AICoachPanel({
     } finally {
       setIsLoading(false);
     }
-  }, [analysisData, analysisKey, messages, onAssistantMessage, onRefreshHandled]);
+  }, [analysisKey, contextView, enrichedAnalysis, messages, onAssistantMessage, onRefreshHandled]);
 
   useEffect(() => {
-    if (!analysisKey) {
+    if (analysisKey === undefined) {
       return;
     }
-    if (analysisKey !== lastAnalysisKeyRef.current) {
+    if (analysisKey !== lastAnalysisKeyRef.current && hasUserQuestion) {
       setNeedsRefresh(true);
     }
-  }, [analysisKey]);
+  }, [analysisKey, hasUserQuestion]);
 
   useEffect(() => {
-    if (isOpen && needsRefresh) {
-      void fetchInsights({ mode: 'auto' });
+    if (isOpen) {
+      if (!wasOpenRef.current) {
+        const shouldReset = conversationContextRef.current !== contextView || messages.length === 0;
+        if (shouldReset) {
+          setMessages([{ role: 'assistant', content: greetingMessage }]);
+          setNeedsRefresh(false);
+        }
+        setError(null);
+        conversationContextRef.current = contextView;
+        lastAnalysisKeyRef.current = analysisKey ?? null;
+      }
+      wasOpenRef.current = true;
+    } else {
+      wasOpenRef.current = false;
     }
-  }, [isOpen, needsRefresh, fetchInsights]);
-
-  useEffect(() => {
-    if (isOpen && messages.length === 0 && analysisData) {
-      void fetchInsights({ mode: 'auto' });
-    }
-  }, [isOpen, analysisData, messages.length, fetchInsights]);
+  }, [analysisKey, contextView, greetingMessage, isOpen, messages.length]);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -108,11 +146,9 @@ function AICoachPanel({
     listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages, isLoading]);
 
-  const hasConversation = useMemo(() => messages.length > 0, [messages.length]);
-
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (!analysisData || isLoading) {
+    if (!enrichedAnalysis || isLoading) {
       return;
     }
     const text = inputRef.current?.value?.trim();
@@ -122,11 +158,11 @@ function AICoachPanel({
     if (inputRef.current) {
       inputRef.current.value = '';
     }
-    void fetchInsights({ mode: 'user', userMessage: text });
+    void fetchInsights({ userMessage: text });
   };
 
   const handleRetry = () => {
-    void fetchInsights({ mode: 'auto' });
+    void fetchInsights({ retry: true });
   };
 
   return (
@@ -144,7 +180,13 @@ function AICoachPanel({
       <div className="ai-coach__body" ref={listRef}>
         {!hasConversation && !isLoading && !error && (
           <div className="ai-coach__placeholder">
-            <p>Open the coach to generate insights from your latest expenses.</p>
+            <p>The coach is ready whenever you are. Ask a question to get started.</p>
+          </div>
+        )}
+
+        {needsRefresh && !error && hasUserQuestion && (
+          <div className="ai-coach__notice">
+            <p>New data is available. Ask another question to refresh the insights.</p>
           </div>
         )}
 
@@ -182,10 +224,10 @@ function AICoachPanel({
         <input
           type="text"
           ref={inputRef}
-          placeholder="Ask the coach a question about your spending..."
-          disabled={isLoading || !analysisData}
+          placeholder={`Ask the coach about ${contextCopy.placeholder}...`}
+          disabled={isLoading || !enrichedAnalysis}
         />
-        <button type="submit" disabled={isLoading || !analysisData}>
+        <button type="submit" disabled={isLoading || !enrichedAnalysis}>
           Send
         </button>
       </form>

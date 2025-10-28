@@ -125,6 +125,15 @@
   border: 1px dashed rgba(102, 126, 234, 0.4);
 }
 
+.ai-coach__notice {
+  background: rgba(99, 102, 241, 0.1);
+  color: #4338ca;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
 .ai-coach__error {
   background: rgba(239, 68, 68, 0.08);
   color: #991b1b;

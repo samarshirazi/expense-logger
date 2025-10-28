@@ -15,11 +15,8 @@ function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOp
 
   const handleMenuItemClick = (item) => {
     if (item.id === 'coach') {
-      if (onViewChange && activeView !== 'dashboard') {
-        onViewChange('dashboard');
-      }
       if (onCoachToggle) {
-        onCoachToggle(true);
+        onCoachToggle(true, activeView || 'dashboard');
       }
       setIsMobileMenuOpen(false);
       return;

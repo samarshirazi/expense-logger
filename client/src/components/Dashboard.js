@@ -3,7 +3,6 @@ import axios from 'axios';
 import * as XLSX from 'xlsx';
 import authService from '../services/authService';
 import './Dashboard.css';
-import AICoachPanel from './AICoachPanel';
 import { getAllCategories } from '../services/categoryService';
 
 const DEFAULT_BUDGET = {
@@ -146,7 +145,7 @@ const getEffectiveBudgetForMonth = (monthKey) => {
   return ensureBudgetShape(DEFAULT_BUDGET);
 };
 
-function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggle = () => {}, coachHasUnread = false, onCoachUnreadChange = () => {}, coachMood = "motivator_serious" }) {
+function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggle = () => {}, coachHasUnread = false, onCoachUnreadChange = () => {}, coachMood = "motivator_serious", onCoachAnalysisChange = () => {} }) {
   const [CATEGORIES, setCATEGORIES] = useState(getAllCategories());
   const [summary, setSummary] = useState(null);
   const [progressSummary, setProgressSummary] = useState(null);
@@ -854,7 +853,7 @@ const formatDateDisplay = (iso) => {
 
   const handleAskCoach = useCallback(() => {
     onCoachUnreadChange(false);
-    onCoachToggle(true);
+    onCoachToggle(true, 'dashboard');
   }, [onCoachToggle, onCoachUnreadChange]);
 
   const exportToCSV = useCallback(() => {
@@ -1417,6 +1416,12 @@ const formatDateDisplay = (iso) => {
       topCategory: analysisData.spendingPatterns?.categoryAnalysis?.[0]?.category || null
     });
   }, [analysisData]);
+
+  useEffect(() => {
+    if (typeof onCoachAnalysisChange === 'function') {
+      onCoachAnalysisChange(analysisData, analysisKey);
+    }
+  }, [analysisData, analysisKey, onCoachAnalysisChange]);
   if (loading && !summary) {
     return (
       <div className="dashboard">
@@ -1462,7 +1467,7 @@ const formatDateDisplay = (iso) => {
         <button
           type="button"
           className={`coach-toggle ${isCoachOpen ? 'coach-toggle--active' : ''} ${coachHasUnread ? 'coach-toggle--alert' : ''}`}
-          onClick={() => onCoachToggle(prev => !prev)}
+          onClick={() => onCoachToggle(prev => !prev, 'dashboard')}
         >
           <span className="coach-toggle__icon">🤖</span>
           <span className="coach-toggle__label">AI Coach</span>
@@ -1659,27 +1664,6 @@ const formatDateDisplay = (iso) => {
           )}
         </div>
       </div>
-
-      <AICoachPanel
-        isOpen={isCoachOpen}
-        onClose={() => {
-          onCoachToggle(false);
-          onCoachUnreadChange(false);
-        }}
-        analysisData={analysisData}
-        analysisKey={analysisKey}
-        onRefreshHandled={() => {
-          if (isCoachOpen) {
-            onCoachUnreadChange(false);
-          }
-        }}
-        onAssistantMessage={() => {
-          if (!isCoachOpen) {
-            onCoachUnreadChange(true);
-          }
-        }}
-      />
-
     </div>
   );
 }

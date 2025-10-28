@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
+import AICoachPanel from './components/AICoachPanel';
 import LogExpense from './components/LogExpense';
 import Settings from './components/Settings';
 import ExpenseDetails from './components/ExpenseDetails';
@@ -37,6 +38,10 @@ function App() {
   const [showOptionsButton, setShowOptionsButton] = useState(true);
   const [isCoachOpen, setIsCoachOpen] = useState(false);
   const [coachHasUnread, setCoachHasUnread] = useState(false);
+  const [coachContext, setCoachContext] = useState('dashboard');
+  const [coachAnalysis, setCoachAnalysis] = useState({ data: null, key: null });
+  const coachAnalysisData = coachAnalysis.data;
+  const coachAnalysisKey = coachAnalysis.key;
   const [pendingGroceryExpense, setPendingGroceryExpense] = useState(null);
   const [themePreference, setThemePreference] = useState(() => {
     if (typeof window === 'undefined') return 'system';
@@ -266,15 +271,50 @@ function App() {
     }
   }, []);
 
-  const handleCoachToggle = useCallback((valueOrUpdater) => {
+  const handleCoachToggle = useCallback((valueOrUpdater, context) => {
     setIsCoachOpen(prev => {
-      const next = typeof valueOrUpdater === 'function' ? valueOrUpdater(prev) : valueOrUpdater;
-      if (next) {
+      const nextValue = typeof valueOrUpdater === 'function' ? valueOrUpdater(prev) : valueOrUpdater;
+      const isOpening = Boolean(nextValue);
+      if (isOpening) {
         setCoachHasUnread(false);
+        setCoachContext(previous => {
+          if (typeof context === 'string' && context.trim().length > 0) {
+            return context;
+          }
+          return previous || 'dashboard';
+        });
       }
-      return next;
+      return isOpening;
     });
   }, []);
+
+  const handleCoachAnalysisChange = useCallback((analysisData, analysisKey) => {
+    setCoachAnalysis(prev => {
+      const nextKey = analysisKey ?? null;
+      const nextData = analysisData ?? null;
+      if (prev.key === nextKey) {
+        if (prev.data === nextData) {
+          return prev;
+        }
+        if (nextKey === null) {
+          return prev;
+        }
+      }
+      return { data: nextData, key: nextKey };
+    });
+  }, []);
+
+  const handleCoachAssistantMessage = useCallback(() => {
+    if (!isCoachOpen) {
+      setCoachHasUnread(true);
+    }
+  }, [isCoachOpen]);
+
+  const handleCoachRefreshHandled = useCallback(() => {
+    if (isCoachOpen) {
+      setCoachHasUnread(false);
+    }
+  }, [isCoachOpen]);
 
   useEffect(() => {
     if (coachAutoOpen && coachHasUnread && !isCoachOpen) {
@@ -557,6 +597,7 @@ function App() {
             coachHasUnread={coachHasUnread}
             onCoachUnreadChange={setCoachHasUnread}
             coachMood={coachMood}
+            onCoachAnalysisChange={handleCoachAnalysisChange}
           />
         </div>
 
@@ -637,7 +678,7 @@ function App() {
             </div>
             <Settings
               onShowNotificationPrompt={() => setShowNotificationPrompt(true)}
-              onOpenCoach={() => handleCoachToggle(true)}
+              onOpenCoach={() => handleCoachToggle(true, 'settings')}
               themePreference={themePreference}
               onThemeChange={handleThemeChange}
               coachMood={coachMood}
@@ -651,6 +692,16 @@ function App() {
         {showSummary && (
           <SpendingSummary onClose={() => setShowSummary(false)} expenses={expenses} />
         )}
+
+        <AICoachPanel
+          isOpen={isCoachOpen}
+          onClose={() => handleCoachToggle(false)}
+          analysisData={coachAnalysisData}
+          analysisKey={coachAnalysisKey}
+          onRefreshHandled={handleCoachRefreshHandled}
+          onAssistantMessage={handleCoachAssistantMessage}
+          contextView={coachContext}
+        />
       </main>
     </div>
   );
