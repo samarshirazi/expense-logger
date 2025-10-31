@@ -15,6 +15,12 @@ import Auth from './components/Auth';
 import NotificationPrompt from './components/NotificationPrompt';
 import TimeNavigator from './components/TimeNavigator';
 import { getExpenses } from './services/apiService';
+import {
+  scheduleDailyExpenseReminder,
+  cancelDailyExpenseReminder,
+  getStoredNotificationPreferences,
+  getStoredNotificationsEnabled
+} from './services/notificationService';
 import authService from './services/authService';
 import './AppLayout.css';
 
@@ -321,6 +327,54 @@ function App() {
       handleCoachToggle(true);
     }
   }, [coachAutoOpen, coachHasUnread, isCoachOpen, handleCoachToggle]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const applyReminderSchedule = () => {
+      cancelDailyExpenseReminder();
+
+      if (typeof Notification === 'undefined') {
+        return;
+      }
+
+      const permissionGranted = Notification.permission === 'granted';
+      const storedEnabled = getStoredNotificationsEnabled();
+      const notificationsEnabled = storedEnabled === null
+        ? permissionGranted
+        : (storedEnabled && permissionGranted);
+
+      if (!notificationsEnabled) {
+        return;
+      }
+
+      const preferences = getStoredNotificationPreferences();
+      const wantsReminder = Boolean(preferences?.dailySummary);
+      const frequency = preferences?.frequency || 'daily';
+      const shouldSchedule = wantsReminder && frequency !== 'weekly';
+
+      if (!shouldSchedule) {
+        return;
+      }
+
+      scheduleDailyExpenseReminder({
+        hour: 21,
+        minute: 0,
+        title: 'Daily expense check-in',
+        body: 'It’s 9 PM—review and log today’s spending.'
+      });
+    };
+
+    applyReminderSchedule();
+    window.addEventListener('notificationPreferencesChanged', applyReminderSchedule);
+
+    return () => {
+      window.removeEventListener('notificationPreferencesChanged', applyReminderSchedule);
+      cancelDailyExpenseReminder();
+    };
+  }, []);
 
   const handleAuthSuccess = () => {
     // Auth service will automatically trigger the subscriber

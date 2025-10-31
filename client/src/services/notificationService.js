@@ -1,6 +1,153 @@
 // Notification Service for managing push notifications
 
 const VAPID_PUBLIC_KEY = process.env.REACT_APP_VAPID_PUBLIC_KEY || '';
+const NOTIFICATION_PREFS_KEY = 'notificationPreferences';
+const NOTIFICATION_ENABLED_KEY = 'notificationsEnabled';
+const REMINDER_TAG = 'daily-expense-reminder';
+
+export const DEFAULT_NOTIFICATION_PREFS = Object.freeze({
+  dailySummary: true,
+  overspendingAlert: true,
+  newReceiptScanned: true,
+  monthlyBudgetReminder: true,
+  frequency: 'daily'
+});
+
+export function getStoredNotificationPreferences() {
+  try {
+    if (typeof window === 'undefined') {
+      return { ...DEFAULT_NOTIFICATION_PREFS };
+    }
+
+    const stored = window.localStorage.getItem(NOTIFICATION_PREFS_KEY);
+    if (!stored) {
+      return { ...DEFAULT_NOTIFICATION_PREFS };
+    }
+
+    const parsed = JSON.parse(stored);
+    return { ...DEFAULT_NOTIFICATION_PREFS, ...(parsed || {}) };
+  } catch (error) {
+    console.warn('Failed to read notification preferences:', error);
+    return { ...DEFAULT_NOTIFICATION_PREFS };
+  }
+}
+
+export function saveNotificationPreferences(preferences) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    const serialized = JSON.stringify({ ...DEFAULT_NOTIFICATION_PREFS, ...(preferences || {}) });
+    window.localStorage.setItem(NOTIFICATION_PREFS_KEY, serialized);
+  } catch (error) {
+    console.warn('Failed to save notification preferences:', error);
+  }
+}
+
+export function getStoredNotificationsEnabled() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const stored = window.localStorage.getItem(NOTIFICATION_ENABLED_KEY);
+    if (stored === null) {
+      return null;
+    }
+    return stored === 'true';
+  } catch (error) {
+    console.warn('Failed to read notification enabled flag:', error);
+    return null;
+  }
+}
+
+export function setStoredNotificationsEnabled(value) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(NOTIFICATION_ENABLED_KEY, value ? 'true' : 'false');
+  } catch (error) {
+    console.warn('Failed to store notification enabled flag:', error);
+  }
+}
+
+export function emitNotificationPreferencesChanged({
+  enabled = getStoredNotificationsEnabled(),
+  preferences = getStoredNotificationPreferences()
+} = {}) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent('notificationPreferencesChanged', {
+      detail: {
+        enabled,
+        preferences
+      }
+    })
+  );
+}
+
+let expenseReminderTimeoutId = null;
+let expenseReminderConfig = null;
+
+function getDelayUntilTime(hour, minute) {
+  const now = new Date();
+  const target = new Date(now);
+  target.setHours(hour, minute, 0, 0);
+  if (target <= now) {
+    target.setDate(target.getDate() + 1);
+  }
+  return target.getTime() - now.getTime();
+}
+
+export function cancelDailyExpenseReminder() {
+  if (typeof window === 'undefined') {
+    expenseReminderTimeoutId = null;
+    expenseReminderConfig = null;
+    return;
+  }
+
+  if (expenseReminderTimeoutId) {
+    window.clearTimeout(expenseReminderTimeoutId);
+    expenseReminderTimeoutId = null;
+  }
+  expenseReminderConfig = null;
+}
+
+export function scheduleDailyExpenseReminder({
+  hour = 21,
+  minute = 0,
+  title = 'Expense reminder',
+  body = 'Time to review your expenses.'
+} = {}) {
+  if (typeof window === 'undefined' || typeof Notification === 'undefined') {
+    return;
+  }
+
+  if (Notification.permission !== 'granted') {
+    return;
+  }
+
+  cancelDailyExpenseReminder();
+  expenseReminderConfig = { hour, minute, title, body };
+
+  const delay = getDelayUntilTime(hour, minute);
+  expenseReminderTimeoutId = window.setTimeout(async () => {
+    await showLocalNotification(title, {
+      body,
+      tag: REMINDER_TAG
+    });
+
+    if (expenseReminderConfig) {
+      scheduleDailyExpenseReminder(expenseReminderConfig);
+    }
+  }, delay);
+}
 
 /**
  * Convert VAPID public key to Uint8Array for subscription

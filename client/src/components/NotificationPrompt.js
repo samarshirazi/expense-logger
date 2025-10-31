@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   isPushNotificationSupported,
   getNotificationPermissionState,
-  initializePushNotifications
+  initializePushNotifications,
+  setStoredNotificationsEnabled,
+  emitNotificationPreferencesChanged,
+  getStoredNotificationPreferences
 } from '../services/notificationService';
 import './NotificationPrompt.css';
 
@@ -33,6 +36,11 @@ function NotificationPrompt({ user, onComplete }) {
       const result = await initializePushNotifications(user?.accessToken);
 
       if (result.success) {
+        setStoredNotificationsEnabled(true);
+        emitNotificationPreferencesChanged({
+          enabled: true,
+          preferences: getStoredNotificationPreferences()
+        });
         setNotificationState('granted');
         if (onComplete) {
           onComplete(true);
@@ -42,6 +50,11 @@ function NotificationPrompt({ user, onComplete }) {
       console.error('Error enabling notifications:', err);
       setError(err.message);
       setNotificationState('denied');
+      setStoredNotificationsEnabled(false);
+      emitNotificationPreferencesChanged({
+        enabled: false,
+        preferences: getStoredNotificationPreferences()
+      });
       if (onComplete) {
         onComplete(false);
       }
@@ -50,6 +63,11 @@ function NotificationPrompt({ user, onComplete }) {
 
   const handleDismiss = () => {
     setDismissed(true);
+    setStoredNotificationsEnabled(false);
+    emitNotificationPreferencesChanged({
+      enabled: false,
+      preferences: getStoredNotificationPreferences()
+    });
     if (onComplete) {
       onComplete(false);
     }

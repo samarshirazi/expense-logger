@@ -1,6 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './Settings.css';
-import { isPushNotificationSupported, requestNotificationPermission, showLocalNotification } from '../services/notificationService';
+import {
+  isPushNotificationSupported,
+  initializePushNotifications,
+  showLocalNotification,
+  getStoredNotificationPreferences,
+  saveNotificationPreferences,
+  getStoredNotificationsEnabled,
+  setStoredNotificationsEnabled,
+  emitNotificationPreferencesChanged
+} from '../services/notificationService';
 
 const THEME_OPTIONS = [
   { id: 'system', label: 'System default' },
@@ -31,32 +40,33 @@ const Settings = ({
   coachAutoOpen,
   onCoachAutoOpenChange
 }) => {
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [notificationPrefs, setNotificationPrefs] = useState({
-    dailySummary: true,
-    overspendingAlert: true,
-    newReceiptScanned: true,
-    monthlyBudgetReminder: true,
-    frequency: 'instant' // instant, daily, weekly
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    if (typeof Notification === 'undefined') {
+      return false;
+    }
+    const stored = getStoredNotificationsEnabled();
+    if (stored === null) {
+      return Notification.permission === 'granted';
+    }
+    return stored;
   });
+  const [notificationPrefs, setNotificationPrefs] = useState(() => getStoredNotificationPreferences());
   const [showMuteConfirm, setShowMuteConfirm] = useState(false);
 
   useEffect(() => {
-    if (typeof Notification !== 'undefined') {
-      setNotificationsEnabled(Notification.permission === 'granted');
-    }
-
-    // Load notification preferences from localStorage
-    const saved = localStorage.getItem('notificationPreferences');
-    if (saved) {
-      setNotificationPrefs(JSON.parse(saved));
-    }
-  }, []);
-
-  // Save preferences whenever they change
-  useEffect(() => {
-    localStorage.setItem('notificationPreferences', JSON.stringify(notificationPrefs));
+    saveNotificationPreferences(notificationPrefs);
   }, [notificationPrefs]);
+
+  useEffect(() => {
+    setStoredNotificationsEnabled(notificationsEnabled);
+  }, [notificationsEnabled]);
+
+  useEffect(() => {
+    emitNotificationPreferencesChanged({
+      enabled: notificationsEnabled,
+      preferences: notificationPrefs
+    });
+  }, [notificationsEnabled, notificationPrefs]);
 
   const themeDescription = useMemo(() => {
     switch (themePreference) {
@@ -72,6 +82,10 @@ const Settings = ({
   const handleNotificationToggle = async () => {
     if (notificationsEnabled) {
       setNotificationsEnabled(false);
+      void showLocalNotification('Notifications Disabled', {
+        body: 'Reminders and alerts are paused.',
+        tag: 'notifications-disabled'
+      });
       return;
     }
 
@@ -80,11 +94,25 @@ const Settings = ({
       return;
     }
 
-    const permission = await requestNotificationPermission();
-    const granted = permission === 'granted';
-    setNotificationsEnabled(granted);
-    if (!granted && onShowNotificationPrompt) {
-      onShowNotificationPrompt();
+    try {
+      const result = await initializePushNotifications();
+      const granted = result?.permission === 'granted';
+      setNotificationsEnabled(granted);
+
+      if (granted) {
+        void showLocalNotification('Notifications Enabled', {
+          body: 'Daily expense reminders will arrive at 9 PM.',
+          tag: 'notifications-enabled'
+        });
+      } else if (onShowNotificationPrompt) {
+        onShowNotificationPrompt();
+      }
+    } catch (error) {
+      console.error('Failed to enable notifications:', error);
+      setNotificationsEnabled(false);
+      if (onShowNotificationPrompt) {
+        onShowNotificationPrompt();
+      }
     }
   };
 
@@ -196,7 +224,7 @@ const Settings = ({
                 <span className="settings-toggle-slider" />
                 <div className="settings-toggle-info">
                   <span className="settings-toggle-label">Daily Summary</span>
-                  <span className="settings-toggle-description">Get a recap of your spending each day</span>
+                  <span className="settings-toggle-description">Get a recap of your spending every day at 9 PM</span>
                 </div>
               </label>
 
