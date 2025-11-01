@@ -159,14 +159,6 @@ const CameraCapture = ({ onCapture, onCancel }) => {
 
         <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-        {isReady && (
-          <div className="camera-overlay">
-            <div className="capture-guide">
-              <div className="guide-frame"></div>
-              <p>Position your receipt to fill the frame for best results</p>
-            </div>
-          </div>
-        )}
       </div>
 
       {isReady && (

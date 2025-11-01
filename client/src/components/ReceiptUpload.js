@@ -8,6 +8,7 @@ import {
   getStoredNotificationPreferences
 } from '../services/notificationService';
 import CameraCapture from './CameraCapture';
+import ImageCropModal from './ImageCropModal';
 import './CameraCapture.css';
 
 const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
@@ -16,6 +17,8 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [imageToProcess, setImageToProcess] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
 
   // Detect mobile device
@@ -161,13 +164,21 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
   }, [getMonthKey, expenses]);
 
   const handleFileUpload = useCallback(async (file) => {
+    // Show crop modal with the image
+    const imageUrl = URL.createObjectURL(file);
+    setImageToProcess({ file, url: imageUrl });
+    setShowCropModal(true);
+  }, []);
+
+  const handleCropComplete = useCallback(async (croppedFile) => {
+    setShowCropModal(false);
     setUploading(true);
     setError(null);
     setSuccess(null);
     setProgress(0);
 
     try {
-      const result = await uploadReceipt(file, (progressPercent) => {
+      const result = await uploadReceipt(croppedFile, (progressPercent) => {
         setProgress(progressPercent);
       });
 
@@ -196,6 +207,12 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
         await checkBudgetThresholds(result.expense);
       }
 
+      // Clean up
+      if (imageToProcess?.url) {
+        URL.revokeObjectURL(imageToProcess.url);
+      }
+      setImageToProcess(null);
+
     } catch (err) {
       setError(err.message || 'Failed to process receipt');
       console.error('Upload error:', err);
@@ -203,7 +220,15 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
       setUploading(false);
       setProgress(0);
     }
-  }, [onExpenseAdded, checkBudgetThresholds]);
+  }, [onExpenseAdded, checkBudgetThresholds, imageToProcess]);
+
+  const handleCropCancel = useCallback(() => {
+    setShowCropModal(false);
+    if (imageToProcess?.url) {
+      URL.revokeObjectURL(imageToProcess.url);
+    }
+    setImageToProcess(null);
+  }, [imageToProcess]);
 
   const onDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];
@@ -345,6 +370,15 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
         <CameraCapture
           onCapture={handleCameraCapture}
           onCancel={handleCameraCancel}
+        />
+      )}
+
+      {/* Image crop modal */}
+      {showCropModal && imageToProcess && (
+        <ImageCropModal
+          imageUrl={imageToProcess.url}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
         />
       )}
 
