@@ -1,6 +1,7 @@
 const OpenAI = require('openai');
 const path = require('path');
 const https = require('https');
+const axios = require('axios');
 
 let sharp = null;
 try {
@@ -166,7 +167,8 @@ Required keys and value types:
       "quantity": number|null,
       "unitPrice": number|null,
       "totalPrice": number|null,
-      "category": string (MUST be one of: "Food", "Transport", "Shopping", "Bills", "Other")
+      "category": string (MUST be one of: "Food", "Transport", "Shopping", "Bills", "Other"),
+      "barcode": string|null
     }
   ],
   "paymentMethod": string|null,
@@ -176,6 +178,18 @@ Required keys and value types:
 Rules:
 - Use null when a value is missing or unreadable.
 - All monetary fields must be numbers (not strings).
+- CRITICAL - PRICE ACCURACY:
+  * Double-check that item prices match EXACTLY what's printed on the receipt
+  * Verify that the sum of all item totalPrice values matches or is close to the final total
+  * For multi-line items, make sure you're capturing the FINAL price on the right side, not SKU numbers or codes
+  * If an item shows quantity × unit price, calculate: totalPrice = quantity × unitPrice
+  * Common mistakes to avoid: Don't confuse product codes/SKU numbers with prices, don't miss decimal points
+- BARCODE EXTRACTION:
+  * Look for barcodes or UPC codes near product names (usually 12-13 digit numbers)
+  * Common formats: UPC-A (12 digits), EAN-13 (13 digits), or shortened UPC codes
+  * These often appear BEFORE the product name on receipts (especially Walmart, Target, grocery stores)
+  * Extract ONLY the numeric barcode, no letters or special characters
+  * If you see a pattern like "012345678901 PROD NAME", the first number is likely the barcode
 - IMPORTANT: Each item MUST have its own category based on what the product is:
   * Food: Food items, beverages, groceries (e.g., "Coffee" = Food, "Sandwich" = Food)
   * Transport: Gas, fuel, parking fees, tolls, transit passes (e.g., "Gasoline" = Transport)
@@ -332,6 +346,165 @@ function extractExpenseData(extractedText) {
   }
 }
 
+/**
+ * Look up product information using barcode
+ * Tries multiple APIs in sequence until one returns results
+ */
+async function lookupProductByBarcode(barcode) {
+  if (!barcode || typeof barcode !== 'string') {
+    return null;
+  }
+
+  // Clean the barcode - remove any non-numeric characters
+  const cleanBarcode = barcode.replace(/[^0-9]/g, '');
+
+  if (cleanBarcode.length < 8 || cleanBarcode.length > 14) {
+    console.log(`[Barcode] Invalid barcode length: ${cleanBarcode.length}`);
+    return null;
+  }
+
+  console.log(`[Barcode] Looking up product for barcode: ${cleanBarcode}`);
+
+  // Try OpenFoodFacts first (free, no API key required, good for food items)
+  try {
+    const offResponse = await axios.get(`https://world.openfoodfacts.org/api/v0/product/${cleanBarcode}.json`, {
+      timeout: 5000,
+      headers: {
+        'User-Agent': 'ExpenseLogger/1.0 (https://github.com/expense-logger)'
+      }
+    });
+
+    if (offResponse.data && offResponse.data.status === 1 && offResponse.data.product) {
+      const product = offResponse.data.product;
+      const productName = product.product_name || product.product_name_en || null;
+      const brand = product.brands || null;
+
+      if (productName) {
+        const fullName = brand ? `${brand} ${productName}` : productName;
+        console.log(`[Barcode] Found on OpenFoodFacts: ${fullName}`);
+        return {
+          name: fullName,
+          brand: brand,
+          source: 'OpenFoodFacts'
+        };
+      }
+    }
+  } catch (error) {
+    console.log(`[Barcode] OpenFoodFacts lookup failed: ${error.message}`);
+  }
+
+  // Try UPCItemDB as fallback (requires API key but has free tier)
+  if (process.env.UPCITEMDB_API_KEY) {
+    try {
+      const upcResponse = await axios.get(`https://api.upcitemdb.com/prod/trial/lookup?upc=${cleanBarcode}`, {
+        timeout: 5000,
+        headers: {
+          'User-Agent': 'ExpenseLogger/1.0',
+          'Key-Header': process.env.UPCITEMDB_API_KEY
+        }
+      });
+
+      if (upcResponse.data && upcResponse.data.items && upcResponse.data.items.length > 0) {
+        const item = upcResponse.data.items[0];
+        const productName = item.title || null;
+        const brand = item.brand || null;
+
+        if (productName) {
+          const fullName = brand ? `${brand} ${productName}` : productName;
+          console.log(`[Barcode] Found on UPCItemDB: ${fullName}`);
+          return {
+            name: fullName,
+            brand: brand,
+            source: 'UPCItemDB'
+          };
+        }
+      }
+    } catch (error) {
+      console.log(`[Barcode] UPCItemDB lookup failed: ${error.message}`);
+    }
+  }
+
+  // Try Barcode Lookup API as another fallback
+  if (process.env.BARCODELOOKUP_API_KEY) {
+    try {
+      const blResponse = await axios.get(`https://api.barcodelookup.com/v3/products`, {
+        timeout: 5000,
+        params: {
+          barcode: cleanBarcode,
+          key: process.env.BARCODELOOKUP_API_KEY
+        }
+      });
+
+      if (blResponse.data && blResponse.data.products && blResponse.data.products.length > 0) {
+        const product = blResponse.data.products[0];
+        const productName = product.product_name || product.title || null;
+        const brand = product.brand || null;
+
+        if (productName) {
+          const fullName = brand ? `${brand} ${productName}` : productName;
+          console.log(`[Barcode] Found on BarcodeLookup: ${fullName}`);
+          return {
+            name: fullName,
+            brand: brand,
+            source: 'BarcodeLookup'
+          };
+        }
+      }
+    } catch (error) {
+      console.log(`[Barcode] BarcodeLookup API failed: ${error.message}`);
+    }
+  }
+
+  console.log(`[Barcode] No product found for barcode: ${cleanBarcode}`);
+  return null;
+}
+
+/**
+ * Enhance item descriptions using barcode lookup
+ * Replaces shortened names with full product names from barcode databases
+ */
+async function enhanceItemsWithBarcodes(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return items;
+  }
+
+  console.log(`[Barcode] Enhancing ${items.length} items with barcode lookups...`);
+
+  const enhancedItems = await Promise.all(
+    items.map(async (item) => {
+      if (!item || !item.barcode) {
+        return item;
+      }
+
+      try {
+        const productInfo = await lookupProductByBarcode(item.barcode);
+
+        if (productInfo && productInfo.name) {
+          const originalDescription = item.description || 'Unknown';
+          console.log(`[Barcode] Enhanced: "${originalDescription}" -> "${productInfo.name}"`);
+
+          return {
+            ...item,
+            description: productInfo.name,
+            originalDescription: originalDescription, // Keep original for reference
+            brand: productInfo.brand || item.brand || null,
+            barcodeSource: productInfo.source
+          };
+        }
+      } catch (error) {
+        console.error(`[Barcode] Error enhancing item with barcode ${item.barcode}:`, error.message);
+      }
+
+      return item;
+    })
+  );
+
+  const enhancedCount = enhancedItems.filter(item => item.barcodeSource).length;
+  console.log(`[Barcode] Successfully enhanced ${enhancedCount} out of ${items.length} items`);
+
+  return enhancedItems;
+}
+
 async function processReceiptWithAI(fileBuffer, originalFilename, providedMimeType) {
   try {
     const provider = resolveProvider();
@@ -403,6 +576,23 @@ async function processReceiptWithAI(fileBuffer, originalFilename, providedMimeTy
 
     if (process.env.AI_DEBUG_LOG === 'true') {
       console.log('[AI][debug] Validated expense data:', expenseData);
+    }
+
+    // Enhance item descriptions with barcode lookups
+    if (expenseData.items && expenseData.items.length > 0) {
+      const enableBarcodeLookup = process.env.ENABLE_BARCODE_LOOKUP !== 'false'; // Enabled by default
+
+      if (enableBarcodeLookup) {
+        try {
+          expenseData.items = await enhanceItemsWithBarcodes(expenseData.items);
+          console.log('[AI] Barcode enhancement completed');
+        } catch (error) {
+          console.warn('[AI] Barcode enhancement failed, continuing without it:', error.message);
+          // Don't fail the whole process if barcode lookup fails
+        }
+      } else {
+        console.log('[AI] Barcode lookup disabled via environment variable');
+      }
     }
 
     return expenseData;
