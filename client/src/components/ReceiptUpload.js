@@ -1,7 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { uploadReceipt } from '../services/apiService';
-import { showLocalNotification, getNotificationPermissionState } from '../services/notificationService';
+import {
+  showLocalNotification,
+  getNotificationPermissionState,
+  getStoredNotificationsEnabled,
+  getStoredNotificationPreferences
+} from '../services/notificationService';
 import CameraCapture from './CameraCapture';
 import './CameraCapture.css';
 
@@ -92,8 +97,16 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
       // Check for categories approaching or exceeding budget
       const THRESHOLD = 0.85; // 85% of budget
       const permissionState = getNotificationPermissionState();
+      const notificationsEnabled = getStoredNotificationsEnabled();
+      const preferences = getStoredNotificationPreferences();
 
       console.log('🔐 Notification permission:', permissionState);
+
+      // Skip if overspending alerts are disabled
+      if (!notificationsEnabled || !preferences?.overspendingAlert) {
+        console.log('⏭️  Overspending alerts disabled in settings');
+        return;
+      }
 
       for (const category of Object.keys(monthSpending)) {
         const budget = currentBudget[category] || 0;
@@ -147,6 +160,21 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
       });
 
       setSuccess('Receipt processed successfully!');
+
+      // Show notification if enabled
+      const notificationsEnabled = getStoredNotificationsEnabled();
+      const preferences = getStoredNotificationPreferences();
+      const permissionGranted = getNotificationPermissionState() === 'granted';
+
+      if (notificationsEnabled && permissionGranted && preferences?.newReceiptScanned) {
+        const merchantName = result.expense?.merchantName || 'Receipt';
+        const totalAmount = result.expense?.totalAmount || 0;
+        await showLocalNotification('Receipt Processed Successfully!', {
+          body: `${merchantName}: $${totalAmount.toFixed(2)} added to your expenses`,
+          icon: '/icon-192.svg',
+          tag: 'receipt-processed'
+        });
+      }
 
       // Use the full expense object from server response
       if (onExpenseAdded && result.expense) {

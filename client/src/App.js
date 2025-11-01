@@ -18,6 +18,8 @@ import { getExpenses } from './services/apiService';
 import {
   scheduleDailyExpenseReminder,
   cancelDailyExpenseReminder,
+  scheduleMonthlyBudgetReminder,
+  cancelMonthlyBudgetReminder,
   getStoredNotificationPreferences,
   getStoredNotificationsEnabled
 } from './services/notificationService';
@@ -335,6 +337,7 @@ function App() {
 
     const applyReminderSchedule = () => {
       cancelDailyExpenseReminder();
+      cancelMonthlyBudgetReminder();
 
       if (typeof Notification === 'undefined') {
         return;
@@ -351,20 +354,31 @@ function App() {
       }
 
       const preferences = getStoredNotificationPreferences();
-      const wantsReminder = Boolean(preferences?.dailySummary);
       const frequency = preferences?.frequency || 'daily';
-      const shouldSchedule = wantsReminder && frequency !== 'weekly';
 
-      if (!shouldSchedule) {
-        return;
+      // Schedule daily expense reminder
+      const wantsDailyReminder = Boolean(preferences?.dailySummary);
+      const shouldScheduleDaily = wantsDailyReminder && frequency !== 'weekly';
+
+      if (shouldScheduleDaily) {
+        scheduleDailyExpenseReminder({
+          hour: 21,
+          minute: 0,
+          title: 'Daily expense check-in',
+          body: "It's 9 PM - review and log today's spending."
+        });
       }
 
-      scheduleDailyExpenseReminder({
-        hour: 21,
-        minute: 0,
-        title: 'Daily expense check-in',
-        body: 'It’s 9 PM—review and log today’s spending.'
-      });
+      // Schedule monthly budget reminder
+      const wantsMonthlyReminder = Boolean(preferences?.monthlyBudgetReminder);
+      if (wantsMonthlyReminder) {
+        scheduleMonthlyBudgetReminder({
+          hour: 9,
+          minute: 0,
+          title: 'Monthly Budget Review',
+          body: 'Start of a new month! Time to review and set your budget.'
+        });
+      }
     };
 
     applyReminderSchedule();
@@ -373,6 +387,7 @@ function App() {
     return () => {
       window.removeEventListener('notificationPreferencesChanged', applyReminderSchedule);
       cancelDailyExpenseReminder();
+      cancelMonthlyBudgetReminder();
     };
   }, []);
 

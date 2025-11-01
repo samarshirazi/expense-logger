@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import authService from '../services/authService';
-import { showLocalNotification, getNotificationPermissionState } from '../services/notificationService';
+import {
+  showLocalNotification,
+  getNotificationPermissionState,
+  getStoredNotificationsEnabled,
+  getStoredNotificationPreferences
+} from '../services/notificationService';
 import './ManualEntry.css';
 
 function ManualEntry({ onExpensesAdded, expenses = [] }) {
@@ -72,8 +77,16 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
       // Check for categories approaching or exceeding budget
       const THRESHOLD = 0.85; // 85% of budget
       const permissionState = getNotificationPermissionState();
+      const notificationsEnabled = getStoredNotificationsEnabled();
+      const preferences = getStoredNotificationPreferences();
 
       console.log('🔐 Notification permission:', permissionState);
+
+      // Skip if overspending alerts are disabled
+      if (!notificationsEnabled || !preferences?.overspendingAlert) {
+        console.log('⏭️  Overspending alerts disabled in settings');
+        return;
+      }
 
       for (const category of Object.keys(monthSpending)) {
         const budget = currentBudget[category] || 0;
@@ -156,6 +169,21 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
           response.data.expenses.forEach(exp => {
             onExpensesAdded(exp.expenseData);
             addedExpenses.push(exp.expenseData);
+          });
+        }
+
+        // Show notification if enabled
+        const notificationsEnabled = getStoredNotificationsEnabled();
+        const preferences = getStoredNotificationPreferences();
+        const permissionGranted = getNotificationPermissionState() === 'granted';
+
+        if (notificationsEnabled && permissionGranted && preferences?.newReceiptScanned) {
+          const count = addedExpenses.length;
+          const totalAmount = addedExpenses.reduce((sum, exp) => sum + (exp.totalAmount || 0), 0);
+          await showLocalNotification('Expenses Added Successfully!', {
+            body: `${count} expense${count > 1 ? 's' : ''} added: $${totalAmount.toFixed(2)} total`,
+            icon: '/icon-192.svg',
+            tag: 'manual-entry-processed'
           });
         }
 

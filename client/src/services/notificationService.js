@@ -94,6 +94,8 @@ export function emitNotificationPreferencesChanged({
 
 let expenseReminderTimeoutId = null;
 let expenseReminderConfig = null;
+let monthlyBudgetReminderTimeoutId = null;
+let monthlyBudgetReminderConfig = null;
 
 function getDelayUntilTime(hour, minute) {
   const now = new Date();
@@ -102,6 +104,17 @@ function getDelayUntilTime(hour, minute) {
   if (target <= now) {
     target.setDate(target.getDate() + 1);
   }
+  return target.getTime() - now.getTime();
+}
+
+function getDelayUntilFirstOfMonth(hour = 9, minute = 0) {
+  const now = new Date();
+  const target = new Date(now);
+
+  // Set to first day of next month
+  target.setMonth(target.getMonth() + 1, 1);
+  target.setHours(hour, minute, 0, 0);
+
   return target.getTime() - now.getTime();
 }
 
@@ -137,6 +150,8 @@ export function scheduleDailyExpenseReminder({
   expenseReminderConfig = { hour, minute, title, body };
 
   const delay = getDelayUntilTime(hour, minute);
+  console.log(`Scheduling daily reminder in ${(delay / 1000 / 60 / 60).toFixed(2)} hours`);
+
   expenseReminderTimeoutId = window.setTimeout(async () => {
     await showLocalNotification(title, {
       body,
@@ -145,6 +160,53 @@ export function scheduleDailyExpenseReminder({
 
     if (expenseReminderConfig) {
       scheduleDailyExpenseReminder(expenseReminderConfig);
+    }
+  }, delay);
+}
+
+export function cancelMonthlyBudgetReminder() {
+  if (typeof window === 'undefined') {
+    monthlyBudgetReminderTimeoutId = null;
+    monthlyBudgetReminderConfig = null;
+    return;
+  }
+
+  if (monthlyBudgetReminderTimeoutId) {
+    window.clearTimeout(monthlyBudgetReminderTimeoutId);
+    monthlyBudgetReminderTimeoutId = null;
+  }
+  monthlyBudgetReminderConfig = null;
+}
+
+export function scheduleMonthlyBudgetReminder({
+  hour = 9,
+  minute = 0,
+  title = 'Monthly Budget Review',
+  body = 'Start of a new month! Time to review and set your budget.'
+} = {}) {
+  if (typeof window === 'undefined' || typeof Notification === 'undefined') {
+    return;
+  }
+
+  if (Notification.permission !== 'granted') {
+    return;
+  }
+
+  cancelMonthlyBudgetReminder();
+  monthlyBudgetReminderConfig = { hour, minute, title, body };
+
+  const delay = getDelayUntilFirstOfMonth(hour, minute);
+  console.log(`Scheduling monthly budget reminder in ${(delay / 1000 / 60 / 60 / 24).toFixed(1)} days`);
+
+  monthlyBudgetReminderTimeoutId = window.setTimeout(async () => {
+    await showLocalNotification(title, {
+      body,
+      tag: 'monthly-budget-reminder'
+    });
+
+    // Reschedule for next month
+    if (monthlyBudgetReminderConfig) {
+      scheduleMonthlyBudgetReminder(monthlyBudgetReminderConfig);
     }
   }, delay);
 }
