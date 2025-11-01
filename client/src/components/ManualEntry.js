@@ -23,6 +23,13 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
   // Helper function to check budget thresholds
   const checkBudgetThresholds = async (addedExpenses) => {
     try {
+      // Prevent multiple calls in quick succession
+      if (checkBudgetThresholds.isRunning) {
+        console.log('⏭️  Budget check already in progress, skipping...');
+        return;
+      }
+
+      checkBudgetThresholds.isRunning = true;
       console.log('🔔 Checking budget thresholds...', addedExpenses);
 
       // Get monthly budgets from localStorage
@@ -125,6 +132,11 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
       }
     } catch (err) {
       console.error('Failed to check budget thresholds:', err);
+    } finally {
+      // Reset the running flag after a short delay
+      setTimeout(() => {
+        checkBudgetThresholds.isRunning = false;
+      }, 1000);
     }
   };
 

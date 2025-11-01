@@ -5,6 +5,9 @@ const NOTIFICATION_PREFS_KEY = 'notificationPreferences';
 const NOTIFICATION_ENABLED_KEY = 'notificationsEnabled';
 const REMINDER_TAG = 'daily-expense-reminder';
 
+// Track last notification times to prevent spam
+const lastNotificationTimes = new Map();
+
 export const DEFAULT_NOTIFICATION_PREFS = Object.freeze({
   dailySummary: true,
   overspendingAlert: true,
@@ -414,6 +417,7 @@ export async function initializePushNotifications(token) {
 
 /**
  * Show a local notification (doesn't require push)
+ * Includes throttling to prevent notification spam
  */
 export async function showLocalNotification(title, options = {}) {
   if (!isPushNotificationSupported()) {
@@ -421,7 +425,26 @@ export async function showLocalNotification(title, options = {}) {
     return;
   }
 
-  if (Notification.permission === 'granted') {
+  if (Notification.permission !== 'granted') {
+    return;
+  }
+
+  const tag = options.tag || 'local-notification';
+  const now = Date.now();
+
+  // Check if we've shown this notification recently (within 5 minutes)
+  const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+  const lastTime = lastNotificationTimes.get(tag);
+
+  if (lastTime && (now - lastTime) < COOLDOWN_MS) {
+    console.log(`[Notification] Skipping duplicate notification with tag "${tag}" (cooldown active)`);
+    return;
+  }
+
+  // Update last notification time
+  lastNotificationTimes.set(tag, now);
+
+  try {
     const registration = await navigator.serviceWorker.ready;
     await registration.showNotification(title, {
       body: options.body || '',
@@ -429,8 +452,12 @@ export async function showLocalNotification(title, options = {}) {
       badge: options.badge || '/icon-192.svg',
       vibrate: options.vibrate || [200, 100, 200],
       data: options.data || {},
-      tag: options.tag || 'local-notification',
+      tag: tag,
+      renotify: false, // Don't re-alert for same tag
       ...options
     });
+    console.log(`[Notification] Shown: "${title}" (tag: ${tag})`);
+  } catch (error) {
+    console.error('[Notification] Failed to show:', error);
   }
 }

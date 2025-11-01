@@ -38,6 +38,13 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
   // Helper function to check budget thresholds
   const checkBudgetThresholds = useCallback(async (addedExpense) => {
     try {
+      // Prevent multiple calls in quick succession
+      if (checkBudgetThresholds.isRunning) {
+        console.log('⏭️  Budget check already in progress, skipping...');
+        return;
+      }
+
+      checkBudgetThresholds.isRunning = true;
       console.log('🔔 Checking budget thresholds for receipt...', addedExpense);
 
       // Get monthly budgets from localStorage
@@ -145,6 +152,11 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
       }
     } catch (err) {
       console.warn('Failed to check budget thresholds:', err);
+    } finally {
+      // Reset the running flag after a short delay
+      setTimeout(() => {
+        checkBudgetThresholds.isRunning = false;
+      }, 1000);
     }
   }, [getMonthKey, expenses]);
 
