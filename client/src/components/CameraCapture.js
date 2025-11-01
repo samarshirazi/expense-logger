@@ -12,11 +12,12 @@ const CameraCapture = ({ onCapture, onCancel }) => {
   const startCamera = useCallback(async () => {
     try {
       setError(null);
+      // Use lower resolution to avoid memory issues
       const constraints = {
         video: {
           facingMode: facingMode,
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
+          width: { ideal: 1280, max: 1280 },
+          height: { ideal: 720, max: 720 },
           aspectRatio: { ideal: 16/9 }
         }
       };
@@ -49,28 +50,71 @@ const CameraCapture = ({ onCapture, onCancel }) => {
       return;
     }
 
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
+    try {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
 
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+      // Maximum dimensions to avoid memory issues
+      const MAX_WIDTH = 1280;
+      const MAX_HEIGHT = 1280;
 
-    // Draw video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      let sourceWidth = video.videoWidth;
+      let sourceHeight = video.videoHeight;
+      let targetWidth = sourceWidth;
+      let targetHeight = sourceHeight;
 
-    // Convert to blob and create file
-    canvas.toBlob((blob) => {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const file = new File([blob], `receipt-${timestamp}.jpg`, {
-        type: 'image/jpeg',
-        lastModified: Date.now()
-      });
+      // Calculate scaled dimensions while maintaining aspect ratio
+      if (sourceWidth > MAX_WIDTH || sourceHeight > MAX_HEIGHT) {
+        const ratio = Math.min(MAX_WIDTH / sourceWidth, MAX_HEIGHT / sourceHeight);
+        targetWidth = Math.floor(sourceWidth * ratio);
+        targetHeight = Math.floor(sourceHeight * ratio);
+      }
 
+      console.log(`Capturing photo: ${sourceWidth}x${sourceHeight} → ${targetWidth}x${targetHeight}`);
+
+      // Set canvas dimensions to scaled size
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+
+      // Draw video frame to canvas with scaling
+      context.drawImage(video, 0, 0, targetWidth, targetHeight);
+
+      // Convert to blob with compression (0.75 quality for smaller file size)
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          setError('Failed to capture photo. Please try again.');
+          return;
+        }
+
+        // Check if blob is too large (> 5MB) and warn
+        const sizeMB = blob.size / 1024 / 1024;
+        console.log(`Photo captured: ${sizeMB.toFixed(2)}MB`);
+
+        if (blob.size > 5 * 1024 * 1024) {
+          console.warn(`Captured image is large: ${sizeMB.toFixed(2)}MB`);
+        }
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const file = new File([blob], `receipt-${timestamp}.jpg`, {
+          type: 'image/jpeg',
+          lastModified: Date.now()
+        });
+
+        // Clean up canvas to free memory
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.width = 0;
+        canvas.height = 0;
+
+        stopCamera();
+        onCapture(file);
+      }, 'image/jpeg', 0.75);
+
+    } catch (err) {
+      console.error('Photo capture error:', err);
+      setError('Unable to capture photo due to low memory. Try closing other apps and retry.');
       stopCamera();
-      onCapture(file);
-    }, 'image/jpeg', 0.9);
+    }
   }, [isReady, onCapture, stopCamera]);
 
   const handleCancel = useCallback(() => {
