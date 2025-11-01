@@ -30,6 +30,7 @@
   position: relative;
   flex: 1;
   background: #000;
+  overflow: hidden;
 }
 
 .crop-controls {
@@ -41,45 +42,11 @@
   flex-shrink: 0;
 }
 
-.zoom-control {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.zoom-control label {
-  color: white;
+.crop-hint {
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
   font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.zoom-control input[type="range"] {
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.2);
-  outline: none;
-  -webkit-appearance: none;
-}
-
-.zoom-control input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #28a745;
-  cursor: pointer;
-  border: 2px solid white;
-}
-
-.zoom-control input[type="range"]::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #28a745;
-  cursor: pointer;
-  border: 2px solid white;
+  font-style: italic;
 }
 
 .crop-buttons {

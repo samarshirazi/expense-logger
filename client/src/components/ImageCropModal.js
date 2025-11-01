@@ -1,32 +1,48 @@
-import React, { useState, useCallback } from 'react';
-import Cropper from 'react-easy-crop';
+import React, { useRef, useState } from 'react';
+import Cropper from 'react-cropper';
+import 'react-cropper/node_modules/cropperjs/dist/cropper.min.css';
 import './ImageCropModal.css';
 
 const ImageCropModal = ({ imageUrl, onCropComplete, onCancel }) => {
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
-
-  const onCropChange = (crop) => {
-    setCrop(crop);
-  };
-
-  const onZoomChange = (zoom) => {
-    setZoom(zoom);
-  };
-
-  const onCropCompleteCallback = useCallback((croppedArea, croppedAreaPixels) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  }, []);
+  const cropperRef = useRef(null);
+  const [loading, setLoading] = useState(false);
 
   const handleCrop = async () => {
-    if (!croppedAreaPixels) return;
+    const cropper = cropperRef.current?.cropper;
+    if (!cropper) return;
 
     try {
-      const croppedImage = await getCroppedImg(imageUrl, croppedAreaPixels);
-      onCropComplete(croppedImage);
+      setLoading(true);
+
+      // Get cropped canvas
+      const canvas = cropper.getCroppedCanvas({
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high',
+      });
+
+      // Convert to blob
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          console.error('Failed to create blob');
+          setLoading(false);
+          return;
+        }
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const file = new File([blob], `receipt-${timestamp}.jpg`, {
+          type: 'image/jpeg',
+          lastModified: Date.now()
+        });
+
+        onCropComplete(file);
+        setLoading(false);
+      }, 'image/jpeg', 0.95);
+
     } catch (error) {
       console.error('Error cropping image:', error);
+      setLoading(false);
     }
   };
 
@@ -39,86 +55,49 @@ const ImageCropModal = ({ imageUrl, onCropComplete, onCancel }) => {
 
       <div className="crop-container">
         <Cropper
-          image={imageUrl}
-          crop={crop}
-          zoom={zoom}
-          aspect={3 / 4}
-          onCropChange={onCropChange}
-          onZoomChange={onZoomChange}
-          onCropComplete={onCropCompleteCallback}
+          ref={cropperRef}
+          src={imageUrl}
+          style={{ height: '100%', width: '100%' }}
+          guides={true}
+          viewMode={1}
+          dragMode="move"
+          scalable={true}
+          zoomable={true}
+          cropBoxMovable={true}
+          cropBoxResizable={true}
+          background={false}
+          responsive={true}
+          autoCropArea={0.9}
+          checkOrientation={false}
+          movable={true}
+          rotatable={true}
         />
       </div>
 
       <div className="crop-controls">
-        <div className="zoom-control">
-          <label>Zoom</label>
-          <input
-            type="range"
-            min={1}
-            max={3}
-            step={0.1}
-            value={zoom}
-            onChange={(e) => setZoom(parseFloat(e.target.value))}
-          />
+        <div className="crop-hint">
+          Drag corners to adjust crop area
         </div>
 
         <div className="crop-buttons">
-          <button className="button secondary" onClick={onCancel}>
+          <button
+            className="button secondary"
+            onClick={onCancel}
+            disabled={loading}
+          >
             Cancel
           </button>
-          <button className="button primary" onClick={handleCrop}>
-            Crop & Upload
+          <button
+            className="button primary"
+            onClick={handleCrop}
+            disabled={loading}
+          >
+            {loading ? 'Processing...' : 'Crop & Upload'}
           </button>
         </div>
       </div>
     </div>
   );
 };
-
-// Helper function to create cropped image
-const getCroppedImg = async (imageSrc, pixelCrop) => {
-  const image = await createImage(imageSrc);
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
-
-  ctx.drawImage(
-    image,
-    pixelCrop.x,
-    pixelCrop.y,
-    pixelCrop.width,
-    pixelCrop.height,
-    0,
-    0,
-    pixelCrop.width,
-    pixelCrop.height
-  );
-
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        reject(new Error('Canvas is empty'));
-        return;
-      }
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const file = new File([blob], `receipt-${timestamp}.jpg`, {
-        type: 'image/jpeg',
-        lastModified: Date.now()
-      });
-      resolve(file);
-    }, 'image/jpeg', 0.95);
-  });
-};
-
-const createImage = (url) =>
-  new Promise((resolve, reject) => {
-    const image = new Image();
-    image.addEventListener('load', () => resolve(image));
-    image.addEventListener('error', (error) => reject(error));
-    image.setAttribute('crossOrigin', 'anonymous');
-    image.src = url;
-  });
 
 export default ImageCropModal;
