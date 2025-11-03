@@ -182,8 +182,6 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
         setProgress(progressPercent);
       });
 
-      setSuccess('Receipt processed successfully!');
-
       // Show notification if enabled
       const notificationsEnabled = getStoredNotificationsEnabled();
       const preferences = getStoredNotificationPreferences();
@@ -205,6 +203,20 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
 
         // Check budget thresholds immediately with current expenses
         await checkBudgetThresholds(result.expense);
+
+        // Show success message with expense details
+        const merchantName = result.expense?.merchantName || 'Receipt';
+        const totalAmount = result.expense?.totalAmount || 0;
+        const itemCount = result.expense?.items?.length || 0;
+
+        let successMsg = `${merchantName}: $${totalAmount.toFixed(2)}`;
+        if (itemCount > 0) {
+          successMsg += ` (${itemCount} item${itemCount !== 1 ? 's' : ''})`;
+        }
+        successMsg += ' - Saved successfully!';
+        setSuccess(successMsg);
+      } else {
+        setSuccess('Receipt processed successfully!');
       }
 
       // Clean up
