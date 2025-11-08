@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import './ImageCropModal.css';
 
 const ImageCropModal = ({ imageUrl, onCropComplete, onCancel }) => {
@@ -17,7 +17,6 @@ const ImageCropModal = ({ imageUrl, onCropComplete, onCancel }) => {
 
   const [dragging, setDragging] = useState(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [initialCropBox, setInitialCropBox] = useState(null);
 
   const getEventPosition = (e) => {
     if (e.touches && e.touches.length > 0) {
@@ -32,10 +31,9 @@ const ImageCropModal = ({ imageUrl, onCropComplete, onCancel }) => {
     setDragging(handle);
     const pos = getEventPosition(e);
     setDragStart(pos);
-    setInitialCropBox({ ...cropBox });
   };
 
-  const handlePointerMove = (e) => {
+  const handlePointerMove = useCallback((e) => {
     if (!dragging || !imageRef.current || !containerRef.current) return;
 
     const pos = getEventPosition(e);
@@ -101,12 +99,11 @@ const ImageCropModal = ({ imageUrl, onCropComplete, onCancel }) => {
 
       return newBox;
     });
-  };
+  }, [dragging, dragStart]);
 
-  const handlePointerUp = () => {
+  const handlePointerUp = useCallback(() => {
     setDragging(null);
-    setInitialCropBox(null);
-  };
+  }, []);
 
   useEffect(() => {
     if (dragging) {
@@ -121,7 +118,7 @@ const ImageCropModal = ({ imageUrl, onCropComplete, onCancel }) => {
         document.removeEventListener('touchend', handlePointerUp);
       };
     }
-  }, [dragging, dragStart]);
+  }, [dragging, handlePointerMove, handlePointerUp]);
 
   const handleCrop = async () => {
     if (!imageRef.current) return;
