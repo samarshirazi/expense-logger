@@ -810,7 +810,14 @@ async function getIncomeSources(userId, month = null, userToken = null) {
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      // If table doesn't exist, return empty array instead of throwing error
+      if (error.code === 'PGRST205' || error.message.includes('Could not find the table')) {
+        console.warn('⚠️  Income sources table not set up yet, returning empty array');
+        return [];
+      }
+      throw error;
+    }
 
     return data.map(row => ({
       id: row.id,
@@ -964,7 +971,14 @@ async function getExtraIncome(userId, startDate = null, endDate = null, userToke
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      // If table doesn't exist, return empty array instead of throwing error
+      if (error.code === 'PGRST205' || error.message.includes('Could not find the table')) {
+        console.warn('⚠️  Extra income table not set up yet, returning empty array');
+        return [];
+      }
+      throw error;
+    }
 
     return data.map(row => ({
       id: row.id,
@@ -1075,7 +1089,14 @@ async function getSavingsTransactions(userId, limit = 50, offset = 0, userToken 
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (error) throw error;
+    if (error) {
+      // If table doesn't exist, return empty array instead of throwing error
+      if (error.code === 'PGRST205' || error.message.includes('Could not find the table')) {
+        console.warn('⚠️  Savings transactions table not set up yet, returning empty array');
+        return [];
+      }
+      throw error;
+    }
 
     return data.map(row => ({
       id: row.id,
@@ -1113,6 +1134,11 @@ async function getSavingsBalance(userId, userToken = null) {
       .single();
 
     if (error) {
+      // If table doesn't exist, return default balance
+      if (error.code === 'PGRST205' || error.message.includes('Could not find the table')) {
+        console.warn('⚠️  Savings balance table not set up yet, returning default');
+        return { totalBalance: 0, transactionCount: 0, lastTransactionDate: null };
+      }
       // If no transactions yet, return 0
       if (error.code === 'PGRST116') {
         return { totalBalance: 0, transactionCount: 0, lastTransactionDate: null };
@@ -1199,7 +1225,14 @@ async function getSavingsGoals(userId, includeCompleted = false, userToken = nul
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      // If table doesn't exist, return empty array instead of throwing error
+      if (error.code === 'PGRST205' || error.message.includes('Could not find the table')) {
+        console.warn('⚠️  Savings goals table not set up yet, returning empty array');
+        return [];
+      }
+      throw error;
+    }
 
     return data.map(row => ({
       id: row.id,
