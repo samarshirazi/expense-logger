@@ -23,6 +23,10 @@ const formatCurrency = (amount) => {
 
 function Overview({ expenses = [], dateRange }) {
 
+  // Debug: Log dateRange changes
+  console.log('📊 Overview dateRange:', dateRange);
+  console.log('📊 Overview expenses count:', expenses.length);
+
   // Calculate current and previous period data based on timeline
   const { currentMonthExpenses, previousMonthExpenses, currentMonthTotal, previousMonthTotal } = useMemo(() => {
     // Use dateRange if provided, otherwise default to current month
@@ -31,6 +35,11 @@ function Overview({ expenses = [], dateRange }) {
     if (dateRange && dateRange.start && dateRange.end) {
       currentStart = new Date(dateRange.start);
       currentEnd = new Date(dateRange.end);
+
+      console.log('📊 Using dateRange:', {
+        start: currentStart.toLocaleDateString(),
+        end: currentEnd.toLocaleDateString()
+      });
 
       // Calculate previous period of same length
       const periodLength = currentEnd - currentStart;
@@ -46,12 +55,19 @@ function Overview({ expenses = [], dateRange }) {
       currentEnd = new Date(currentYear, currentMonth + 1, 0);
       prevStart = new Date(currentYear, currentMonth - 1, 1);
       prevEnd = new Date(currentYear, currentMonth, 0);
+
+      console.log('📊 Using default current month:', {
+        start: currentStart.toLocaleDateString(),
+        end: currentEnd.toLocaleDateString()
+      });
     }
 
     const currentMonthExpenses = expenses.filter(exp => {
       const date = new Date(exp.date);
       return date >= currentStart && date <= currentEnd;
     });
+
+    console.log('📊 Filtered expenses:', currentMonthExpenses.length, 'out of', expenses.length);
 
     const previousMonthExpenses = expenses.filter(exp => {
       const date = new Date(exp.date);
@@ -232,6 +248,11 @@ function Overview({ expenses = [], dateRange }) {
       <div className="overview-header">
         <h1>📈 Overview</h1>
         <p className="overview-subtitle">Your financial insights at a glance</p>
+        {dateRange && (
+          <p className="overview-period" style={{ fontSize: '14px', color: '#6b7280', marginTop: '8px' }}>
+            Period: {new Date(dateRange.start).toLocaleDateString()} - {new Date(dateRange.end).toLocaleDateString()}
+          </p>
+        )}
       </div>
 
       {/* Smart Summary Cards */}
