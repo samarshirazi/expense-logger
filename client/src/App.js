@@ -779,6 +779,8 @@ function App() {
         activeView={activeView}
         onViewChange={setActiveView}
         showNav={showOptionsButton}
+        onCoachToggle={handleCoachToggle}
+        coachHasUnread={coachHasUnread}
       />
     </div>
   );

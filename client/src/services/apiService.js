@@ -2,9 +2,25 @@ import axios from 'axios';
 import authService from './authService';
 
 // Use relative path for production (works with Vercel), localhost for development
-const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? '/api'
-  : 'http://localhost:5000/api';
+// For mobile testing on local network, use the host's IP address
+const getApiBaseUrl = () => {
+  if (process.env.NODE_ENV === 'production') {
+    return '/api';
+  }
+
+  // In development, check if we're accessing from network (not localhost)
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      // Access from network, use the same hostname with port 5000
+      return `http://${hostname}:5000/api`;
+    }
+  }
+
+  return 'http://localhost:5000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -199,9 +215,19 @@ export const requestCoachInsights = async ({ conversation = [], analysis }) => {
 
 export const checkServerHealth = async () => {
   try {
-    const healthUrl = process.env.NODE_ENV === 'production'
-      ? '/api/health'
-      : 'http://localhost:5000/health';
+    let healthUrl = '/api/health';
+    if (process.env.NODE_ENV !== 'production') {
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+          healthUrl = `http://${hostname}:5000/health`;
+        } else {
+          healthUrl = 'http://localhost:5000/health';
+        }
+      } else {
+        healthUrl = 'http://localhost:5000/health';
+      }
+    }
     const response = await axios.get(healthUrl);
     return response.data;
   } catch (error) {

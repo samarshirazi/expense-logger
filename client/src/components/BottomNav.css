@@ -68,6 +68,22 @@
   white-space: nowrap;
 }
 
+.bottom-nav-item {
+  position: relative;
+}
+
+.bottom-nav-indicator {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  width: 8px;
+  height: 8px;
+  background: #fbbf24;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.25);
+}
+
 /* Dark theme support */
 :root[data-theme='dark'] .bottom-nav {
   background: #1e293b;
