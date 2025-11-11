@@ -1,0 +1,115 @@
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, opacity 0.2s ease;
+}
+
+.bottom-nav.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bottom-nav.hidden {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bottom-nav-container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 8px 0;
+  max-width: 100%;
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6b7280;
+  flex: 1;
+  max-width: 120px;
+}
+
+.bottom-nav-item:active {
+  transform: scale(0.95);
+}
+
+.bottom-nav-item.active {
+  color: #667eea;
+}
+
+.bottom-nav-icon {
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-nav-label {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Dark theme support */
+:root[data-theme='dark'] .bottom-nav {
+  background: #1e293b;
+  border-top-color: rgba(148, 163, 184, 0.25);
+  box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.35);
+}
+
+:root[data-theme='dark'] .bottom-nav-item {
+  color: #94a3b8;
+}
+
+:root[data-theme='dark'] .bottom-nav-item.active {
+  color: #818cf8;
+}
+
+/* Show only on mobile */
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: block;
+  }
+
+  /* Add padding to bottom of main content to prevent overlap */
+  .main-content {
+    padding-bottom: 90px !important;
+  }
+
+  /* Ensure view containers also have bottom padding */
+  .view-container {
+    padding-bottom: 20px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .bottom-nav-icon {
+    font-size: 22px;
+  }
+
+  .bottom-nav-label {
+    font-size: 11px;
+  }
+
+  .bottom-nav-item {
+    padding: 6px 8px;
+  }
+}

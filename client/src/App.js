@@ -14,6 +14,7 @@ import GroceryListPage from './components/GroceryListPage';
 import Auth from './components/Auth';
 import NotificationPrompt from './components/NotificationPrompt';
 import TimeNavigator from './components/TimeNavigator';
+import BottomNav from './components/BottomNav';
 import { getExpenses } from './services/apiService';
 import {
   scheduleDailyExpenseReminder,
@@ -772,6 +773,13 @@ function App() {
           contextView={coachContext}
         />
       </main>
+
+      {/* Bottom Navigation for mobile */}
+      <BottomNav
+        activeView={activeView}
+        onViewChange={setActiveView}
+        showNav={showOptionsButton}
+      />
     </div>
   );
 }

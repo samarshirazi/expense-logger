@@ -44,10 +44,12 @@ function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOp
       <nav className="sidebar-nav">
         {menuItems.map(item => {
           const isActive = item.id !== 'coach' && activeView === item.id;
+          // Items to hide on mobile (shown in bottom nav instead)
+          const hideOnMobile = ['dashboard', 'expenses', 'manage', 'log'].includes(item.id);
           return (
             <button
               key={item.id}
-              className={`nav-item ${isActive ? 'active' : ''} ${item.id === 'coach' ? 'nav-item-coach' : ''}`}
+              className={`nav-item ${isActive ? 'active' : ''} ${item.id === 'coach' ? 'nav-item-coach' : ''} ${hideOnMobile ? 'hide-on-mobile' : ''}`}
               onClick={() => handleMenuItemClick(item)}
             >
               <span className="nav-icon">{item.icon}</span>

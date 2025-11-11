@@ -272,6 +272,11 @@
     padding: 12px 14px;
   }
 
+  /* Hide navigation items that are shown in bottom nav */
+  .nav-item.hide-on-mobile {
+    display: none;
+  }
+
   .nav-description {
     display: none;
   }

@@ -28,6 +28,12 @@
 
   .log-expense {
     gap: 18px;
+    padding-bottom: 20px;
+  }
+
+  /* Ensure the last panel (manual expense form) has extra bottom padding */
+  .log-expense-panel.full-width {
+    margin-bottom: 20px;
   }
 }
 
