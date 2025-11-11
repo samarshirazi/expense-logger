@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Migration Helper</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .steps {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .step {
+            margin-bottom: 15px;
+            padding-left: 30px;
+            position: relative;
+        }
+        .step:before {
+            content: attr(data-step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 24px;
+            height: 24px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .step a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .step a:hover {
+            text-decoration: underline;
+        }
+        .sql-container {
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            position: relative;
+        }
+        #sqlCode {
+            width: 100%;
+            height: 400px;
+            background: transparent;
+            border: none;
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            outline: none;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .success {
+            background: #10b981;
+            padding: 12px;
+            border-radius: 6px;
+            color: white;
+            margin-top: 10px;
+            display: none;
+        }
+        .warning {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .warning strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Income & Savings Migration</h1>
+        <p class="subtitle">Run this SQL migration in your Supabase database</p>
+
+        <div class="warning">
+            <strong>⚠️ Important:</strong>
+            This migration needs to be run directly in Supabase because the anon API key doesn't have permission to execute DDL statements (CREATE TABLE, etc). This is a security feature.
+        </div>
+
+        <div class="steps">
+            <div class="step" data-step="1">
+                Click the button below to copy the SQL migration code
+            </div>
+            <div class="step" data-step="2">
+                Go to your <a href="https://supabase.com/dashboard/project/opyzkwddmmvbwfjydpyb/sql/new" target="_blank">Supabase SQL Editor</a>
+            </div>
+            <div class="step" data-step="3">
+                Paste the SQL code into the editor
+            </div>
+            <div class="step" data-step="4">
+                Click "Run" to execute the migration
+            </div>
+            <div class="step" data-step="5">
+                Refresh your expense tracker app - Income & Savings will now work!
+            </div>
+        </div>
+
+        <div class="sql-container">
+            <textarea id="sqlCode" readonly></textarea>
+        </div>
+
+        <div class="button-container">
+            <button onclick="copySql()">📋 Copy SQL to Clipboard</button>
+            <button onclick="openSupabase()" style="background: #10b981;">🚀 Open Supabase SQL Editor</button>
+        </div>
+
+        <div class="success" id="successMsg">✅ SQL copied to clipboard! Now paste it in Supabase.</div>
+    </div>
+
+    <script>
+        // Load the SQL from the migration file
+        fetch('./server/migrations/20250124000001_income_savings.sql')
+            .then(response => response.text())
+            .then(sql => {
+                document.getElementById('sqlCode').value = sql;
+            })
+            .catch(error => {
+                document.getElementById('sqlCode').value = 'Error loading migration file. Please check that the file exists at: server/migrations/20250124000001_income_savings.sql';
+            });
+
+        function copySql() {
+            const sqlCode = document.getElementById('sqlCode');
+            sqlCode.select();
+            document.execCommand('copy');
+
+            const successMsg = document.getElementById('successMsg');
+            successMsg.style.display = 'block';
+            setTimeout(() => {
+                successMsg.style.display = 'none';
+            }, 3000);
+        }
+
+        function openSupabase() {
+            window.open('https://supabase.com/dashboard/project/opyzkwddmmvbwfjydpyb/sql/new', '_blank');
+        }
+    </script>
+</body>
+</html>

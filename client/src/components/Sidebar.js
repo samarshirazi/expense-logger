@@ -6,7 +6,7 @@ function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOp
     { id: 'dashboard', icon: '📊', label: 'Dashboard', description: 'Overview & Stats' },
     { id: 'expenses', icon: '💰', label: 'Expenses', description: 'View all expenses' },
     { id: 'categories', icon: '📂', label: 'Categories', description: 'Organize by category' },
-    { id: 'manage', icon: '🎯', label: 'Manage', description: 'Budgets & Goals' },
+    { id: 'overview', icon: '📈', label: 'Overview', description: 'Insights & Analytics' },
     { id: 'income-savings', icon: '💵', label: 'Income & Savings', description: 'Track income & goals' },
     { id: 'log', icon: '🧾', label: 'Log Expense', description: 'Upload or type quickly' },
     { id: 'settings', icon: '⚙️', label: 'Settings', description: 'Notifications & preferences' },
@@ -45,7 +45,7 @@ function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOp
         {menuItems.map(item => {
           const isActive = item.id !== 'coach' && activeView === item.id;
           // Items to hide on mobile (shown in bottom nav instead)
-          const hideOnMobile = ['dashboard', 'expenses', 'manage', 'log'].includes(item.id);
+          const hideOnMobile = ['dashboard', 'expenses', 'overview', 'log'].includes(item.id);
           return (
             <button
               key={item.id}

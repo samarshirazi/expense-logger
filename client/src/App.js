@@ -8,6 +8,7 @@ import ExpenseDetails from './components/ExpenseDetails';
 import CategorizedExpenses from './components/CategorizedExpenses';
 import ExpensesSummary from './components/ExpensesSummary';
 import BudgetManage from './components/BudgetManage';
+import Overview from './components/Overview';
 import SpendingSummary from './components/SpendingSummary';
 import IncomeSavings from './components/IncomeSavings';
 import GroceryListPage from './components/GroceryListPage';
@@ -41,7 +42,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
-  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'expenses', 'categories', 'manage', 'log', 'settings'
+  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'expenses', 'categories', 'overview', 'log', 'settings'
   const [showSummary, setShowSummary] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showOptionsButton, setShowOptionsButton] = useState(true);
@@ -641,7 +642,7 @@ function App() {
 
         {/* Shared TimeNavigator for selected views */}
         {(
-          ['dashboard', 'categories', 'manage', 'income-savings'].includes(activeView) ||
+          ['dashboard', 'categories', 'overview', 'income-savings'].includes(activeView) ||
           (activeView === 'expenses' && (expensesMode === 'summary' || expensesMode === 'shopping'))
         ) && (
           <div className={`shared-timeline-container ${showOptionsButton ? 'with-button' : 'without-button'}`}>
@@ -704,9 +705,9 @@ function App() {
           </div>
         )}
 
-        {activeView === 'manage' && (
+        {activeView === 'overview' && (
           <div className="view-container">
-            <BudgetManage
+            <Overview
               expenses={expenses}
               dateRange={dateRange}
             />

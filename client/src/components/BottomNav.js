@@ -5,7 +5,7 @@ function BottomNav({ activeView, onViewChange, showNav, onCoachToggle, coachHasU
   const navItems = [
     { id: 'dashboard', icon: '📊', label: 'Dashboard' },
     { id: 'expenses', icon: '💰', label: 'Expenses' },
-    { id: 'manage', icon: '🎯', label: 'Manage' },
+    { id: 'overview', icon: '📈', label: 'Overview' },
     { id: 'log', icon: '🧾', label: 'Log' },
     { id: 'coach', icon: '🤖', label: 'AI Coach', isCoach: true }
   ];
