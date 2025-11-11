@@ -21,18 +21,32 @@ const formatCurrency = (amount) => {
   }).format(amount || 0);
 };
 
-function Overview({ expenses = [] }) {
+function Overview({ expenses = [], dateRange }) {
 
-  // Calculate current and previous month data
+  // Calculate current and previous period data based on timeline
   const { currentMonthExpenses, previousMonthExpenses, currentMonthTotal, previousMonthTotal } = useMemo(() => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
+    // Use dateRange if provided, otherwise default to current month
+    let currentStart, currentEnd, prevStart, prevEnd;
 
-    const currentStart = new Date(currentYear, currentMonth, 1);
-    const currentEnd = new Date(currentYear, currentMonth + 1, 0);
-    const prevStart = new Date(currentYear, currentMonth - 1, 1);
-    const prevEnd = new Date(currentYear, currentMonth, 0);
+    if (dateRange && dateRange.start && dateRange.end) {
+      currentStart = new Date(dateRange.start);
+      currentEnd = new Date(dateRange.end);
+
+      // Calculate previous period of same length
+      const periodLength = currentEnd - currentStart;
+      prevEnd = new Date(currentStart.getTime() - 1); // Day before current period
+      prevStart = new Date(prevEnd.getTime() - periodLength);
+    } else {
+      // Default to current month
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+
+      currentStart = new Date(currentYear, currentMonth, 1);
+      currentEnd = new Date(currentYear, currentMonth + 1, 0);
+      prevStart = new Date(currentYear, currentMonth - 1, 1);
+      prevEnd = new Date(currentYear, currentMonth, 0);
+    }
 
     const currentMonthExpenses = expenses.filter(exp => {
       const date = new Date(exp.date);
@@ -48,7 +62,7 @@ function Overview({ expenses = [] }) {
     const previousMonthTotal = previousMonthExpenses.reduce((sum, exp) => sum + (exp.totalAmount || exp.amount || 0), 0);
 
     return { currentMonthExpenses, previousMonthExpenses, currentMonthTotal, previousMonthTotal };
-  }, [expenses]);
+  }, [expenses, dateRange]);
 
   // Calculate category spending
   const categorySpending = useMemo(() => {
@@ -103,15 +117,25 @@ function Overview({ expenses = [] }) {
     }));
   }, [categorySpending, currentMonthTotal]);
 
-  // Line chart data (daily spending for current month)
+  // Line chart data (daily spending for current period)
   const lineChartData = useMemo(() => {
-    const dailySpending = {};
-    const now = new Date();
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    if (currentMonthExpenses.length === 0) return [];
 
-    // Initialize all days
-    for (let i = 1; i <= daysInMonth; i++) {
-      dailySpending[i] = 0;
+    // Get the date range
+    const dates = currentMonthExpenses.map(exp => new Date(exp.date));
+    const minDate = new Date(Math.min(...dates));
+    const maxDate = new Date(Math.max(...dates));
+
+    // If dateRange is provided, use it
+    let startDate = dateRange?.start ? new Date(dateRange.start) : minDate;
+    let endDate = dateRange?.end ? new Date(dateRange.end) : maxDate;
+
+    const dailySpending = {};
+
+    // Initialize all days in the range
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const day = d.getDate();
+      dailySpending[day] = 0;
     }
 
     // Aggregate spending by day
@@ -129,7 +153,7 @@ function Overview({ expenses = [] }) {
         amount: cumulative
       };
     });
-  }, [currentMonthExpenses]);
+  }, [currentMonthExpenses, dateRange]);
 
   // Bar chart data (category comparison)
   const barChartData = useMemo(() => {
@@ -179,14 +203,29 @@ function Overview({ expenses = [] }) {
     return insights.slice(0, 3);
   }, [topCategory, spendingTrend, categorySpending, previousCategorySpending, remainingBudget, currentMonthTotal, totalBudget]);
 
-  // Projected month-end spending
+  // Projected period-end spending
   const projectedSpending = useMemo(() => {
+    if (!dateRange || !dateRange.start || !dateRange.end) {
+      // Default behavior for current month
+      const now = new Date();
+      const dayOfMonth = now.getDate();
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const dailyAverage = currentMonthTotal / dayOfMonth;
+      return dailyAverage * daysInMonth;
+    }
+
+    // Calculate based on dateRange
+    const startDate = new Date(dateRange.start);
+    const endDate = new Date(dateRange.end);
     const now = new Date();
-    const dayOfMonth = now.getDate();
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const dailyAverage = currentMonthTotal / dayOfMonth;
-    return dailyAverage * daysInMonth;
-  }, [currentMonthTotal]);
+
+    // Days elapsed in the period
+    const daysElapsed = Math.max(1, Math.ceil((now - startDate) / (1000 * 60 * 60 * 24)));
+    const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+    const dailyAverage = currentMonthTotal / daysElapsed;
+    return dailyAverage * totalDays;
+  }, [currentMonthTotal, dateRange]);
 
   return (
     <div className="overview-screen">
