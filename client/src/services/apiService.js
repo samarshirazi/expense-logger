@@ -22,6 +22,8 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
+console.log('🌐 API Base URL:', API_BASE_URL);
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 60000,
@@ -79,9 +81,13 @@ const extractApiError = (error, fallbackMessage) => {
   return error.message || fallbackMessage;
 };
 
-// Add auth token to requests
+// Add auth token and logging to requests
 api.interceptors.request.use(
   (config) => {
+    // Log request for debugging
+    console.log('📤 API Request:', config.method?.toUpperCase(), config.url, 'to', config.baseURL);
+
+    // Add auth token
     const token = authService.getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -89,14 +95,23 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    console.error('❌ Request setup error:', error);
     return Promise.reject(error);
   }
 );
 
 // Handle auth errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ API Response:', response.config.method?.toUpperCase(), response.config.url, response.status);
+    return response;
+  },
   (error) => {
+    console.error('❌ API Error:', error.config?.method?.toUpperCase(), error.config?.url, error.response?.status, error.message);
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+    }
+
     if (error.response?.status === 401) {
       // Token expired or invalid - sign out user
       authService.signOut();
