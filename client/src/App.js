@@ -7,7 +7,6 @@ import Settings from './components/Settings';
 import ExpenseDetails from './components/ExpenseDetails';
 import CategorizedExpenses from './components/CategorizedExpenses';
 import ExpensesSummary from './components/ExpensesSummary';
-import BudgetManage from './components/BudgetManage';
 import Overview from './components/Overview';
 import SpendingSummary from './components/SpendingSummary';
 import IncomeSavings from './components/IncomeSavings';
