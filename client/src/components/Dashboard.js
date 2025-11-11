@@ -13,13 +13,6 @@ const DEFAULT_BUDGET = {
   Other: 100
 };
 
-const REMAINING_CATEGORY = {
-  id: 'Remaining',
-  name: 'Remaining Budget',
-  icon: '💰',
-  color: '#27ae60'
-};
-
 const toLocalDateString = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -396,16 +389,6 @@ const formatDateDisplay = (iso) => {
   const totalSpent = useMemo(
     () => categoryDetails.reduce((sum, detail) => sum + detail.spent, 0),
     [categoryDetails]
-  );
-
-  const chartCategoryDetails = useMemo(
-    () => (isFullMonthView ? categoryDetails : categoryDetailsRange),
-    [isFullMonthView, categoryDetails, categoryDetailsRange]
-  );
-
-  const chartTotalSpent = useMemo(
-    () => chartCategoryDetails.reduce((sum, detail) => sum + detail.spent, 0),
-    [chartCategoryDetails]
   );
 
   const totalBudget = useMemo(
@@ -1123,99 +1106,6 @@ const formatDateDisplay = (iso) => {
   const mostActiveDayAmount = mostActiveDay ? formatCurrency(mostActiveDay.total) : '—';
   const trendLatestLabel = latestTrendTotal != null ? formatCurrency(latestTrendTotal) : '—';
 
-  const renderPieChart = () => {
-    const remainingForChart = isFullMonthView ? totalRemaining : 0;
-    const chartTotal = chartTotalSpent + remainingForChart;
-
-    if (chartTotalSpent <= 0 || chartTotal <= 0) {
-      return <div className="dashboard-chart-empty">No spending data yet</div>;
-    }
-
-    const radius = 90;
-    const center = 110;
-    const segments = [];
-    let currentAngle = 0;
-
-    chartCategoryDetails.forEach(detail => {
-      if (detail.spent <= 0) {
-        return;
-      }
-
-      const fraction = detail.spent / chartTotal;
-      const angle = fraction * 360;
-      const startAngle = currentAngle;
-      const endAngle = currentAngle + angle;
-      currentAngle += angle;
-
-      segments.push({
-        key: detail.category.id,
-        category: detail.category,
-        value: detail.spent,
-        fraction,
-        startAngle,
-        endAngle
-      });
-    });
-
-    if (remainingForChart > 0) {
-      const fraction = remainingForChart / chartTotal;
-      const angle = fraction * 360;
-      const startAngle = currentAngle;
-      const endAngle = currentAngle + angle;
-      currentAngle += angle;
-
-      segments.push({
-        key: REMAINING_CATEGORY.id,
-        category: REMAINING_CATEGORY,
-        value: remainingForChart,
-        fraction,
-        startAngle,
-        endAngle,
-        isRemaining: true
-      });
-    }
-
-    return (
-      <div className="dashboard-pie">
-        <svg viewBox="0 0 220 220" className="dashboard-pie-chart">
-          {segments.map(segment => {
-            const startRadians = (segment.startAngle - 90) * Math.PI / 180;
-            const endRadians = (segment.endAngle - 90) * Math.PI / 180;
-            const x1 = center + radius * Math.cos(startRadians);
-            const y1 = center + radius * Math.sin(startRadians);
-            const x2 = center + radius * Math.cos(endRadians);
-            const y2 = center + radius * Math.sin(endRadians);
-            const largeArc = (segment.endAngle - segment.startAngle) > 180 ? 1 : 0;
-
-            if (segment.endAngle - segment.startAngle >= 359.99) {
-              return (
-                <circle
-                  key={segment.key}
-                  cx={center}
-                  cy={center}
-                  r={radius}
-                  fill={segment.category.color}
-                  stroke="none"
-                />
-              );
-            }
-
-            const path = `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-
-            return (
-              <path
-                key={segment.key}
-                d={path}
-                fill={segment.category.color}
-                stroke="none"
-              />
-            );
-          })}
-        </svg>
-      </div>
-    );
-  };
-
   const effectiveSummary = progressSummary || summary;
 
   const totalEntries = effectiveSummary?.expenseCount || 0;
@@ -1597,48 +1487,6 @@ const formatDateDisplay = (iso) => {
           ) : (
             <div className="summary-empty">No recent transactions logged.</div>
           )}
-        </div>
-      </div>
-
-      <div className="dashboard-section">
-        <h2>Spending by Category</h2>
-        <div className="dashboard-pie-wrapper">
-          {renderPieChart()}
-        </div>
-        <div className="category-breakdown-grid">
-          {categoryDetails.map(detail => {
-            const { category, spent, remaining, budget } = detail;
-            const isOverBudget = remaining < 0;
-            const spentPercentRaw = budget > 0 ? (spent / budget) * 100 : 0;
-            const spentPercent = Math.max(0, Math.min(spentPercentRaw, 100));
-            const progressPercentLabel = `${Math.max(0, Math.round(spentPercentRaw))}%`;
-
-            return (
-              <div key={category.id} className="category-card">
-                <div className="category-card-title">{category.name}</div>
-                <span className="category-icon" style={{ color: category.color }}>
-                  {category.icon}
-                </span>
-                <div className="category-spent-amount">{formatCurrency(spent)}</div>
-                <div
-                  className={`category-remaining ${isOverBudget ? 'category-remaining-negative' : 'category-remaining-positive'}`}
-                >
-                  Remaining: {formatCurrency(remaining)}
-                </div>
-                <div className="category-progress">
-                  <div className="category-progress-track">
-                    <div
-                      className="category-progress-fill"
-                      style={{ width: `${spentPercent}%`, backgroundColor: category.color }}
-                    ></div>
-                  </div>
-                  <div className="category-progress-percentage">
-                    {spentPercentRaw > 999 ? '999%+' : progressPercentLabel}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
 
