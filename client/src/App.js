@@ -704,14 +704,12 @@ function App() {
           </div>
         )}
 
-        {activeView === 'overview' && (
-          <div className="view-container">
-            <Overview
-              expenses={expenses}
-              dateRange={dateRange}
-            />
-          </div>
-        )}
+        <div style={{ display: activeView === 'overview' ? 'block' : 'none' }}>
+          <Overview
+            expenses={expenses}
+            dateRange={dateRange}
+          />
+        </div>
 
         {activeView === 'income-savings' && (
           <div className="view-container">
