@@ -369,23 +369,6 @@ const formatDateDisplay = (iso) => {
     });
   }, [progressSummary, summary, categoryBudget, CATEGORIES]);
 
-  const categoryDetailsRange = useMemo(() => {
-    const totals = summary?.itemCategoryTotals || {};
-
-    return CATEGORIES.map(category => {
-      const spent = totals[category.id] || 0;
-      const budget = categoryBudget?.[category.id] ?? 0;
-      const remaining = budget - spent;
-
-      return {
-        category,
-        spent,
-        budget,
-        remaining
-      };
-    });
-  }, [summary, categoryBudget, CATEGORIES]);
-
   const totalSpent = useMemo(
     () => categoryDetails.reduce((sum, detail) => sum + detail.spent, 0),
     [categoryDetails]
