@@ -32,9 +32,9 @@ function Overview({ expenses = [], dateRange }) {
     // Use dateRange if provided, otherwise default to current month
     let currentStart, currentEnd, prevStart, prevEnd;
 
-    if (dateRange && dateRange.start && dateRange.end) {
-      currentStart = new Date(dateRange.start);
-      currentEnd = new Date(dateRange.end);
+    if (dateRange?.startDate && dateRange?.endDate) {
+      currentStart = new Date(dateRange.startDate);
+      currentEnd = new Date(dateRange.endDate);
 
       console.log('📊 Using dateRange:', {
         start: currentStart.toLocaleDateString(),
@@ -143,8 +143,8 @@ function Overview({ expenses = [], dateRange }) {
     const maxDate = new Date(Math.max(...dates));
 
     // If dateRange is provided, use it
-    let startDate = dateRange?.start ? new Date(dateRange.start) : minDate;
-    let endDate = dateRange?.end ? new Date(dateRange.end) : maxDate;
+    let startDate = dateRange?.startDate ? new Date(dateRange.startDate) : minDate;
+    let endDate = dateRange?.endDate ? new Date(dateRange.endDate) : maxDate;
 
     const dailySpending = {};
 
