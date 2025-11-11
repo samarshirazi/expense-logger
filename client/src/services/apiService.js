@@ -11,18 +11,24 @@ const getApiBaseUrl = () => {
   // In development, check if we're accessing from network (not localhost)
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
+    console.log('🔍 Detected hostname:', hostname);
+    console.log('🔍 Location:', window.location.href);
+
     if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
       // Access from network, use the same hostname with port 5000
-      return `http://${hostname}:5000/api`;
+      const networkUrl = `http://${hostname}:5000/api`;
+      console.log('🌐 Using network URL:', networkUrl);
+      return networkUrl;
     }
   }
 
+  console.log('🏠 Using localhost URL');
   return 'http://localhost:5000/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
 
-console.log('🌐 API Base URL:', API_BASE_URL);
+console.log('✅ Final API Base URL:', API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
