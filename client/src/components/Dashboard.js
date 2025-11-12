@@ -159,35 +159,6 @@ function Dashboard({
   const summarySignatureRef = useRef(null);
   const isCoachOpenRef = useRef(isCoachOpen);
   const loadedDateRangeRef = useRef(null);
-  const [activeChartTab, setActiveChartTab] = useState('categories');
-  const chartTouchStartRef = useRef(null);
-  const chartTabs = useMemo(() => ([
-    { id: 'categories', label: 'Categories', icon: '🍩' },
-    { id: 'trend', label: 'Trend', icon: '📈' },
-    { id: 'comparison', label: 'Comparisons', icon: '📊' }
-  ]), []);
-
-  const handleChartTouchStart = useCallback((event) => {
-    if (!event.touches?.length) {
-      return;
-    }
-    chartTouchStartRef.current = event.touches[0].clientX;
-  }, []);
-
-  const handleChartTouchEnd = useCallback((event) => {
-    if (!event.changedTouches?.length || chartTouchStartRef.current == null) {
-      return;
-    }
-    const deltaX = event.changedTouches[0].clientX - chartTouchStartRef.current;
-    chartTouchStartRef.current = null;
-    if (Math.abs(deltaX) < 50) {
-      return;
-    }
-    const direction = deltaX > 0 ? -1 : 1;
-    const currentIndex = chartTabs.findIndex(tab => tab.id === activeChartTab);
-    const nextIndex = Math.min(chartTabs.length - 1, Math.max(0, currentIndex + direction));
-    setActiveChartTab(chartTabs[nextIndex].id);
-  }, [activeChartTab, chartTabs]);
 
   // Listen for category updates
   useEffect(() => {
@@ -1246,69 +1217,6 @@ const formatDateDisplay = (iso) => {
     return items;
   }, [categoryComparisons, categoryLookup, percentChange]);
 
-  const aiCoachTips = insightsList.slice(0, 3);
-
-  const dashboardSummaryCards = useMemo(() => [
-    {
-      id: 'total-spending',
-      label: 'Total Spending',
-      value: formatCurrency(totalSpendingValue),
-      subValue: totalsSubtitle,
-      delta: percentChangeLabel ? {
-        direction: percentChange > 0 ? 'negative' : percentChange < 0 ? 'positive' : 'neutral',
-        label: percentChangeLabel,
-        icon: percentChange > 0 ? '▲' : percentChange < 0 ? '▼' : '━'
-      } : null,
-      footnote: `Entries logged: ${totalEntries}`
-    },
-    {
-      id: 'top-category',
-      label: 'Top Category',
-      icon: topCategoryIcon,
-      value: topCategoryName,
-      subValue: topCategorySpent,
-      delta: topCategoryChangeLabel ? {
-        direction: topCategoryChange?.percent >= 0 ? 'negative' : 'positive',
-        label: topCategoryChangeLabel,
-        icon: topCategoryChange?.percent >= 0 ? '▲' : '▼'
-      } : null
-    },
-    {
-      id: 'active-day',
-      label: 'Most Active Day',
-      value: mostActiveDayLabel,
-      subValue: mostActiveDayAmount,
-      footnote: trendLatestLabel ? `Latest: ${trendLatestLabel}` : undefined
-    },
-    {
-      id: 'coach',
-      label: 'AI Coach Insight',
-      value: coachInsightText,
-      valueVariant: 'small',
-      variant: 'summary-card-ai',
-      action: {
-        label: coachButtonLabel,
-        onClick: handleAskCoach
-      }
-    }
-  ], [
-    coachButtonLabel,
-    coachInsightText,
-    handleAskCoach,
-    mostActiveDayAmount,
-    mostActiveDayLabel,
-    percentChange,
-    percentChangeLabel,
-    topCategoryChange,
-    topCategoryChangeLabel,
-    topCategoryIcon,
-    topCategoryName,
-    topCategorySpent,
-    totalEntries,
-    totalSpendingValue,
-    totalsSubtitle,
-    trendLatestLabel
-  ]);
 
   const recentTransactionsShort = useMemo(() => {
     return recentExpenses.slice(0, 5);
@@ -1469,284 +1377,110 @@ const formatDateDisplay = (iso) => {
 
   return (
     <div className="dashboard">
-      <div className="dashboard-hero">
-        <div className="dashboard-hero-top">
+      {/* Header */}
+      <div className="dashboard-header-mobile">
+        <div className="dashboard-header-content">
           <div>
             <h1>Dashboard</h1>
-            <p>Daily control center</p>
+            <p className="dashboard-subtitle">{heroStatement}</p>
           </div>
-          <div className="dashboard-hero-actions">
-            <button
-              type="button"
-              className={`hero-icon-btn ${coachHasUnread ? 'hero-icon-btn-alert' : ''}`}
-              onClick={() => onCoachToggle(prev => !prev, 'dashboard')}
-            >
-              🔔
-              {coachHasUnread && <span className="hero-indicator" aria-hidden="true" />}
-            </button>
-            <button type="button" className="hero-avatar-btn">
-              {userInitials}
-            </button>
-          </div>
-        </div>
-        <p className="dashboard-hero-statement">{heroStatement}</p>
-        <div className="dashboard-hero-progress">
-          <div className="hero-progress-track">
-            <div className="hero-progress-fill" style={{ width: `${heroProgress}%` }} />
-          </div>
-          <span className={`hero-trend ${heroTrendState}`}>
-            {heroTrendLabel}
-            {percentChangeLabel ? ' vs last month' : ''}
-          </span>
-        </div>
-      </div>
-
-      <SummaryCards cards={dashboardSummaryCards} variant="grid" />
-
-      <section
-        className="dashboard-charts"
-        onTouchStart={handleChartTouchStart}
-        onTouchEnd={handleChartTouchEnd}
-      >
-        <div className="dashboard-chart-tabs">
-          {chartTabs.map(tab => (
-            <button
-              type="button"
-              key={tab.id}
-              className={activeChartTab === tab.id ? 'active' : ''}
-              onClick={() => setActiveChartTab(tab.id)}
-            >
-              <span className="tab-icon">{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="dashboard-chart-panel">
-          {activeChartTab === 'categories' && (
-            <CategoryOverview
-              data={categoryChartData}
-              colors={categoryColorMap}
-              remainingBudget={overallBudgetDelta}
-              totalBudget={totalBudget}
-              budgetUsedPercent={budgetUsedPercent}
-              showRemaining={isFullMonthView}
-              emptyMessage="Add a few expenses to see category insights."
-            />
-          )}
-
-          {activeChartTab === 'trend' && (
-            trendPoints.length ? (
-              <div className="trend-chart">
-                <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="trendGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#6366f1" />
-                      <stop offset="100%" stopColor="#a855f7" />
-                    </linearGradient>
-                  </defs>
-                  <polyline points={trendSvgPoints} />
-                </svg>
-                <div className="trend-chart-meta">
-                  <span>Latest: {trendLatestLabel}</span>
-                  {trendMaxLabel && <span>Peak: {trendMaxLabel}</span>}
-                </div>
-              </div>
-            ) : (
-              <div className="chart-empty-state">Log a few expenses to unlock your trend.</div>
-            )
-          )}
-
-          {activeChartTab === 'comparison' && (
-            comparisonSummary ? (
-              <div style={{ padding: '20px' }}>
-                <div style={{ marginBottom: '20px' }}>
-                  <h4 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1f2937' }}>
-                    Period Comparison
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
-                    Comparing current period vs previous period
-                  </p>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {CATEGORIES.map(category => {
-                    const current = categorySpentMap[category.id]?.spent || 0;
-                    const previous = comparisonSummary.itemCategoryTotals?.[category.id] || 0;
-                    const diff = current - previous;
-                    const percent = previous > 0 ? ((diff / previous) * 100) : (current > 0 ? 100 : 0);
-
-                    if (current === 0 && previous === 0) return null;
-
-                    return (
-                      <div key={category.id} style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        padding: '12px',
-                        background: 'rgba(249, 250, 251, 0.5)',
-                        borderRadius: '8px'
-                      }}>
-                        <span style={{ fontSize: '24px' }}>{category.icon}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>
-                            {category.name}
-                          </div>
-                          <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                            {formatCurrency(current)} vs {formatCurrency(previous)}
-                          </div>
-                        </div>
-                        <div style={{
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          color: diff > 0 ? '#ef4444' : diff < 0 ? '#10b981' : '#6b7280'
-                        }}>
-                          {diff > 0 ? '▲' : diff < 0 ? '▼' : '━'} {formatPercent(percent)}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div className="chart-empty-state">Need at least two months of data for comparisons.</div>
-            )
-          )}
-        </div>
-
-        <div className="dashboard-chart-indicators">
-          {chartTabs.map(tab => (
-            <span
-              key={tab.id}
-              className={`chart-dot ${activeChartTab === tab.id ? 'active' : ''}`}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section className="dashboard-ai-panel">
-        <div className="dashboard-ai-header">
-          <div>
-            <h3>💡 Your AI Coach Says</h3>
-            <p>Smart nudges based on this month’s trends</p>
-          </div>
-          <button type="button" onClick={handleAskCoach}>
-            Ask AI for More Insights
+          <button
+            type="button"
+            className={`notification-btn ${coachHasUnread ? 'has-unread' : ''}`}
+            onClick={() => onCoachToggle(prev => !prev, 'dashboard')}
+            aria-label="Notifications"
+          >
+            🔔
+            {coachHasUnread && <span className="notification-badge" />}
           </button>
         </div>
-        <div className="dashboard-ai-tips">
-          {aiCoachTips.length ? (
-            aiCoachTips.map((tip, index) => (
-              <div key={index} className="dashboard-ai-tip">
-                <span>•</span>
-                <p>{tip}</p>
-              </div>
-            ))
-          ) : (
-            <p className="dashboard-ai-empty">Keep logging expenses to unlock personalized insights.</p>
-          )}
+        <div className="budget-progress-bar">
+          <div className="progress-fill" style={{ width: `${heroProgress}%` }} />
+        </div>
+        <div className="budget-info">
+          <span className="budget-spent">{formatCurrency(totalSpendingValue)} spent</span>
+          <span className="budget-remaining">{formatCurrency(totalBudget - totalSpendingValue)} left</span>
+        </div>
+      </div>
+
+      {/* Main Chart */}
+      <section className="dashboard-chart-section">
+        <h2 className="section-title">Spending by Category</h2>
+        <CategoryOverview
+          data={categoryChartData}
+          colors={categoryColorMap}
+          remainingBudget={overallBudgetDelta}
+          totalBudget={totalBudget}
+          budgetUsedPercent={budgetUsedPercent}
+          showRemaining={isFullMonthView}
+          emptyMessage="Add expenses to see your spending breakdown"
+        />
+      </section>
+
+      {/* AI Coach Insights */}
+      <section className="dashboard-insights-section">
+        <div className="section-header">
+          <h2 className="section-title">💡 AI Insights</h2>
+          <button type="button" className="see-more-btn" onClick={handleAskCoach}>
+            Ask Coach
+          </button>
+        </div>
+        <div className="insights-list">
+          {insightsList.slice(0, 3).map((tip, index) => (
+            <div key={index} className="insight-item">
+              <span className="insight-bullet">•</span>
+              <p className="insight-text">{tip}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      <div className="dashboard-deep-dive">
-        <div className="summary-trend">
-          <div className="trend-card">
-            <div className="trend-card-header">
-              <h3>Spending trend</h3>
-              <span>{totalsSubtitle}</span>
-            </div>
-            {trendPoints.length ? (
-              <div className="trend-chart">
-                <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-                  <polyline points={trendSvgPoints} />
-                </svg>
-                <div className="trend-chart-meta">
-                  <span>Latest: {trendLatestLabel}</span>
-                  {trendMaxLabel && <span>Peak: {trendMaxLabel}</span>}
+      {/* Recent Expenses */}
+      <section className="dashboard-recent-section">
+        <h2 className="section-title">Recent Expenses</h2>
+        {recentTransactionsShort.length ? (
+          <div className="recent-expenses-list">
+            {recentTransactionsShort.map(transaction => {
+              const category = categoryLookup[transaction.category] || {};
+              return (
+                <div key={transaction.id || `${transaction.date}-${transaction.merchantName}`} className="expense-item">
+                  <span className="expense-icon">{category.icon || '🧾'}</span>
+                  <div className="expense-details">
+                    <span className="expense-merchant">{transaction.merchantName || 'Unknown'}</span>
+                    <span className="expense-date">{formatDateDisplay(transaction.date)}</span>
+                  </div>
+                  <span className="expense-amount">{formatCurrency(transaction.totalAmount || 0)}</span>
                 </div>
-              </div>
-            ) : (
-              <div className="summary-empty">Log a few expenses to see your trend.</div>
-            )}
+              );
+            })}
           </div>
+        ) : (
+          <p className="empty-state">No recent transactions</p>
+        )}
+      </section>
 
-          <div className="trend-card">
-            <div className="trend-card-header">
-              <h3>Budget progress</h3>
-              <span>{budgetUsedLabel} used</span>
-            </div>
-            <div className="summary-progress">
-              <div className="summary-progress-bar">
-                <div className="summary-progress-bar-fill" style={{ width: `${budgetUsedPercent}%` }} />
-              </div>
-              <div className="summary-progress-meta">
-                <span>{budgetUsedPercentLabel} used</span>
-                <span>Remaining {budgetRemainingLabel}</span>
-              </div>
-            </div>
-            <div className="summary-actions">
-              <button type="button" className="summary-export-btn" onClick={exportToCSV}>📄 CSV</button>
-              <button type="button" className="summary-export-btn" onClick={exportToExcelDaily}>📊 Excel (Daily)</button>
-              <button type="button" className="summary-export-btn" onClick={exportToExcelMonthly}>📈 Excel (Monthly)</button>
-              <button type="button" className="summary-export-btn" onClick={exportToPDF}>🖨️ PDF</button>
-            </div>
-          </div>
+      {/* Export Options */}
+      <section className="dashboard-export-section">
+        <h2 className="section-title">Export Data</h2>
+        <div className="export-buttons">
+          <button type="button" className="export-btn" onClick={exportToCSV}>
+            <span className="export-icon">📄</span>
+            <span className="export-label">CSV</span>
+          </button>
+          <button type="button" className="export-btn" onClick={exportToExcelDaily}>
+            <span className="export-icon">📊</span>
+            <span className="export-label">Excel Daily</span>
+          </button>
+          <button type="button" className="export-btn" onClick={exportToExcelMonthly}>
+            <span className="export-icon">📈</span>
+            <span className="export-label">Excel Monthly</span>
+          </button>
+          <button type="button" className="export-btn" onClick={exportToPDF}>
+            <span className="export-icon">🖨️</span>
+            <span className="export-label">PDF</span>
+          </button>
         </div>
-
-        <div className="summary-insights">
-          <h3>Quick insights</h3>
-          <ul>
-            {insightsList.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="summary-recent">
-          <h3>Recent transactions</h3>
-          {recentTransactionsShort.length ? (
-            <ul className="summary-recent-list">
-              {recentTransactionsShort.map(transaction => {
-                const category = categoryLookup[transaction.category] || {};
-                return (
-                  <li key={transaction.id || `${transaction.date}-${transaction.merchantName}`}>
-                    <span className="summary-recent-icon">{category.icon || '🧾'}</span>
-                    <div className="summary-recent-meta">
-                      <span className="summary-recent-merchant">{transaction.merchantName || 'Unknown'}</span>
-                      <span className="summary-recent-date">{formatDateDisplay(transaction.date)}</span>
-                    </div>
-                    <span className="summary-recent-amount">{formatCurrency(transaction.totalAmount || 0)}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <div className="summary-empty">No recent transactions logged.</div>
-          )}
-        </div>
-
-        <div className="dashboard-section">
-          <h2>Totals</h2>
-          <div className="totals-grid">
-            <div className="total-card total-card-highlight">
-              <span className="total-card-label">Total Spending</span>
-              <span className="total-card-value">{formatCurrency(totalSpendingValue)}</span>
-              <span className="total-card-subtitle">{totalsSubtitle}</span>
-            </div>
-            <div className="total-card">
-              <span className="total-card-label">Total Entries</span>
-              <span className="total-card-value">{totalEntries}</span>
-              <span className="total-card-subtitle">Entries counted</span>
-            </div>
-            {isFullMonthView && totalBudget > 0 && (
-              <div className={`total-card ${overallBudgetDelta < 0 ? 'total-card-negative' : 'total-card-positive'}`}>
-                <span className="total-card-label">Remaining Budget</span>
-                <span className="total-card-value">{formatCurrency(overallBudgetDelta)}</span>
-                <span className="total-card-subtitle">Across categories</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }
