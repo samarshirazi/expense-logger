@@ -842,68 +842,6 @@ const formatDateDisplay = (iso) => {
     onCoachToggle(true, 'dashboard');
   }, [onCoachToggle, onCoachUnreadChange]);
 
-  const dashboardSummaryCards = useMemo(() => [
-    {
-      id: 'total-spending',
-      label: 'Total Spending',
-      value: formatCurrency(totalSpendingValue),
-      subValue: totalsSubtitle,
-      delta: percentChangeLabel ? {
-        direction: percentChange > 0 ? 'negative' : percentChange < 0 ? 'positive' : 'neutral',
-        label: percentChangeLabel,
-        icon: percentChange > 0 ? '▲' : percentChange < 0 ? '▼' : '━'
-      } : null,
-      footnote: `Entries logged: ${totalEntries}`
-    },
-    {
-      id: 'top-category',
-      label: 'Top Category',
-      icon: topCategoryIcon,
-      value: topCategoryName,
-      subValue: topCategorySpent,
-      delta: topCategoryChangeLabel ? {
-        direction: topCategoryChange?.percent >= 0 ? 'negative' : 'positive',
-        label: topCategoryChangeLabel,
-        icon: topCategoryChange?.percent >= 0 ? '▲' : '▼'
-      } : null
-    },
-    {
-      id: 'active-day',
-      label: 'Most Active Day',
-      value: mostActiveDayLabel,
-      subValue: mostActiveDayAmount,
-      footnote: trendLatestLabel ? `Latest: ${trendLatestLabel}` : undefined
-    },
-    {
-      id: 'coach',
-      label: 'AI Coach Insight',
-      value: coachInsightText,
-      valueVariant: 'small',
-      variant: 'summary-card-ai',
-      action: {
-        label: coachButtonLabel,
-        onClick: handleAskCoach
-      }
-    }
-  ], [
-    coachButtonLabel,
-    coachInsightText,
-    handleAskCoach,
-    mostActiveDayAmount,
-    mostActiveDayLabel,
-    percentChange,
-    percentChangeLabel,
-    topCategoryChange,
-    topCategoryChangeLabel,
-    topCategoryIcon,
-    topCategoryName,
-    topCategorySpent,
-    totalEntries,
-    totalSpendingValue,
-    totalsSubtitle,
-    trendLatestLabel
-  ]);
-
   const exportToCSV = useCallback(() => {
     const rows = [['Date', 'Merchant', 'Category', 'Amount']];
     (expenses || []).forEach(expense => {
@@ -1220,6 +1158,68 @@ const formatDateDisplay = (iso) => {
   const coachButtonLabel = useMemo(() => {
     return coachMood === 'motivator_roast' ? 'Roast my spending' : 'Ask AI Coach';
   }, [coachMood]);
+
+  const dashboardSummaryCards = useMemo(() => [
+    {
+      id: 'total-spending',
+      label: 'Total Spending',
+      value: formatCurrency(totalSpendingValue),
+      subValue: totalsSubtitle,
+      delta: percentChangeLabel ? {
+        direction: percentChange > 0 ? 'negative' : percentChange < 0 ? 'positive' : 'neutral',
+        label: percentChangeLabel,
+        icon: percentChange > 0 ? '▲' : percentChange < 0 ? '▼' : '━'
+      } : null,
+      footnote: `Entries logged: ${totalEntries}`
+    },
+    {
+      id: 'top-category',
+      label: 'Top Category',
+      icon: topCategoryIcon,
+      value: topCategoryName,
+      subValue: topCategorySpent,
+      delta: topCategoryChangeLabel ? {
+        direction: topCategoryChange?.percent >= 0 ? 'negative' : 'positive',
+        label: topCategoryChangeLabel,
+        icon: topCategoryChange?.percent >= 0 ? '▲' : '▼'
+      } : null
+    },
+    {
+      id: 'active-day',
+      label: 'Most Active Day',
+      value: mostActiveDayLabel,
+      subValue: mostActiveDayAmount,
+      footnote: trendLatestLabel ? `Latest: ${trendLatestLabel}` : undefined
+    },
+    {
+      id: 'coach',
+      label: 'AI Coach Insight',
+      value: coachInsightText,
+      valueVariant: 'small',
+      variant: 'summary-card-ai',
+      action: {
+        label: coachButtonLabel,
+        onClick: handleAskCoach
+      }
+    }
+  ], [
+    coachButtonLabel,
+    coachInsightText,
+    handleAskCoach,
+    mostActiveDayAmount,
+    mostActiveDayLabel,
+    percentChange,
+    percentChangeLabel,
+    topCategoryChange,
+    topCategoryChangeLabel,
+    topCategoryIcon,
+    topCategoryName,
+    topCategorySpent,
+    totalEntries,
+    totalSpendingValue,
+    totalsSubtitle,
+    trendLatestLabel
+  ]);
 
   const recentTransactionsShort = useMemo(() => {
     return recentExpenses.slice(0, 5);
