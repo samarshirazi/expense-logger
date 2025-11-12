@@ -148,8 +148,7 @@ function Dashboard({
   coachHasUnread = false,
   onCoachUnreadChange = () => {},
   coachMood = "motivator_serious",
-  onCoachAnalysisChange = () => {},
-  quickActions = {}
+  onCoachAnalysisChange = () => {}
 }) {
   const [CATEGORIES, setCATEGORIES] = useState(getAllCategories());
   const [summary, setSummary] = useState(null);
@@ -1213,20 +1212,6 @@ const formatDateDisplay = (iso) => {
     return coachMood === 'motivator_roast' ? 'Roast my spending' : 'Ask AI Coach';
   }, [coachMood]);
 
-  const quickActionHandlers = useMemo(() => ({
-    logExpense: quickActions.logExpense || (() => {}),
-    scanReceipt: quickActions.scanReceipt || (() => {}),
-    addIncome: quickActions.addIncome || (() => {}),
-    viewShopping: quickActions.viewShoppingList || quickActions.viewShopping || (() => {})
-  }), [quickActions]);
-
-  const quickActionButtons = useMemo(() => ([
-    { id: 'log', icon: '➕', label: 'Log Expense', onClick: quickActionHandlers.logExpense },
-    { id: 'scan', icon: '📷', label: 'Scan Receipt', onClick: quickActionHandlers.scanReceipt },
-    { id: 'income', icon: '💰', label: 'Add Income', onClick: quickActionHandlers.addIncome },
-    { id: 'shopping', icon: '🛒', label: 'Shopping List', onClick: quickActionHandlers.viewShopping }
-  ]), [quickActionHandlers]);
-
   const insightsList = useMemo(() => {
     const items = [];
 
@@ -1761,15 +1746,6 @@ const formatDateDisplay = (iso) => {
             )}
           </div>
         </div>
-      </div>
-
-      <div className="dashboard-quick-actions">
-        {quickActionButtons.map(button => (
-          <button key={button.id} type="button" onClick={button.onClick}>
-            <span className="quick-action-icon">{button.icon}</span>
-            <span className="quick-action-label">{button.label}</span>
-          </button>
-        ))}
       </div>
     </div>
   );
