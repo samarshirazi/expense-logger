@@ -1403,7 +1403,7 @@ const formatDateDisplay = (iso) => {
         </div>
       </div>
 
-      {/* Main Chart */}
+      {/* Category Breakdown Chart */}
       <section className="dashboard-chart-section">
         <h2 className="section-title">Spending by Category</h2>
         <CategoryOverview
