@@ -311,6 +311,7 @@ function App() {
     });
   }, []);
 
+  // eslint-disable-next-line no-unused-vars
   const handleCoachAnalysisChange = useCallback((analysisData, analysisKey) => {
     setCoachAnalysis(prev => {
       const nextKey = analysisKey ?? null;
