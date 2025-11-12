@@ -3,7 +3,6 @@ import './Sidebar.css';
 
 function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOpen, setIsMobileMenuOpen, onCoachToggle, coachHasUnread }) {
   const menuItems = [
-    { id: 'dashboard', icon: '📊', label: 'Dashboard', description: 'Overview & Stats' },
     { id: 'expenses', icon: '💰', label: 'Expenses', description: 'View all expenses' },
     { id: 'categories', icon: '📂', label: 'Categories', description: 'Organize by category' },
     { id: 'overview', icon: '📈', label: 'Overview', description: 'Insights & Analytics' },
@@ -16,7 +15,7 @@ function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOp
   const handleMenuItemClick = (item) => {
     if (item.id === 'coach') {
       if (onCoachToggle) {
-        onCoachToggle(true, activeView || 'dashboard');
+        onCoachToggle(true, activeView || 'expenses');
       }
       setIsMobileMenuOpen(false);
       return;
@@ -45,7 +44,7 @@ function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOp
         {menuItems.map(item => {
           const isActive = item.id !== 'coach' && activeView === item.id;
           // Items to hide on mobile (shown in bottom nav instead)
-          const hideOnMobile = ['dashboard', 'expenses', 'overview', 'log'].includes(item.id);
+          const hideOnMobile = ['expenses', 'overview', 'log'].includes(item.id);
           return (
             <button
               key={item.id}

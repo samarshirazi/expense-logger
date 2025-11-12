@@ -3,7 +3,6 @@ import './BottomNav.css';
 
 function BottomNav({ activeView, onViewChange, showNav, onCoachToggle, coachHasUnread }) {
   const navItems = [
-    { id: 'dashboard', icon: '📊', label: 'Dashboard' },
     { id: 'expenses', icon: '💰', label: 'Expenses' },
     { id: 'overview', icon: '📈', label: 'Overview' },
     { id: 'log', icon: '🧾', label: 'Log' },
@@ -13,7 +12,7 @@ function BottomNav({ activeView, onViewChange, showNav, onCoachToggle, coachHasU
   const handleNavClick = (item) => {
     if (item.id === 'coach') {
       if (onCoachToggle) {
-        onCoachToggle(true, activeView || 'dashboard');
+        onCoachToggle(true, activeView || 'expenses');
       }
       return;
     }

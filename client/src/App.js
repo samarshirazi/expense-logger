@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
 import AICoachPanel from './components/AICoachPanel';
 import LogExpense from './components/LogExpense';
 import Settings from './components/Settings';
@@ -41,13 +40,13 @@ function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
-  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'expenses', 'categories', 'overview', 'log', 'settings'
+  const [activeView, setActiveView] = useState('expenses'); // 'expenses', 'categories', 'overview', 'log', 'settings'
   const [showSummary, setShowSummary] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showOptionsButton, setShowOptionsButton] = useState(true);
   const [isCoachOpen, setIsCoachOpen] = useState(false);
   const [coachHasUnread, setCoachHasUnread] = useState(false);
-  const [coachContext, setCoachContext] = useState('dashboard');
+  const [coachContext, setCoachContext] = useState('expenses');
   const [coachAnalysis, setCoachAnalysis] = useState({ data: null, key: null });
   const coachAnalysisData = coachAnalysis.data;
   const coachAnalysisKey = coachAnalysis.key;
@@ -154,6 +153,11 @@ function App() {
     // Refresh expenses from server immediately to ensure data is in sync
     // This is especially important for camera uploads
     await loadExpenses();
+
+    // Dispatch event to notify charts to refresh
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('expenseDataChanged'));
+    }
   };
 
   const handleExpenseSelect = (expense) => {
@@ -171,6 +175,11 @@ function App() {
     // Update selected expense if it's the one being updated
     if (selectedExpense && selectedExpense.id === expenseId) {
       setSelectedExpense({ ...selectedExpense, category: newCategory });
+    }
+
+    // Dispatch event to notify charts to refresh
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('expenseDataChanged'));
     }
   };
 
@@ -190,6 +199,11 @@ function App() {
         ? { ...prev, ...updatedExpense }
         : prev
     );
+
+    // Dispatch event to notify charts to refresh
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('expenseDataChanged'));
+    }
   };
 
   const handleCreateExpenseFromGrocery = useCallback((item) => {
@@ -290,7 +304,7 @@ function App() {
           if (typeof context === 'string' && context.trim().length > 0) {
             return context;
           }
-          return previous || 'dashboard';
+          return previous || 'expenses';
         });
       }
       return isOpening;
@@ -641,7 +655,7 @@ function App() {
 
         {/* Shared TimeNavigator for selected views */}
         {(
-          ['dashboard', 'categories', 'overview', 'income-savings'].includes(activeView) ||
+          ['categories', 'overview', 'income-savings'].includes(activeView) ||
           (activeView === 'expenses' && (expensesMode === 'summary' || expensesMode === 'shopping'))
         ) && (
           <div className={`shared-timeline-container ${showOptionsButton ? 'with-button' : 'without-button'}`}>
@@ -657,19 +671,6 @@ function App() {
             />
           </div>
         )}
-
-        <div style={{ display: activeView === 'dashboard' ? 'block' : 'none' }}>
-          <Dashboard
-            expenses={expenses}
-            dateRange={dateRange}
-            isCoachOpen={isCoachOpen}
-            onCoachToggle={handleCoachToggle}
-            coachHasUnread={coachHasUnread}
-            onCoachUnreadChange={setCoachHasUnread}
-            coachMood={coachMood}
-            onCoachAnalysisChange={handleCoachAnalysisChange}
-          />
-        </div>
 
         {activeView === 'expenses' && (
           <div className="view-container">

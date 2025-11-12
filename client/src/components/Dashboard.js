@@ -280,6 +280,24 @@ function Dashboard({
     loadSummary();
   }, [loadSummary]);
 
+  // Listen for expense data changes to auto-refresh
+  useEffect(() => {
+    const handleExpenseDataChanged = () => {
+      console.log('Dashboard: Expense data changed, refreshing summary');
+      loadSummary(true); // Force refresh
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('expenseDataChanged', handleExpenseDataChanged);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('expenseDataChanged', handleExpenseDataChanged);
+      }
+    };
+  }, [loadSummary]);
+
   useEffect(() => {
     if (!summary) {
       return;

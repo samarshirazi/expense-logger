@@ -129,6 +129,8 @@ function Overview({ expenses = [], dateRange }) {
   console.log('📊 Overview dateRange:', dateRange);
   console.log('📊 Overview expenses count:', expenses.length);
 
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   const [isMobileLayout, setIsMobileLayout] = useState(() => getIsMobileViewport());
   const [categories, setCategories] = useState(() => getAllCategories());
   const [activeChartTab, setActiveChartTab] = useState('pie');
@@ -157,6 +159,24 @@ function Overview({ expenses = [], dateRange }) {
     return () => {
       if (typeof window !== 'undefined') {
         window.removeEventListener('categoriesUpdated', handleCategoriesUpdated);
+      }
+    };
+  }, []);
+
+  // Listen for expense data changes to auto-refresh
+  useEffect(() => {
+    const handleExpenseDataChanged = () => {
+      console.log('Overview: Expense data changed, triggering refresh');
+      setRefreshTrigger(prev => prev + 1);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('expenseDataChanged', handleExpenseDataChanged);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('expenseDataChanged', handleExpenseDataChanged);
       }
     };
   }, []);
@@ -212,7 +232,7 @@ function Overview({ expenses = [], dateRange }) {
     const previousMonthTotal = previousMonthExpenses.reduce((sum, exp) => sum + (exp.totalAmount || exp.amount || 0), 0);
 
     return { currentMonthExpenses, previousMonthExpenses, currentMonthTotal, previousMonthTotal };
-  }, [expenses, dateRange]);
+  }, [expenses, dateRange, refreshTrigger]);
 
   // Calculate category spending
   const categorySpending = useMemo(() => {
