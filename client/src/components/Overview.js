@@ -1,27 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { PieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './Overview.css';
 import { getAllCategories } from '../services/categoryService';
-
-const CATEGORY_COLORS = {
-  Food: '#ff6b6b',
-  Transport: '#4ecdc4',
-  Shopping: '#45b7d1',
-  Bills: '#f9ca24',
-  Entertainment: '#a29bfe',
-  Health: '#fd79a8',
-  Other: '#95afc0'
-};
-
-const CATEGORY_ICONS = {
-  Food: '🍽️',
-  Transport: '🚗',
-  Shopping: '🛍️',
-  Bills: '📄',
-  Entertainment: '🎟️',
-  Health: '💊',
-  Other: '💡'
-};
+import SummaryCards from './analytics/SummaryCards';
+import CategoryOverview from './analytics/CategoryOverview';
+import { CATEGORY_COLORS, CATEGORY_ICONS } from './analytics/categoryConstants';
 
 const CHART_TABS = [
   { id: 'pie', label: 'Categories', icon: '🥧' },
@@ -149,7 +132,6 @@ function Overview({ expenses = [], dateRange }) {
   const [isMobileLayout, setIsMobileLayout] = useState(() => getIsMobileViewport());
   const [categories, setCategories] = useState(() => getAllCategories());
   const [activeChartTab, setActiveChartTab] = useState('pie');
-  const [categoryViewMode, setCategoryViewMode] = useState('chart');
   const [barChartView, setBarChartView] = useState('daily');
   const [expandedCard, setExpandedCard] = useState(null);
   const touchStartRef = useRef(null);
@@ -480,8 +462,9 @@ function Overview({ expenses = [], dateRange }) {
         value: formatCurrency(currentMonthTotal),
         subValue: `${formatPercent(budgetUsedPercent)} of ${formatCurrency(totalBudget)}`,
         trendDirection: spendingTrend >= 0 ? 'up' : 'down',
+        trend: `${spendingTrend >= 0 ? '↑' : '↓'} ${normalizedTrend}% vs last month`,
         detail: Number.isFinite(spendingTrend)
-          ? `${normalizedTrend}% ${spendingTrend >= 0 ? 'above' : 'below'} last month`
+          ? `${spendingTrend >= 0 ? 'Above' : 'Below'} your usual pace`
           : 'Not enough data to compare yet.'
       },
       {
@@ -491,8 +474,9 @@ function Overview({ expenses = [], dateRange }) {
         value: formatCurrency(remainingBudget),
         subValue: `Goal ${formatCurrency(totalBudget)}`,
         trendDirection: remainingBudget >= 0 ? 'down' : 'up',
+        trend: remainingBudget >= 0 ? 'Under budget' : 'Over budget',
         detail: remainingBudget >= 0
-          ? 'Plenty of runway left.'
+          ? `${formatPercent(100 - budgetUsedPercent)} budget remaining`
           : 'Tighten spending to avoid overruns.'
       },
       {
@@ -500,7 +484,8 @@ function Overview({ expenses = [], dateRange }) {
         icon: CATEGORY_ICONS[topCategory.name] || '📊',
         label: 'Top Category',
         value: topCategory.name,
-        subValue: formatCurrency(topCategory.amount),
+        valueVariant: 'small',
+        amount: formatCurrency(topCategory.amount),
         trendDirection: 'up',
         detail: `${formatPercent(topShare)} of this period`
       },
@@ -511,52 +496,13 @@ function Overview({ expenses = [], dateRange }) {
         value: formatCurrency(savings),
         subValue: savings >= 0 ? 'Positive cushion' : 'Needs attention',
         trendDirection: savings >= 0 ? 'down' : 'up',
+        trend: savings >= 0 ? 'On track' : 'Over spending',
         detail: savings >= 0
           ? 'Keep going—momentum looks great.'
           : 'Revisit recurring bills to course-correct.'
       }
     ];
   }, [currentMonthTotal, remainingBudget, spendingTrend, savings, budgetUsedPercent, topCategory, totalBudget]);
-
-  const categoryCardData = useMemo(() => {
-    const total = currentMonthTotal || 1;
-    return categories
-      .map(category => {
-        const spent = categorySpending[category.name] || 0;
-        const budget = categoryBudget?.[category.id] ?? 0;
-        const remaining = budget - spent;
-        const spentPercentRaw = budget > 0 ? (spent / budget) * 100 : 0;
-        const sharePercent = (spent / total) * 100;
-        return {
-          id: category.id,
-          label: category.name,
-          icon: category.icon || CATEGORY_ICONS[category.name] || '💳',
-          color: category.color || CATEGORY_COLORS[category.name] || '#95afc0',
-          spent,
-          budget,
-          remaining,
-          spentPercentRaw,
-          spentPercent: Math.max(0, Math.min(spentPercentRaw, 100)),
-          sharePercent
-        };
-      })
-      .sort((a, b) => b.spent - a.spent);
-  }, [categories, categoryBudget, categorySpending, currentMonthTotal]);
-
-  const cardsAITip = useMemo(() => {
-    if (!categoryCardData.length) {
-      return 'Log a few expenses to unlock per-category insights.';
-    }
-    const focusCard = categoryCardData.find(card => card.spent > 0) || categoryCardData[0];
-    if (!focusCard || focusCard.spent <= 0) {
-      return 'Log a few expenses to unlock per-category insights.';
-    }
-    if (focusCard.remaining < 0) {
-      return `${focusCard.label} exceeded budget by ${formatCurrency(Math.abs(focusCard.remaining))}.`;
-    }
-    const share = Math.max(1, Math.round(focusCard.sharePercent || 0));
-    return `${focusCard.label} is ${share}% of your spending.`;
-  }, [categoryCardData]);
 
   const activeSummaryCard = summaryCards.find(card => card.id === expandedCard);
 
@@ -656,35 +602,14 @@ function Overview({ expenses = [], dateRange }) {
             💬
           </button>
         </div>
-        {dateRange?.startDate && dateRange?.endDate && (
-          <p className="overview-period">
-            {new Date(dateRange.startDate).toLocaleDateString()} – {new Date(dateRange.endDate).toLocaleDateString()}
-          </p>
-        )}
       </div>
 
-      <div className="summary-cards">
-        {summaryCards.map(card => (
-          <button
-            type="button"
-            key={card.id}
-            className={`summary-card summary-card-compact ${card.trendDirection}`}
-            onClick={() => handleCardExpand(card.id)}
-          >
-            <div className="summary-card-header">
-              <span className="card-icon">{card.icon}</span>
-              <span className={`summary-trend-indicator ${card.trendDirection}`}>
-                {card.trendDirection === 'up' ? '↑' : '↓'}
-              </span>
-            </div>
-            <div className="card-label">{card.label}</div>
-            <div className="card-value">{card.value}</div>
-            {card.subValue && <div className="card-subvalue">{card.subValue}</div>}
-            <div className="summary-mini-sparkline" data-trend={card.trendDirection} />
-            <div className="card-ai-tip">{card.detail}</div>
-          </button>
-        ))}
-      </div>
+      <SummaryCards
+        cards={summaryCards}
+        interactive
+        variant="mobile"
+        onCardSelect={handleCardExpand}
+      />
 
       {expandedCard && activeSummaryCard && (
         <div className="summary-sheet-backdrop" onClick={closeExpandedCard}>
@@ -723,93 +648,14 @@ function Overview({ expenses = [], dateRange }) {
 
         <div className={`chart-panel active-${activeChartTab}`}>
           {activeChartTab === 'pie' && (
-            <>
-              <div className="category-view-toggle">
-                <span>View</span>
-                <div className="toggle-group">
-                  <button
-                    type="button"
-                    className={categoryViewMode === 'chart' ? 'active' : ''}
-                    onClick={() => setCategoryViewMode('chart')}
-                  >
-                    Chart
-                  </button>
-                  <button
-                    type="button"
-                    className={categoryViewMode === 'cards' ? 'active' : ''}
-                    onClick={() => setCategoryViewMode('cards')}
-                  >
-                    Cards
-                  </button>
-                </div>
-              </div>
-              {categoryViewMode === 'chart' ? (
-                pieChartData.length ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={pieChartData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percentage }) => `${name} ${percentage}%`}
-                        outerRadius={100}
-                        dataKey="value"
-                      >
-                        {pieChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[entry.name] || '#95afc0'} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => formatCurrency(value)} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="chart-empty-state">Log a few expenses to unlock this view.</div>
-                )
-              ) : categoryCardData.length ? (
-                <>
-                  <div className="category-breakdown-grid">
-                    {categoryCardData.map(card => {
-                      const isOverBudget = card.remaining < 0;
-                      const progressPercentLabel = card.spentPercentRaw > 999 ? '999%+' : `${Math.round(card.spentPercentRaw)}%`;
-                      const progressLabel = card.budget > 0
-                        ? `${progressPercentLabel} of ${formatCurrency(card.budget)}`
-                        : 'No budget set';
-                      return (
-                        <div key={card.id} className="category-breakdown-card">
-                          <div className="category-card-header">
-                            <div className="category-card-title">
-                              <span className="category-card-icon" style={{ color: card.color }}>{card.icon}</span>
-                              <span>{card.label}</span>
-                            </div>
-                            <span className="category-card-share">{formatPercent(card.sharePercent)}</span>
-                          </div>
-                          <div className="category-card-spent">{formatCurrency(card.spent)}</div>
-                          <div className={`category-card-remaining ${isOverBudget ? 'negative' : 'positive'}`}>
-                            Remaining: {formatCurrency(card.remaining)}
-                          </div>
-                          <div className="category-card-progress">
-                            <div className="category-card-progress-track">
-                              <div
-                                className="category-card-progress-fill"
-                                style={{ width: `${card.spentPercent}%`, backgroundColor: card.color }}
-                              />
-                            </div>
-                            <span className="category-card-progress-label">{progressLabel}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="category-cards-ai-tip">
-                    <span className="cards-ai-icon">🤖</span>
-                    <p>{cardsAITip}</p>
-                  </div>
-                </>
-              ) : (
-                <div className="chart-empty-state">No category activity yet.</div>
-              )}
-            </>
+            <CategoryOverview
+              data={pieChartData}
+              colors={CATEGORY_COLORS}
+              remainingBudget={remainingBudget}
+              totalBudget={totalBudget}
+              budgetUsedPercent={budgetUsedPercent}
+              emptyMessage="Log a few expenses to unlock this view."
+            />
           )}
 
           {activeChartTab === 'line' && (
@@ -948,11 +794,6 @@ function Overview({ expenses = [], dateRange }) {
       <div className="overview-header">
         <h1>📈 Overview</h1>
         <p className="overview-subtitle">Your financial insights at a glance</p>
-        {dateRange?.startDate && dateRange?.endDate && (
-          <p className="overview-period" style={{ fontSize: '14px', color: '#6b7280', marginTop: '8px' }}>
-            Period: {new Date(dateRange.startDate).toLocaleDateString()} - {new Date(dateRange.endDate).toLocaleDateString()}
-          </p>
-        )}
       </div>
 
       <div className="summary-cards">
@@ -1017,25 +858,13 @@ function Overview({ expenses = [], dateRange }) {
         <div className="charts-grid">
           <div className="chart-card">
             <h3 className="chart-title">Spending by Category</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={pieChartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percentage }) => `${name} ${percentage}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {pieChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[entry.name] || '#95afc0'} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => formatCurrency(value)} />
-              </PieChart>
-            </ResponsiveContainer>
+            <CategoryOverview
+              data={pieChartData}
+              colors={CATEGORY_COLORS}
+              showRemaining={false}
+              height={300}
+              emptyMessage="Log a few expenses to unlock this view."
+            />
           </div>
 
           <div className="chart-card">

@@ -1,6 +1,18 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
 import authService from '../services/authService';
 import './Dashboard.css';
 import { getAllCategories } from '../services/categoryService';
@@ -140,7 +152,17 @@ const getEffectiveBudgetForMonth = (monthKey) => {
   return ensureBudgetShape(DEFAULT_BUDGET);
 };
 
-function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggle = () => {}, coachHasUnread = false, onCoachUnreadChange = () => {}, coachMood = "motivator_serious", onCoachAnalysisChange = () => {} }) {
+function Dashboard({
+  expenses = [],
+  dateRange,
+  isCoachOpen = false,
+  onCoachToggle = () => {},
+  coachHasUnread = false,
+  onCoachUnreadChange = () => {},
+  coachMood = "motivator_serious",
+  onCoachAnalysisChange = () => {},
+  quickActions = {}
+}) {
   const [CATEGORIES, setCATEGORIES] = useState(getAllCategories());
   const [summary, setSummary] = useState(null);
   const [progressSummary, setProgressSummary] = useState(null);
@@ -150,6 +172,35 @@ function Dashboard({ expenses = [], dateRange, isCoachOpen = false, onCoachToggl
   const summarySignatureRef = useRef(null);
   const isCoachOpenRef = useRef(isCoachOpen);
   const loadedDateRangeRef = useRef(null);
+  const [activeChartTab, setActiveChartTab] = useState('categories');
+  const chartTouchStartRef = useRef(null);
+  const chartTabs = useMemo(() => ([
+    { id: 'categories', label: 'Categories', icon: '🍩' },
+    { id: 'trend', label: 'Trend', icon: '📈' },
+    { id: 'comparison', label: 'Comparisons', icon: '📊' }
+  ]), []);
+
+  const handleChartTouchStart = useCallback((event) => {
+    if (!event.touches?.length) {
+      return;
+    }
+    chartTouchStartRef.current = event.touches[0].clientX;
+  }, []);
+
+  const handleChartTouchEnd = useCallback((event) => {
+    if (!event.changedTouches?.length || chartTouchStartRef.current == null) {
+      return;
+    }
+    const deltaX = event.changedTouches[0].clientX - chartTouchStartRef.current;
+    chartTouchStartRef.current = null;
+    if (Math.abs(deltaX) < 50) {
+      return;
+    }
+    const direction = deltaX > 0 ? -1 : 1;
+    const currentIndex = chartTabs.findIndex(tab => tab.id === activeChartTab);
+    const nextIndex = Math.min(chartTabs.length - 1, Math.max(0, currentIndex + direction));
+    setActiveChartTab(chartTabs[nextIndex].id);
+  }, [activeChartTab, chartTabs]);
 
   // Listen for category updates
   useEffect(() => {
@@ -1128,6 +1179,21 @@ const formatDateDisplay = (iso) => {
     return percentChange == null ? null : formatPercent(percentChange);
   }, [percentChange]);
 
+  const userDisplayName = authService.getUserDisplayName ? authService.getUserDisplayName() : 'You';
+  const userInitials = (userDisplayName || 'U')
+    .split(' ')
+    .map(part => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'U';
+
+  const heroStatement = `You’ve spent ${formatCurrency(totalSpendingValue)} of ${formatCurrency(totalBudget)} this month (${formatPercent(budgetUsedPercent)}).`;
+  const heroProgress = Math.min(100, Math.max(0, budgetUsedPercent));
+  const heroTrendLabel = percentChangeLabel
+    ? `${percentChange > 0 ? '▲' : percentChange < 0 ? '▼' : '━'} ${percentChangeLabel}`
+    : 'On track';
+  const heroTrendState = percentChange > 0 ? 'negative' : percentChange < 0 ? 'positive' : 'neutral';
+
   const coachInsightText = useMemo(() => {
     const topName = topCategoryDetail?.category?.name;
     const topSpent = topCategoryDetail ? formatCurrency(topCategoryDetail.spent) : null;
@@ -1158,6 +1224,56 @@ const formatDateDisplay = (iso) => {
   const coachButtonLabel = useMemo(() => {
     return coachMood === 'motivator_roast' ? 'Roast my spending' : 'Ask AI Coach';
   }, [coachMood]);
+
+  const quickActionHandlers = useMemo(() => ({
+    logExpense: quickActions.logExpense || (() => {}),
+    scanReceipt: quickActions.scanReceipt || (() => {}),
+    addIncome: quickActions.addIncome || (() => {}),
+    viewShopping: quickActions.viewShoppingList || quickActions.viewShopping || (() => {})
+  }), [quickActions]);
+
+  const quickActionButtons = useMemo(() => ([
+    { id: 'log', icon: '➕', label: 'Log Expense', onClick: quickActionHandlers.logExpense },
+    { id: 'scan', icon: '📷', label: 'Scan Receipt', onClick: quickActionHandlers.scanReceipt },
+    { id: 'income', icon: '💰', label: 'Add Income', onClick: quickActionHandlers.addIncome },
+    { id: 'shopping', icon: '🛒', label: 'Shopping List', onClick: quickActionHandlers.viewShopping }
+  ]), [quickActionHandlers]);
+
+  const insightsList = useMemo(() => {
+    const items = [];
+
+    if (percentChange != null && Math.abs(percentChange) >= 0.5) {
+      if (percentChange > 0) {
+        items.push(`Overall spending up ${formatPercent(percentChange)} versus last period.`);
+      } else {
+        items.push(`Overall spending down ${formatPercent(Math.abs(percentChange))} versus last period.`);
+      }
+    }
+
+    const diffEntries = Object.entries(categoryComparisons)
+      .map(([categoryId, data]) => ({ categoryId, ...data }))
+      .filter(entry => entry.percent != null && Number.isFinite(entry.percent));
+
+    diffEntries.sort((a, b) => Math.abs(b.percent) - Math.abs(a.percent));
+
+    diffEntries.slice(0, 3).forEach(entry => {
+      const category = categoryLookup[entry.categoryId];
+      if (!category) {
+        return;
+      }
+      const direction = entry.percent >= 0 ? 'up' : 'down';
+      const magnitude = Math.abs(entry.percent).toFixed(1);
+      items.push(`${category.name} spending ${direction} ${magnitude}% versus last period.`);
+    });
+
+    if (!items.length) {
+      items.push('Keep logging expenses to unlock insight comparisons.');
+    }
+
+    return items;
+  }, [categoryComparisons, categoryLookup, percentChange]);
+
+  const aiCoachTips = insightsList.slice(0, 3);
 
   const dashboardSummaryCards = useMemo(() => [
     {
@@ -1224,40 +1340,6 @@ const formatDateDisplay = (iso) => {
   const recentTransactionsShort = useMemo(() => {
     return recentExpenses.slice(0, 5);
   }, [recentExpenses]);
-
-  const insightsList = useMemo(() => {
-    const items = [];
-
-    if (percentChange != null && Math.abs(percentChange) >= 0.5) {
-      if (percentChange > 0) {
-        items.push(`Overall spending up ${formatPercent(percentChange)} versus last period.`);
-      } else {
-        items.push(`Overall spending down ${formatPercent(Math.abs(percentChange))} versus last period.`);
-      }
-    }
-
-    const diffEntries = Object.entries(categoryComparisons)
-      .map(([categoryId, data]) => ({ categoryId, ...data }))
-      .filter(entry => entry.percent != null && Number.isFinite(entry.percent));
-
-    diffEntries.sort((a, b) => Math.abs(b.percent) - Math.abs(a.percent));
-
-    diffEntries.slice(0, 3).forEach(entry => {
-      const category = categoryLookup[entry.categoryId];
-      if (!category) {
-        return;
-      }
-      const direction = entry.percent >= 0 ? 'up' : 'down';
-      const magnitude = Math.abs(entry.percent).toFixed(1);
-      items.push(`${category.name} spending ${direction} ${magnitude}% versus last period.`);
-    });
-
-    if (!items.length) {
-      items.push('Keep logging expenses to unlock insight comparisons.');
-    }
-
-    return items;
-  }, [categoryComparisons, categoryLookup, percentChange]);
 
   const analysisData = useMemo(() => {
     if (!summary) {
@@ -1414,39 +1496,185 @@ const formatDateDisplay = (iso) => {
 
   return (
     <div className="dashboard">
-      <div className="dashboard-header">
-        <div className="dashboard-header-text">
-          <h1>Dashboard</h1>
-          <p>Overview of your spending</p>
+      <div className="dashboard-hero">
+        <div className="dashboard-hero-top">
+          <div>
+            <h1>Dashboard</h1>
+            <p>Daily control center</p>
+          </div>
+          <div className="dashboard-hero-actions">
+            <button
+              type="button"
+              className={`hero-icon-btn ${coachHasUnread ? 'hero-icon-btn-alert' : ''}`}
+              onClick={() => onCoachToggle(prev => !prev, 'dashboard')}
+            >
+              🔔
+              {coachHasUnread && <span className="hero-indicator" aria-hidden="true" />}
+            </button>
+            <button type="button" className="hero-avatar-btn">
+              {userInitials}
+            </button>
+          </div>
         </div>
-        <button
-          type="button"
-          className={`coach-toggle ${isCoachOpen ? 'coach-toggle--active' : ''} ${coachHasUnread ? 'coach-toggle--alert' : ''}`}
-          onClick={() => onCoachToggle(prev => !prev, 'dashboard')}
-        >
-          <span className="coach-toggle__icon">🤖</span>
-          <span className="coach-toggle__label">AI Coach</span>
-          {coachHasUnread && <span className="coach-toggle__indicator" aria-hidden="true"></span>}
-        </button>
+        <p className="dashboard-hero-statement">{heroStatement}</p>
+        <div className="dashboard-hero-progress">
+          <div className="hero-progress-track">
+            <div className="hero-progress-fill" style={{ width: `${heroProgress}%` }} />
+          </div>
+          <span className={`hero-trend ${heroTrendState}`}>
+            {heroTrendLabel}
+            {percentChangeLabel ? ' vs last month' : ''}
+          </span>
+        </div>
       </div>
 
-      <div className="dashboard-summary">
-        <SummaryCards cards={dashboardSummaryCards} variant="grid" />
+      <SummaryCards cards={dashboardSummaryCards} variant="grid" />
 
-        <div className="dashboard-summary-categories">
-          <h3>Spending by Category</h3>
-          <CategoryOverview
-            data={categoryChartData}
-            colors={categoryColorMap}
-            remainingBudget={overallBudgetDelta}
-            totalBudget={totalBudget}
-            budgetUsedPercent={budgetUsedPercent}
-            showRemaining={isFullMonthView}
-            emptyMessage="Add a few expenses to see category insights."
-            height={260}
-          />
+      <section
+        className="dashboard-charts"
+        onTouchStart={handleChartTouchStart}
+        onTouchEnd={handleChartTouchEnd}
+      >
+        <div className="dashboard-chart-tabs">
+          {chartTabs.map(tab => (
+            <button
+              type="button"
+              key={tab.id}
+              className={activeChartTab === tab.id ? 'active' : ''}
+              onClick={() => setActiveChartTab(tab.id)}
+            >
+              <span className="tab-icon">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
         </div>
 
+        <div className="dashboard-chart-panel">
+          {activeChartTab === 'categories' && (
+            <CategoryOverview
+              data={categoryChartData}
+              colors={categoryColorMap}
+              remainingBudget={overallBudgetDelta}
+              totalBudget={totalBudget}
+              budgetUsedPercent={budgetUsedPercent}
+              showRemaining={isFullMonthView}
+              emptyMessage="Add a few expenses to see category insights."
+            />
+          )}
+
+          {activeChartTab === 'trend' && (
+            trendPoints.length ? (
+              <div className="trend-chart">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="trendGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#6366f1" />
+                      <stop offset="100%" stopColor="#a855f7" />
+                    </linearGradient>
+                  </defs>
+                  <polyline points={trendSvgPoints} />
+                </svg>
+                <div className="trend-chart-meta">
+                  <span>Latest: {trendLatestLabel}</span>
+                  {trendMaxLabel && <span>Peak: {trendMaxLabel}</span>}
+                </div>
+              </div>
+            ) : (
+              <div className="chart-empty-state">Log a few expenses to unlock your trend.</div>
+            )
+          )}
+
+          {activeChartTab === 'comparison' && (
+            comparisonSummary ? (
+              <div style={{ padding: '20px' }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <h4 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#1f2937' }}>
+                    Period Comparison
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
+                    Comparing current period vs previous period
+                  </p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {CATEGORIES.map(category => {
+                    const current = categorySpentMap[category.id]?.spent || 0;
+                    const previous = comparisonSummary.itemCategoryTotals?.[category.id] || 0;
+                    const diff = current - previous;
+                    const percent = previous > 0 ? ((diff / previous) * 100) : (current > 0 ? 100 : 0);
+
+                    if (current === 0 && previous === 0) return null;
+
+                    return (
+                      <div key={category.id} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '12px',
+                        background: 'rgba(249, 250, 251, 0.5)',
+                        borderRadius: '8px'
+                      }}>
+                        <span style={{ fontSize: '24px' }}>{category.icon}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>
+                            {category.name}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                            {formatCurrency(current)} vs {formatCurrency(previous)}
+                          </div>
+                        </div>
+                        <div style={{
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          color: diff > 0 ? '#ef4444' : diff < 0 ? '#10b981' : '#6b7280'
+                        }}>
+                          {diff > 0 ? '▲' : diff < 0 ? '▼' : '━'} {formatPercent(percent)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="chart-empty-state">Need at least two months of data for comparisons.</div>
+            )
+          )}
+        </div>
+
+        <div className="dashboard-chart-indicators">
+          {chartTabs.map(tab => (
+            <span
+              key={tab.id}
+              className={`chart-dot ${activeChartTab === tab.id ? 'active' : ''}`}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="dashboard-ai-panel">
+        <div className="dashboard-ai-header">
+          <div>
+            <h3>💡 Your AI Coach Says</h3>
+            <p>Smart nudges based on this month’s trends</p>
+          </div>
+          <button type="button" onClick={handleAskCoach}>
+            Ask AI for More Insights
+          </button>
+        </div>
+        <div className="dashboard-ai-tips">
+          {aiCoachTips.length ? (
+            aiCoachTips.map((tip, index) => (
+              <div key={index} className="dashboard-ai-tip">
+                <span>•</span>
+                <p>{tip}</p>
+              </div>
+            ))
+          ) : (
+            <p className="dashboard-ai-empty">Keep logging expenses to unlock personalized insights.</p>
+          )}
+        </div>
+      </section>
+
+      <div className="dashboard-deep-dive">
         <div className="summary-trend">
           <div className="trend-card">
             <div className="trend-card-header">
@@ -1522,29 +1750,38 @@ const formatDateDisplay = (iso) => {
             <div className="summary-empty">No recent transactions logged.</div>
           )}
         </div>
+
+        <div className="dashboard-section">
+          <h2>Totals</h2>
+          <div className="totals-grid">
+            <div className="total-card total-card-highlight">
+              <span className="total-card-label">Total Spending</span>
+              <span className="total-card-value">{formatCurrency(totalSpendingValue)}</span>
+              <span className="total-card-subtitle">{totalsSubtitle}</span>
+            </div>
+            <div className="total-card">
+              <span className="total-card-label">Total Entries</span>
+              <span className="total-card-value">{totalEntries}</span>
+              <span className="total-card-subtitle">Entries counted</span>
+            </div>
+            {isFullMonthView && totalBudget > 0 && (
+              <div className={`total-card ${overallBudgetDelta < 0 ? 'total-card-negative' : 'total-card-positive'}`}>
+                <span className="total-card-label">Remaining Budget</span>
+                <span className="total-card-value">{formatCurrency(overallBudgetDelta)}</span>
+                <span className="total-card-subtitle">Across categories</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="dashboard-section">
-        <h2>Totals</h2>
-        <div className="totals-grid">
-          <div className="total-card total-card-highlight">
-            <span className="total-card-label">Total Spending</span>
-            <span className="total-card-value">{formatCurrency(totalSpendingValue)}</span>
-            <span className="total-card-subtitle">{totalsSubtitle}</span>
-          </div>
-          <div className="total-card">
-            <span className="total-card-label">Total Entries</span>
-            <span className="total-card-value">{totalEntries}</span>
-            <span className="total-card-subtitle">Entries counted</span>
-          </div>
-          {isFullMonthView && totalBudget > 0 && (
-            <div className={`total-card ${overallBudgetDelta < 0 ? 'total-card-negative' : 'total-card-positive'}`}>
-              <span className="total-card-label">Remaining Budget</span>
-              <span className="total-card-value">{formatCurrency(overallBudgetDelta)}</span>
-              <span className="total-card-subtitle">Across categories</span>
-            </div>
-          )}
-        </div>
+      <div className="dashboard-quick-actions">
+        {quickActionButtons.map(button => (
+          <button key={button.id} type="button" onClick={button.onClick}>
+            <span className="quick-action-icon">{button.icon}</span>
+            <span className="quick-action-label">{button.label}</span>
+          </button>
+        ))}
       </div>
     </div>
   );
