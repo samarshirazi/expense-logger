@@ -4,6 +4,8 @@ import * as XLSX from 'xlsx';
 import authService from '../services/authService';
 import './Dashboard.css';
 import { getAllCategories } from '../services/categoryService';
+import SummaryCards from './analytics/SummaryCards';
+import CategoryOverview from './analytics/CategoryOverview';
 
 const DEFAULT_BUDGET = {
   Food: 500,
@@ -368,6 +370,24 @@ const formatDateDisplay = (iso) => {
       };
     });
   }, [progressSummary, summary, categoryBudget, CATEGORIES]);
+
+  const categoryChartData = useMemo(() => {
+    return categoryDetails
+      .filter(detail => detail.spent > 0)
+      .map(detail => ({
+        name: detail.category.name,
+        value: detail.spent,
+        color: detail.category.color
+      }));
+  }, [categoryDetails]);
+
+  const categoryColorMap = useMemo(() => {
+    const map = {};
+    categoryDetails.forEach(detail => {
+      map[detail.category.name] = detail.category.color;
+    });
+    return map;
+  }, [categoryDetails]);
 
   const totalSpent = useMemo(
     () => categoryDetails.reduce((sum, detail) => sum + detail.spent, 0),
@@ -821,6 +841,68 @@ const formatDateDisplay = (iso) => {
     onCoachUnreadChange(false);
     onCoachToggle(true, 'dashboard');
   }, [onCoachToggle, onCoachUnreadChange]);
+
+  const dashboardSummaryCards = useMemo(() => [
+    {
+      id: 'total-spending',
+      label: 'Total Spending',
+      value: formatCurrency(totalSpendingValue),
+      subValue: totalsSubtitle,
+      delta: percentChangeLabel ? {
+        direction: percentChange > 0 ? 'negative' : percentChange < 0 ? 'positive' : 'neutral',
+        label: percentChangeLabel,
+        icon: percentChange > 0 ? '▲' : percentChange < 0 ? '▼' : '━'
+      } : null,
+      footnote: `Entries logged: ${totalEntries}`
+    },
+    {
+      id: 'top-category',
+      label: 'Top Category',
+      icon: topCategoryIcon,
+      value: topCategoryName,
+      subValue: topCategorySpent,
+      delta: topCategoryChangeLabel ? {
+        direction: topCategoryChange?.percent >= 0 ? 'negative' : 'positive',
+        label: topCategoryChangeLabel,
+        icon: topCategoryChange?.percent >= 0 ? '▲' : '▼'
+      } : null
+    },
+    {
+      id: 'active-day',
+      label: 'Most Active Day',
+      value: mostActiveDayLabel,
+      subValue: mostActiveDayAmount,
+      footnote: trendLatestLabel ? `Latest: ${trendLatestLabel}` : undefined
+    },
+    {
+      id: 'coach',
+      label: 'AI Coach Insight',
+      value: coachInsightText,
+      valueVariant: 'small',
+      variant: 'summary-card-ai',
+      action: {
+        label: coachButtonLabel,
+        onClick: handleAskCoach
+      }
+    }
+  ], [
+    coachButtonLabel,
+    coachInsightText,
+    handleAskCoach,
+    mostActiveDayAmount,
+    mostActiveDayLabel,
+    percentChange,
+    percentChangeLabel,
+    topCategoryChange,
+    topCategoryChangeLabel,
+    topCategoryIcon,
+    topCategoryName,
+    topCategorySpent,
+    totalEntries,
+    totalSpendingValue,
+    totalsSubtitle,
+    trendLatestLabel
+  ]);
 
   const exportToCSV = useCallback(() => {
     const rows = [['Date', 'Merchant', 'Category', 'Amount']];
@@ -1349,51 +1431,20 @@ const formatDateDisplay = (iso) => {
       </div>
 
       <div className="dashboard-summary">
-        <div className="summary-grid">
-          <div className="summary-card summary-card-total">
-            <div className="summary-card-label">Total Spending</div>
-            <div className="summary-card-value">{formatCurrency(totalSpendingValue)}</div>
-            <div className="summary-card-subtext">{totalsSubtitle}</div>
-            {percentChangeLabel && (
-              <div
-                className={`summary-card-delta ${percentChange > 0 ? 'summary-card-delta-negative' : percentChange < 0 ? 'summary-card-delta-positive' : ''}`}
-              >
-                {percentChange > 0 ? '▲' : percentChange < 0 ? '▼' : '━'} {percentChangeLabel}
-              </div>
-            )}
-            <div className="summary-card-footnote">Entries logged: {totalEntries}</div>
-          </div>
+        <SummaryCards cards={dashboardSummaryCards} variant="grid" />
 
-          <div className="summary-card">
-            <div className="summary-card-label">Top Category</div>
-            <div className="summary-card-icon">{topCategoryIcon}</div>
-            <div className="summary-card-value">{topCategoryName}</div>
-            <div className="summary-card-subtext">{topCategorySpent}</div>
-            {topCategoryChangeLabel && (
-              <div
-                className={`summary-card-delta ${topCategoryChange?.percent >= 0 ? 'summary-card-delta-negative' : 'summary-card-delta-positive'}`}
-              >
-                {topCategoryChange?.percent >= 0 ? '▲' : '▼'} {formatPercent(Math.abs(topCategoryChange.percent))}
-              </div>
-            )}
-          </div>
-
-          <div className="summary-card">
-            <div className="summary-card-label">Most Active Day</div>
-            <div className="summary-card-value">{mostActiveDayLabel}</div>
-            <div className="summary-card-subtext">{mostActiveDayAmount}</div>
-            {trendLatestLabel && (
-              <div className="summary-card-footnote">Latest: {trendLatestLabel}</div>
-            )}
-          </div>
-
-          <div className="summary-card summary-card-ai">
-            <div className="summary-card-label">AI Coach Insight</div>
-            <p className="summary-card-text">{coachInsightText}</p>
-            <button type="button" className="summary-card-button" onClick={handleAskCoach}>
-              {coachButtonLabel}
-            </button>
-          </div>
+        <div className="dashboard-summary-categories">
+          <h3>Spending by Category</h3>
+          <CategoryOverview
+            data={categoryChartData}
+            colors={categoryColorMap}
+            remainingBudget={overallBudgetDelta}
+            totalBudget={totalBudget}
+            budgetUsedPercent={budgetUsedPercent}
+            showRemaining={isFullMonthView}
+            emptyMessage="Add a few expenses to see category insights."
+            height={260}
+          />
         </div>
 
         <div className="summary-trend">
