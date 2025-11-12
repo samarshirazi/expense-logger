@@ -1158,6 +1158,288 @@ app.delete('/api/savings/goals/:id', requireAuth, async (req, res) => {
   }
 });
 
+// ============================================================
+// ACCOUNTS ENDPOINTS
+// ============================================================
+
+// Get all accounts for user
+app.get('/api/accounts', requireAuth, async (req, res) => {
+  try {
+    const { getAccounts } = require('./services/supabaseService');
+    const accounts = await getAccounts(req.user.id, req.token);
+    res.json(accounts);
+  } catch (error) {
+    console.error('Error fetching accounts:', error);
+    res.status(500).json({ error: 'Failed to fetch accounts', details: error.message });
+  }
+});
+
+// Create a new account
+app.post('/api/accounts', requireAuth, async (req, res) => {
+  try {
+    const { saveAccount } = require('./services/supabaseService');
+    const accountData = req.body;
+
+    if (!accountData.name || !accountData.type) {
+      return res.status(400).json({ error: 'Account name and type are required' });
+    }
+
+    const result = await saveAccount(accountData, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      account: result,
+      message: 'Account created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating account:', error);
+    res.status(500).json({ error: 'Failed to create account', details: error.message });
+  }
+});
+
+// Update an account
+app.patch('/api/accounts/:id', requireAuth, async (req, res) => {
+  try {
+    const { updateAccount } = require('./services/supabaseService');
+    const { id } = req.params;
+    const updates = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Account ID is required' });
+    }
+
+    const result = await updateAccount(id, updates, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      account: result,
+      message: 'Account updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating account:', error);
+    res.status(500).json({ error: 'Failed to update account', details: error.message });
+  }
+});
+
+// Delete an account
+app.delete('/api/accounts/:id', requireAuth, async (req, res) => {
+  try {
+    const { deleteAccount } = require('./services/supabaseService');
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Account ID is required' });
+    }
+
+    await deleteAccount(id, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      message: 'Account deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    res.status(500).json({ error: 'Failed to delete account', details: error.message });
+  }
+});
+
+// ============================================================
+// INCOME ENTRIES ENDPOINTS (New unified income)
+// ============================================================
+
+// Get all income entries for user
+app.get('/api/income', requireAuth, async (req, res) => {
+  try {
+    const { getIncomeEntries } = require('./services/supabaseService');
+    const { startDate, endDate } = req.query;
+    const incomeEntries = await getIncomeEntries(req.user.id, startDate || null, endDate || null, req.token);
+    res.json(incomeEntries);
+  } catch (error) {
+    console.error('Error fetching income entries:', error);
+    res.status(500).json({ error: 'Failed to fetch income entries', details: error.message });
+  }
+});
+
+// Create a new income entry
+app.post('/api/income', requireAuth, async (req, res) => {
+  try {
+    const { saveIncomeEntry } = require('./services/supabaseService');
+    const incomeData = req.body;
+
+    if (!incomeData.source || !incomeData.amount || !incomeData.date) {
+      return res.status(400).json({ error: 'Source, amount, and date are required' });
+    }
+
+    const result = await saveIncomeEntry(incomeData, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      income: result,
+      message: 'Income entry added successfully'
+    });
+  } catch (error) {
+    console.error('Error creating income entry:', error);
+    res.status(500).json({ error: 'Failed to create income entry', details: error.message });
+  }
+});
+
+// Update an income entry
+app.patch('/api/income/:id', requireAuth, async (req, res) => {
+  try {
+    const { updateIncomeEntry } = require('./services/supabaseService');
+    const { id } = req.params;
+    const updates = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Income entry ID is required' });
+    }
+
+    const result = await updateIncomeEntry(id, updates, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      income: result,
+      message: 'Income entry updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating income entry:', error);
+    res.status(500).json({ error: 'Failed to update income entry', details: error.message });
+  }
+});
+
+// Delete an income entry
+app.delete('/api/income/:id', requireAuth, async (req, res) => {
+  try {
+    const { deleteIncomeEntry } = require('./services/supabaseService');
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Income entry ID is required' });
+    }
+
+    await deleteIncomeEntry(id, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      message: 'Income entry deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting income entry:', error);
+    res.status(500).json({ error: 'Failed to delete income entry', details: error.message });
+  }
+});
+
+// ============================================================
+// TRANSFERS ENDPOINTS
+// ============================================================
+
+// Get all transfers for user
+app.get('/api/transfers', requireAuth, async (req, res) => {
+  try {
+    const { getTransfers } = require('./services/supabaseService');
+    const { startDate, endDate } = req.query;
+    const transfers = await getTransfers(req.user.id, startDate || null, endDate || null, req.token);
+    res.json(transfers);
+  } catch (error) {
+    console.error('Error fetching transfers:', error);
+    res.status(500).json({ error: 'Failed to fetch transfers', details: error.message });
+  }
+});
+
+// Create a new transfer
+app.post('/api/transfers', requireAuth, async (req, res) => {
+  try {
+    const { saveTransfer } = require('./services/supabaseService');
+    const transferData = req.body;
+
+    if (!transferData.from_account_id || !transferData.to_account_id || !transferData.amount || !transferData.date) {
+      return res.status(400).json({ error: 'From account, to account, amount, and date are required' });
+    }
+
+    if (transferData.from_account_id === transferData.to_account_id) {
+      return res.status(400).json({ error: 'Source and destination accounts must be different' });
+    }
+
+    const result = await saveTransfer(transferData, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      transfer: result,
+      message: 'Transfer created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating transfer:', error);
+    res.status(500).json({ error: 'Failed to create transfer', details: error.message });
+  }
+});
+
+// Update a transfer
+app.patch('/api/transfers/:id', requireAuth, async (req, res) => {
+  try {
+    const { updateTransfer } = require('./services/supabaseService');
+    const { id } = req.params;
+    const updates = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Transfer ID is required' });
+    }
+
+    if (updates.from_account_id && updates.to_account_id && updates.from_account_id === updates.to_account_id) {
+      return res.status(400).json({ error: 'Source and destination accounts must be different' });
+    }
+
+    const result = await updateTransfer(id, updates, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      transfer: result,
+      message: 'Transfer updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating transfer:', error);
+    res.status(500).json({ error: 'Failed to update transfer', details: error.message });
+  }
+});
+
+// Delete a transfer
+app.delete('/api/transfers/:id', requireAuth, async (req, res) => {
+  try {
+    const { deleteTransfer } = require('./services/supabaseService');
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Transfer ID is required' });
+    }
+
+    await deleteTransfer(id, req.user.id, req.token);
+
+    res.json({
+      success: true,
+      message: 'Transfer deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting transfer:', error);
+    res.status(500).json({ error: 'Failed to delete transfer', details: error.message });
+  }
+});
+
+// ============================================================
+// UNIFIED TRANSACTIONS ENDPOINT
+// ============================================================
+
+// Get all transactions (expenses, income, transfers) combined
+app.get('/api/transactions', requireAuth, async (req, res) => {
+  try {
+    const { getAllTransactions } = require('./services/supabaseService');
+    const { startDate, endDate, type } = req.query;
+    const transactions = await getAllTransactions(req.user.id, startDate || null, endDate || null, type || null, req.token);
+    res.json(transactions);
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    res.status(500).json({ error: 'Failed to fetch transactions', details: error.message });
+  }
+});
+
 app.get('/health', (_, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });

@@ -1327,6 +1327,544 @@ async function deleteSavingsGoal(id, userId, userToken = null) {
   }
 }
 
+// ============================================================
+// ACCOUNTS FUNCTIONS
+// ============================================================
+
+async function getAccounts(userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { data, error } = await supabase
+      .from('accounts')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return data || [];
+  } catch (error) {
+    console.error('❌ Error fetching accounts:', error);
+    throw new Error(`Failed to fetch accounts: ${error.message}`);
+  }
+}
+
+async function saveAccount(accountData, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const account = {
+      user_id: userId,
+      name: accountData.name,
+      type: accountData.type,
+      balance: accountData.balance || 0,
+      currency: accountData.currency || 'USD',
+      icon: accountData.icon || '💳',
+      color: accountData.color || '#667eea',
+      is_active: accountData.is_active !== undefined ? accountData.is_active : true,
+      notes: accountData.notes || null
+    };
+
+    const { data, error } = await supabase
+      .from('accounts')
+      .insert([account])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    console.log('✅ Account saved:', data.id);
+    return data;
+  } catch (error) {
+    console.error('❌ Error saving account:', error);
+    throw new Error(`Failed to save account: ${error.message}`);
+  }
+}
+
+async function updateAccount(id, updates, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { data, error} = await supabase
+      .from('accounts')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    console.log('✅ Account updated:', id);
+    return data;
+  } catch (error) {
+    console.error('❌ Error updating account:', error);
+    throw new Error(`Failed to update account: ${error.message}`);
+  }
+}
+
+async function deleteAccount(id, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { error } = await supabase
+      .from('accounts')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    console.log('✅ Account deleted:', id);
+    return true;
+  } catch (error) {
+    console.error('❌ Error deleting account:', error);
+    throw new Error(`Failed to delete account: ${error.message}`);
+  }
+}
+
+// ============================================================
+// INCOME ENTRIES FUNCTIONS
+// ============================================================
+
+async function getIncomeEntries(userId, startDate = null, endDate = null, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    let query = supabase
+      .from('income_entries')
+      .select('*, accounts(name, type, icon)')
+      .eq('user_id', userId);
+
+    if (startDate) {
+      query = query.gte('date', startDate);
+    }
+    if (endDate) {
+      query = query.lte('date', endDate);
+    }
+
+    const { data, error } = await query.order('date', { ascending: false });
+
+    if (error) throw error;
+
+    return data || [];
+  } catch (error) {
+    console.error('❌ Error fetching income entries:', error);
+    throw new Error(`Failed to fetch income entries: ${error.message}`);
+  }
+}
+
+async function saveIncomeEntry(incomeData, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const income = {
+      user_id: userId,
+      account_id: incomeData.account_id || null,
+      source: incomeData.source,
+      amount: incomeData.amount,
+      currency: incomeData.currency || 'USD',
+      date: incomeData.date,
+      category: incomeData.category || 'Salary',
+      description: incomeData.description || null,
+      is_recurring: incomeData.is_recurring || false,
+      recurring_frequency: incomeData.recurring_frequency || null
+    };
+
+    const { data, error } = await supabase
+      .from('income_entries')
+      .insert([income])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    console.log('✅ Income entry saved:', data.id);
+    return data;
+  } catch (error) {
+    console.error('❌ Error saving income entry:', error);
+    throw new Error(`Failed to save income entry: ${error.message}`);
+  }
+}
+
+async function updateIncomeEntry(id, updates, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { data, error } = await supabase
+      .from('income_entries')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    console.log('✅ Income entry updated:', id);
+    return data;
+  } catch (error) {
+    console.error('❌ Error updating income entry:', error);
+    throw new Error(`Failed to update income entry: ${error.message}`);
+  }
+}
+
+async function deleteIncomeEntry(id, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { error } = await supabase
+      .from('income_entries')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    console.log('✅ Income entry deleted:', id);
+    return true;
+  } catch (error) {
+    console.error('❌ Error deleting income entry:', error);
+    throw new Error(`Failed to delete income entry: ${error.message}`);
+  }
+}
+
+// ============================================================
+// TRANSFERS FUNCTIONS
+// ============================================================
+
+async function getTransfers(userId, startDate = null, endDate = null, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    let query = supabase
+      .from('transfers')
+      .select(`
+        *,
+        from_account:from_account_id(name, type, icon),
+        to_account:to_account_id(name, type, icon)
+      `)
+      .eq('user_id', userId);
+
+    if (startDate) {
+      query = query.gte('date', startDate);
+    }
+    if (endDate) {
+      query = query.lte('date', endDate);
+    }
+
+    const { data, error } = await query.order('date', { ascending: false });
+
+    if (error) throw error;
+
+    return data || [];
+  } catch (error) {
+    console.error('❌ Error fetching transfers:', error);
+    throw new Error(`Failed to fetch transfers: ${error.message}`);
+  }
+}
+
+async function saveTransfer(transferData, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const transfer = {
+      user_id: userId,
+      from_account_id: transferData.from_account_id,
+      to_account_id: transferData.to_account_id,
+      amount: transferData.amount,
+      currency: transferData.currency || 'USD',
+      date: transferData.date,
+      description: transferData.description || null
+    };
+
+    const { data, error } = await supabase
+      .from('transfers')
+      .insert([transfer])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    console.log('✅ Transfer saved:', data.id);
+    return data;
+  } catch (error) {
+    console.error('❌ Error saving transfer:', error);
+    throw new Error(`Failed to save transfer: ${error.message}`);
+  }
+}
+
+async function updateTransfer(id, updates, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { data, error } = await supabase
+      .from('transfers')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    console.log('✅ Transfer updated:', id);
+    return data;
+  } catch (error) {
+    console.error('❌ Error updating transfer:', error);
+    throw new Error(`Failed to update transfer: ${error.message}`);
+  }
+}
+
+async function deleteTransfer(id, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { error } = await supabase
+      .from('transfers')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    console.log('✅ Transfer deleted:', id);
+    return true;
+  } catch (error) {
+    console.error('❌ Error deleting transfer:', error);
+    throw new Error(`Failed to delete transfer: ${error.message}`);
+  }
+}
+
+// ============================================================
+// UNIFIED TRANSACTIONS FUNCTION
+// ============================================================
+
+async function getAllTransactions(userId, startDate = null, endDate = null, type = null, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const transactions = [];
+
+    // Fetch expenses if requested or no type filter
+    if (!type || type === 'expense') {
+      let expenseQuery = supabase
+        .from('expenses')
+        .select('*, accounts(name, type, icon)')
+        .eq('user_id', userId);
+
+      if (startDate) expenseQuery = expenseQuery.gte('date', startDate);
+      if (endDate) expenseQuery = expenseQuery.lte('date', endDate);
+
+      const { data: expenses, error: expError } = await expenseQuery;
+
+      if (expError) throw expError;
+
+      expenses?.forEach(exp => {
+        transactions.push({
+          ...exp,
+          transaction_type: 'expense',
+          display_amount: -Math.abs(exp.total_amount || 0)
+        });
+      });
+    }
+
+    // Fetch income if requested or no type filter
+    if (!type || type === 'income') {
+      let incomeQuery = supabase
+        .from('income_entries')
+        .select('*, accounts(name, type, icon)')
+        .eq('user_id', userId);
+
+      if (startDate) incomeQuery = incomeQuery.gte('date', startDate);
+      if (endDate) incomeQuery = incomeQuery.lte('date', endDate);
+
+      const { data: income, error: incError } = await incomeQuery;
+
+      if (incError) throw incError;
+
+      income?.forEach(inc => {
+        transactions.push({
+          id: inc.id,
+          user_id: inc.user_id,
+          date: inc.date,
+          total_amount: inc.amount,
+          merchant_name: inc.source,
+          category: inc.category,
+          description: inc.description,
+          account_id: inc.account_id,
+          accounts: inc.accounts,
+          transaction_type: 'income',
+          display_amount: Math.abs(inc.amount || 0)
+        });
+      });
+    }
+
+    // Fetch transfers if requested or no type filter
+    if (!type || type === 'transfer') {
+      let transferQuery = supabase
+        .from('transfers')
+        .select(`
+          *,
+          from_account:from_account_id(name, type, icon),
+          to_account:to_account_id(name, type, icon)
+        `)
+        .eq('user_id', userId);
+
+      if (startDate) transferQuery = transferQuery.gte('date', startDate);
+      if (endDate) transferQuery = transferQuery.lte('date', endDate);
+
+      const { data: transfers, error: transError } = await transferQuery;
+
+      if (transError) throw transError;
+
+      transfers?.forEach(trans => {
+        transactions.push({
+          id: trans.id,
+          user_id: trans.user_id,
+          date: trans.date,
+          total_amount: trans.amount,
+          merchant_name: `${trans.from_account?.name} → ${trans.to_account?.name}`,
+          category: 'Transfer',
+          description: trans.description,
+          from_account_id: trans.from_account_id,
+          to_account_id: trans.to_account_id,
+          from_account: trans.from_account,
+          to_account: trans.to_account,
+          transaction_type: 'transfer',
+          display_amount: 0
+        });
+      });
+    }
+
+    // Sort by date (newest first)
+    transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    return transactions;
+  } catch (error) {
+    console.error('❌ Error fetching all transactions:', error);
+    throw new Error(`Failed to fetch all transactions: ${error.message}`);
+  }
+}
+
 module.exports = {
   initSupabase,
   testConnection,
@@ -1361,5 +1899,22 @@ module.exports = {
   saveSavingsGoal,
   getSavingsGoals,
   updateSavingsGoal,
-  deleteSavingsGoal
+  deleteSavingsGoal,
+  // Accounts
+  getAccounts,
+  saveAccount,
+  updateAccount,
+  deleteAccount,
+  // Income Entries
+  getIncomeEntries,
+  saveIncomeEntry,
+  updateIncomeEntry,
+  deleteIncomeEntry,
+  // Transfers
+  getTransfers,
+  saveTransfer,
+  updateTransfer,
+  deleteTransfer,
+  // Unified Transactions
+  getAllTransactions
 };
