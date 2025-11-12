@@ -1,0 +1,133 @@
+.category-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.category-overview-chart {
+  width: 100%;
+  position: relative;
+}
+
+.category-overview-chart::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(226, 232, 240, 0.6) 50%, transparent 100%);
+}
+
+.category-overview-empty {
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-weight: 600;
+  font-size: 15px;
+  border-radius: 20px;
+  border: 2px dashed rgba(148, 163, 184, 0.4);
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
+  transition: all 0.3s ease;
+}
+
+.category-overview-empty:hover {
+  border-color: rgba(102, 126, 234, 0.3);
+  background: linear-gradient(135deg, rgba(238, 242, 255, 0.4) 0%, rgba(255, 255, 255, 0.8) 100%);
+}
+
+.category-remaining-pill {
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 250, 251, 0.9) 100%);
+  padding: 20px 24px;
+  border: 1px solid rgba(103, 111, 255, 0.15);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.category-remaining-pill::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  opacity: 0.7;
+}
+
+.category-remaining-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+  border-color: rgba(103, 111, 255, 0.25);
+}
+
+.mini-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #6b7280;
+  margin: 0 0 10px 0;
+  font-weight: 700;
+}
+
+.category-remaining-pill h3 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.mini-remaining-status {
+  margin: 10px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  letter-spacing: 0.01em;
+}
+
+.mini-remaining-status.positive {
+  color: #059669;
+  background: rgba(5, 150, 105, 0.1);
+}
+
+.mini-remaining-status.negative {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .category-overview {
+    gap: 16px;
+  }
+
+  .category-overview-empty {
+    min-height: 200px;
+    font-size: 14px;
+  }
+
+  .category-remaining-pill {
+    padding: 18px 20px;
+  }
+
+  .category-remaining-pill h3 {
+    font-size: 28px;
+  }
+
+  .mini-remaining-status {
+    font-size: 13px;
+    padding: 5px 10px;
+  }
+}

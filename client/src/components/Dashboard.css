@@ -1,8 +1,10 @@
 .dashboard {
   padding: 30px;
   padding-top: 175px;
-  max-width: 1400px;
+  max-width: 1440px;
   margin: 0 auto;
+  background: linear-gradient(180deg, rgba(249, 250, 251, 0.8) 0%, rgba(255, 255, 255, 0.9) 100%);
+  min-height: 100vh;
 }
 
 .dashboard-header {
@@ -35,14 +37,31 @@
 .dashboard-summary {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  margin-bottom: 28px;
+  gap: 28px;
+  margin-bottom: 32px;
 }
 
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
+}
+
+.dashboard-summary-categories {
+  margin-top: 8px;
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.dashboard-summary-categories h3 {
+  margin: 0 0 18px;
+  font-size: 19px;
+  font-weight: 700;
+  color: #1f2937;
+  letter-spacing: -0.02em;
 }
 
 .summary-card {
@@ -141,19 +160,25 @@
 
 .summary-trend {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
 }
 
 .trend-card {
   background: white;
-  border-radius: 16px;
-  padding: 18px 20px;
-  border: 1px solid rgba(226, 232, 240, 0.7);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.trend-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1);
 }
 
 .trend-card-header {
@@ -161,17 +186,24 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.5);
 }
 
 .trend-card-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
+  font-weight: 700;
   color: #1f2937;
+  letter-spacing: -0.02em;
 }
 
 .trend-card-header span {
   font-size: 13px;
+  font-weight: 600;
   color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .trend-chart {
@@ -182,15 +214,17 @@
 
 .trend-chart svg {
   width: 100%;
-  height: 120px;
-  background: linear-gradient(180deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.05) 100%);
-  border-radius: 12px;
+  height: 140px;
+  background: linear-gradient(180deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.03) 100%);
+  border-radius: 16px;
+  padding: 8px;
 }
 
 .trend-chart polyline {
   fill: none;
-  stroke: #6366f1;
-  stroke-width: 2;
+  stroke: url(#trendGradient);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.2));
 }
 
 .trend-chart-meta {
@@ -208,17 +242,19 @@
 
 .summary-progress-bar {
   width: 100%;
-  height: 12px;
+  height: 14px;
   border-radius: 999px;
-  background: rgba(148, 163, 184, 0.25);
+  background: rgba(148, 163, 184, 0.2);
   overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .summary-progress-bar-fill {
   height: 100%;
   background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
   border-radius: inherit;
-  transition: width 0.3s ease;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 .summary-progress-meta {
@@ -235,49 +271,76 @@
 }
 
 .summary-export-btn {
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  border-radius: 10px;
-  padding: 8px 14px;
-  background: white;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(249, 250, 251, 1) 100%);
   color: #4f46e5;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.08);
 }
 
 .summary-export-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(79, 70, 229, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.2);
+  border-color: rgba(99, 102, 241, 0.4);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(238, 242, 255, 1) 100%);
+}
+
+.summary-export-btn:active {
+  transform: translateY(0);
 }
 
 .summary-insights,
 .summary-recent {
   background: white;
-  border-radius: 16px;
-  padding: 18px 20px;
-  border: 1px solid rgba(226, 232, 240, 0.7);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-insights:hover,
+.summary-recent:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1);
 }
 
 .summary-insights h3,
 .summary-recent h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
+  font-weight: 700;
   color: #1f2937;
+  letter-spacing: -0.02em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.5);
 }
 
 .summary-insights ul {
   margin: 0;
-  padding-left: 18px;
+  padding-left: 20px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   color: #4b5563;
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.summary-insights ul li {
+  padding-left: 4px;
+}
+
+.summary-insights ul li::marker {
+  color: #667eea;
 }
 
 .summary-recent-list {
@@ -286,20 +349,38 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .summary-recent-list li {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   font-size: 14px;
   color: #1f2937;
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(249, 250, 251, 0.5) 0%, rgba(255, 255, 255, 0.5) 100%);
+  border: 1px solid rgba(226, 232, 240, 0.5);
+  transition: all 0.2s ease;
+}
+
+.summary-recent-list li:hover {
+  background: linear-gradient(135deg, rgba(238, 242, 255, 0.4) 0%, rgba(255, 255, 255, 0.8) 100%);
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateX(4px);
 }
 
 .summary-recent-icon {
-  font-size: 18px;
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border-radius: 10px;
 }
 
 .summary-recent-meta {
@@ -513,16 +594,21 @@
 
 .dashboard-section {
   background: white;
-  border-radius: 16px;
-  padding: 30px;
-  margin-bottom: 30px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 20px;
+  padding: 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 .dashboard-section h2 {
-  margin: 0 0 24px 0;
-  font-size: 22px;
-  color: #2c3e50;
+  margin: 0 0 28px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+  letter-spacing: -0.02em;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(226, 232, 240, 0.6);
 }
 
 .category-breakdown-grid {
@@ -751,23 +837,32 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .dashboard {
-    padding: 90px 15px 20px 15px; /* Add top padding to clear menu button */
+    padding: 100px 16px 24px 16px;
   }
 
   .dashboard-header {
-    text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
+  }
+
+  .dashboard-header-text {
+    text-align: center;
   }
 
   .dashboard-header h1 {
-    font-size: 26px;
+    font-size: 28px;
+  }
+
+  .dashboard-header p {
+    font-size: 15px;
   }
 
   .coach-toggle {
     width: 100%;
     justify-content: center;
+    padding: 12px 20px;
   }
 
   .summary-grid {
@@ -777,9 +872,22 @@
     gap: 12px;
   }
 
+  .dashboard-summary {
+    gap: 20px;
+  }
+
+  .dashboard-summary-categories {
+    padding: 20px;
+  }
+
+  .dashboard-summary-categories h3 {
+    font-size: 17px;
+    margin-bottom: 14px;
+  }
+
   .summary-card {
-    padding: 16px;
-    min-height: 150px;
+    padding: 18px;
+    min-height: 140px;
   }
 
   /* Force 2x2 layout for the 4 summary cards */
@@ -813,15 +921,61 @@
 
   .summary-trend {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .trend-card {
+    padding: 20px;
+  }
+
+  .trend-card-header h3 {
+    font-size: 16px;
+  }
+
+  .trend-chart svg {
+    height: 120px;
   }
 
   .summary-actions {
     width: 100%;
+    gap: 10px;
   }
 
   .summary-export-btn {
     flex: 1;
     text-align: center;
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .summary-insights,
+  .summary-recent {
+    padding: 20px;
+  }
+
+  .summary-insights h3,
+  .summary-recent h3 {
+    font-size: 16px;
+  }
+
+  .summary-insights ul {
+    font-size: 13px;
+    gap: 8px;
+  }
+
+  .summary-recent-list {
+    gap: 10px;
+  }
+
+  .summary-recent-list li {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .summary-recent-icon {
+    font-size: 20px;
+    width: 36px;
+    height: 36px;
   }
 
   .dashboard-section {
@@ -830,6 +984,7 @@
 
   .dashboard-section h2 {
     font-size: 20px;
+    margin-bottom: 20px;
   }
 
   .dashboard-pie-wrapper {
