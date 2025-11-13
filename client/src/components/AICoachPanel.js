@@ -148,7 +148,7 @@ function AICoachPanel({
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (!enrichedAnalysis || isLoading) {
+    if (isLoading) {
       return;
     }
     const text = inputRef.current?.value?.trim();
@@ -225,9 +225,9 @@ function AICoachPanel({
           type="text"
           ref={inputRef}
           placeholder={`Ask the coach about ${contextCopy.placeholder}...`}
-          disabled={isLoading || !enrichedAnalysis}
+          disabled={isLoading}
         />
-        <button type="submit" disabled={isLoading || !enrichedAnalysis}>
+        <button type="submit" disabled={isLoading}>
           Send
         </button>
       </form>

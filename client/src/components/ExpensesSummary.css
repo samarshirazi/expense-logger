@@ -958,22 +958,27 @@
   }
 
   .expenses-header-actions {
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 0.5rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
     width: 100%;
   }
 
   .expenses-header-actions > * {
-    flex: 1;
-    min-width: 0;
+    width: 100%;
   }
 
   .expenses-header-actions button {
-    font-size: 0.8rem !important;
-    padding: 0.5rem 0.4rem !important;
-    white-space: nowrap;
+    font-size: 0.95rem !important;
+    padding: 0.75rem 1rem !important;
+    width: 100%;
+    justify-content: center !important;
+  }
+
+  .expenses-btn-icon {
+    width: 100% !important;
+    height: auto !important;
+    padding: 0.75rem !important;
   }
 
   .expenses-btn {

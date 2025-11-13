@@ -508,6 +508,54 @@ app.get('/api/expenses', requireAuth, async (req, res) => {
   }
 });
 
+// Create expense directly (for manual expense form)
+app.post('/api/expenses', requireAuth, async (req, res) => {
+  try {
+    const expenseData = req.body;
+
+    // Validate required fields
+    if (!expenseData.date) {
+      return res.status(400).json({ error: 'Date is required' });
+    }
+
+    if (!expenseData.merchantName) {
+      return res.status(400).json({ error: 'Merchant name is required' });
+    }
+
+    if (expenseData.totalAmount === undefined || expenseData.totalAmount === null) {
+      return res.status(400).json({ error: 'Amount is required' });
+    }
+
+    // Get the access token from the Authorization header
+    const authHeader = req.headers.authorization;
+    const userToken = authHeader ? authHeader.substring(7) : null;
+
+    // Add user_id to expense data
+    const expenseWithUser = {
+      ...expenseData,
+      user_id: req.user.id,
+      currency: expenseData.currency || 'USD',
+      category: expenseData.category || 'Other',
+      upload_date: new Date().toISOString()
+    };
+
+    console.log('Creating manual expense:', expenseWithUser);
+
+    const expense = await saveExpense(expenseWithUser, userToken);
+
+    res.status(201).json({
+      success: true,
+      expense
+    });
+  } catch (error) {
+    console.error('Error creating expense:', error);
+    res.status(500).json({
+      error: 'Failed to create expense',
+      details: error.message
+    });
+  }
+});
+
 app.get('/api/expenses/summary', requireAuth, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
