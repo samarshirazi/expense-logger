@@ -334,6 +334,9 @@ function Overview({ expenses = [], dateRange }) {
 
   // Pie chart data - ensure at least 5 categories are shown
   const pieChartData = useMemo(() => {
+    // Define core categories that should always appear
+    const coreCategories = ['Food', 'Transport', 'Shopping', 'Bills', 'Other'];
+
     const currentCategories = Object.entries(categorySpending).map(([name, value]) => ({
       name,
       value,
@@ -341,28 +344,37 @@ function Overview({ expenses = [], dateRange }) {
       source: 'current'
     }));
 
-    // If we have 5 or more categories, just return current data
-    if (currentCategories.length >= 5) {
-      return currentCategories;
-    }
-
-    // Otherwise, add categories from previous month that aren't in current month
     const currentCategoryNames = new Set(Object.keys(categorySpending));
-    const additionalCategories = [];
+    const allCategories = [...currentCategories];
 
-    Object.entries(previousCategorySpending).forEach(([name, value]) => {
-      // Only add if not already in current categories and we need more
-      if (!currentCategoryNames.has(name) && (currentCategories.length + additionalCategories.length) < 5) {
-        additionalCategories.push({
-          name,
-          value: 0, // Show as 0 in current period
+    // Add core categories that aren't in current spending
+    coreCategories.forEach(categoryName => {
+      if (!currentCategoryNames.has(categoryName)) {
+        allCategories.push({
+          name: categoryName,
+          value: 0,
           percentage: '0',
-          source: 'previous'
+          source: 'core'
         });
       }
     });
 
-    return [...currentCategories, ...additionalCategories];
+    // If we still don't have 5, add from previous month spending
+    if (allCategories.length < 5) {
+      Object.entries(previousCategorySpending).forEach(([name, value]) => {
+        if (!allCategories.some(cat => cat.name === name) && allCategories.length < 5) {
+          allCategories.push({
+            name,
+            value: 0,
+            percentage: '0',
+            source: 'previous'
+          });
+        }
+      });
+    }
+
+    console.log('📊 Pie Chart Data:', allCategories);
+    return allCategories;
   }, [categorySpending, previousCategorySpending, currentMonthTotal]);
 
   // Line chart + daily bar data (daily spending for current period)
