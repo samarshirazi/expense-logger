@@ -22,6 +22,28 @@ function CategoryOverview({
     ? Math.max(0, 100 - Math.round(budgetUsedPercent))
     : null;
 
+  // Fallback colors if a category doesn't have one
+  const fallbackColors = [
+    '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#a29bfe',
+    '#fd79a8', '#95afc0', '#e17055', '#74b9ff', '#6c5ce7',
+    '#55efc4', '#ffeaa7', '#fab1a0', '#ff7675', '#fdcb6e',
+    '#00b894', '#0984e3', '#b2bec3', '#e84393', '#fd79a8'
+  ];
+
+  // Get color for a category with multiple fallbacks
+  const getColorForCategory = (categoryName, index) => {
+    // Try colors prop first
+    if (colors && colors[categoryName]) {
+      return colors[categoryName];
+    }
+    // Try CATEGORY_COLORS
+    if (CATEGORY_COLORS[categoryName]) {
+      return CATEGORY_COLORS[categoryName];
+    }
+    // Use fallback color based on index
+    return fallbackColors[index % fallbackColors.length];
+  };
+
   // Custom label renderer for pie chart - only show percentage on mobile
   const renderLabel = (entry) => {
     const percent = entry.percentage || 0;
@@ -55,12 +77,16 @@ function CategoryOverview({
               dataKey="value"
               style={{ fontSize: isMobile ? '10px' : '12px' }}
             >
-              {data.map((entry, index) => (
-                <Cell
-                  key={`category-slice-${entry.name || index}`}
-                  fill={colors[entry.name] || entry.color || '#95afc0'}
-                />
-              ))}
+              {data.map((entry, index) => {
+                const color = getColorForCategory(entry.name, index);
+                console.log(`🎨 Category: ${entry.name}, Color: ${color}`);
+                return (
+                  <Cell
+                    key={`category-slice-${entry.name || index}`}
+                    fill={color}
+                  />
+                );
+              })}
             </Pie>
             <Tooltip
               formatter={(value) => typeof value === 'number' ? value.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }) : value}

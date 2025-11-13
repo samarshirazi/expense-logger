@@ -134,7 +134,6 @@ function Overview({ expenses = [], dateRange }) {
   const [categories, setCategories] = useState(() => getAllCategories());
   const [activeChartTab, setActiveChartTab] = useState('pie');
   const [barChartView, setBarChartView] = useState('daily');
-  const [trendView, setTrendView] = useState('cumulative'); // 'cumulative' or 'monthly'
   const [expandedCard, setExpandedCard] = useState(null);
   const touchStartRef = useRef(null);
 
@@ -251,31 +250,43 @@ function Overview({ expenses = [], dateRange }) {
 
   // Build dynamic color map including custom categories
   const categoryColorMap = useMemo(() => {
+    // Start with base category colors
     const colorMap = { ...CATEGORY_COLORS };
 
-    // Add custom category colors
+    // Extended color palette for additional categories
+    const extendedColors = [
+      '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#a29bfe',
+      '#fd79a8', '#95afc0', '#e17055', '#74b9ff', '#6c5ce7',
+      '#55efc4', '#ffeaa7', '#fab1a0', '#ff7675', '#fdcb6e',
+      '#00b894', '#0984e3', '#b2bec3', '#e84393', '#fd79a8'
+    ];
+
+    // Add colors from custom categories defined by user
     categories.forEach(cat => {
-      if (cat.color && (cat.name || cat.id)) {
-        colorMap[cat.name || cat.id] = cat.color;
+      const categoryName = cat.name || cat.id;
+      if (categoryName && cat.color) {
+        colorMap[categoryName] = cat.color;
       }
     });
 
-    // Generate colors for any categories that don't have one
-    const defaultColors = [
-      '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#a29bfe',
-      '#fd79a8', '#95afc0', '#e17055', '#74b9ff', '#a29bfe',
-      '#55efc4', '#ffeaa7', '#fab1a0', '#ff7675', '#fdcb6e'
-    ];
+    // Get all unique categories from current and previous spending
+    const allCategories = new Set([
+      ...Object.keys(categorySpending),
+      ...Object.keys(previousCategorySpending)
+    ]);
 
+    // Assign colors to any categories that don't have one yet
     let colorIndex = 0;
-    const allCategories = [...new Set([...Object.keys(categorySpending), ...Object.keys(previousCategorySpending)])];
-
-    allCategories.forEach(category => {
-      if (!colorMap[category]) {
-        colorMap[category] = defaultColors[colorIndex % defaultColors.length];
+    allCategories.forEach(categoryName => {
+      if (!colorMap[categoryName]) {
+        // Find the next unused color
+        colorMap[categoryName] = extendedColors[colorIndex % extendedColors.length];
         colorIndex++;
       }
     });
+
+    console.log('📊 Category Color Map:', colorMap);
+    console.log('📊 Categories in pie chart:', Array.from(allCategories));
 
     return colorMap;
   }, [categories, categorySpending, previousCategorySpending]);
@@ -424,39 +435,6 @@ function Overview({ expenses = [], dateRange }) {
     }));
   }, [categorySpending, previousCategorySpending]);
 
-  // Monthly comparison trend data
-  const monthlyTrendData = useMemo(() => {
-    // Get last 6 months including current
-    const now = new Date();
-    const months = [];
-
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-
-      const parseLocalDate = (dateStr) => {
-        if (!dateStr) return null;
-        const [year, month, day] = dateStr.split('-').map(Number);
-        return new Date(year, month - 1, day);
-      };
-
-      const monthExpenses = expenses.filter(exp => {
-        const expDate = parseLocalDate(exp.date);
-        if (!expDate) return false;
-        return expDate >= monthStart && expDate <= monthEnd;
-      });
-
-      const total = monthExpenses.reduce((sum, exp) => sum + (exp.totalAmount || exp.amount || 0), 0);
-
-      months.push({
-        month: date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-        amount: total
-      });
-    }
-
-    return months;
-  }, [expenses]);
 
   // AI Insights
   const aiInsights = useMemo(() => {
@@ -755,64 +733,24 @@ function Overview({ expenses = [], dateRange }) {
           )}
 
           {activeChartTab === 'line' && (
-            <>
-              <div className="bar-mode-toggle" style={{ marginBottom: '1rem' }}>
-                <button
-                  type="button"
-                  className={trendView === 'cumulative' ? 'active' : ''}
-                  onClick={() => setTrendView('cumulative')}
-                >
-                  This Month
-                </button>
-                <button
-                  type="button"
-                  className={trendView === 'monthly' ? 'active' : ''}
-                  onClick={() => setTrendView('monthly')}
-                >
-                  6-Month Trend
-                </button>
-              </div>
-              {trendView === 'cumulative' ? (
-                lineChartData.length ? (
-                  <ResponsiveContainer width="100%" height={320}>
-                    <LineChart data={lineChartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="day"
-                        label={{ value: 'Day of Month', position: 'insideBottom', offset: -5 }}
-                        interval="preserveStartEnd"
-                        minTickGap={20}
-                      />
-                      <YAxis label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} />
-                      <Tooltip formatter={(value) => formatCurrency(value)} />
-                      <Line type="monotone" dataKey="amount" stroke="#667eea" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="chart-empty-state">Spending trend will appear once you add expenses.</div>
-                )
-              ) : (
-                monthlyTrendData.length ? (
-                  <ResponsiveContainer width="100%" height={320}>
-                    <LineChart data={monthlyTrendData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="month"
-                        label={{ value: 'Month', position: 'insideBottom', offset: -5 }}
-                        angle={-45}
-                        textAnchor="end"
-                        height={60}
-                      />
-                      <YAxis label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} />
-                      <Tooltip formatter={(value) => formatCurrency(value)} />
-                      <Line type="monotone" dataKey="amount" stroke="#667eea" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="chart-empty-state">Monthly comparison will appear once you have data.</div>
-                )
-              )}
-            </>
+            lineChartData.length ? (
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={lineChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="day"
+                    label={{ value: 'Day of Month', position: 'insideBottom', offset: -5 }}
+                    interval="preserveStartEnd"
+                    minTickGap={20}
+                  />
+                  <YAxis label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip formatter={(value) => formatCurrency(value)} />
+                  <Line type="monotone" dataKey="amount" stroke="#667eea" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="chart-empty-state">Spending trend will appear once you add expenses.</div>
+            )
           )}
 
           {activeChartTab === 'bars' && (
