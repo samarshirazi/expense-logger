@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import './ExpensesSummary.css';
 import { updateExpense } from '../services/apiService';
+import { getAllCategories } from '../services/categoryService';
 
 const CATEGORY_META = {
   Food: { icon: '🍔', color: '#ff6b6b' },
@@ -11,7 +12,15 @@ const CATEGORY_META = {
   Other: { icon: '📦', color: '#95afc0' }
 };
 
-const getCategoryMeta = (category) => CATEGORY_META[category] || CATEGORY_META.Other;
+const getCategoryMeta = (category, allCategories = []) => {
+  // First check custom categories
+  const customCategory = allCategories.find(cat => cat.name === category || cat.id === category);
+  if (customCategory) {
+    return { icon: customCategory.icon, color: customCategory.color };
+  }
+  // Fall back to hardcoded categories
+  return CATEGORY_META[category] || CATEGORY_META.Other;
+};
 
 const formatCurrency = (amount, currency = 'USD') => {
   return new Intl.NumberFormat('en-US', {
@@ -124,10 +133,32 @@ function ExpensesSummary({
     date: '',
     totalAmount: '',
     category: 'Other',
-    paymentMethod: ''
+    paymentMethod: '',
+    items: []
   });
   const [isSaving, setIsSaving] = useState(false);
   const [editError, setEditError] = useState('');
+  const [allCategories, setAllCategories] = useState([]);
+
+  // Load all categories (default + custom)
+  useEffect(() => {
+    const loadCategories = () => {
+      const categories = getAllCategories();
+      setAllCategories(categories);
+    };
+
+    loadCategories();
+
+    // Listen for category updates
+    const handleCategoriesUpdate = () => {
+      loadCategories();
+    };
+
+    window.addEventListener('categoriesUpdated', handleCategoriesUpdate);
+    return () => {
+      window.removeEventListener('categoriesUpdated', handleCategoriesUpdate);
+    };
+  }, []);
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }));
@@ -291,7 +322,8 @@ function ExpensesSummary({
         date: '',
         totalAmount: '',
         category: 'Other',
-        paymentMethod: ''
+        paymentMethod: '',
+        items: []
       };
     }
 
@@ -314,7 +346,8 @@ function ExpensesSummary({
       date: normalizedDate,
       totalAmount: amountValue === '' ? '' : String(amountValue),
       category: expense.category || 'Other',
-      paymentMethod: expense.paymentMethod || ''
+      paymentMethod: expense.paymentMethod || '',
+      items: expense.items ? JSON.parse(JSON.stringify(expense.items)) : []
     };
   };
 
@@ -332,10 +365,10 @@ function ExpensesSummary({
     }
 
     return {
-      category: getCategoryMeta(selectedExpense.category),
+      category: getCategoryMeta(selectedExpense.category, allCategories),
       tags: deriveTags(selectedExpense)
     };
-  }, [selectedExpense]);
+  }, [selectedExpense, allCategories]);
 
   const exportToCSV = () => {
     const rows = [
@@ -596,6 +629,24 @@ function ExpensesSummary({
     setEditForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleItemFieldChange = (itemIndex, field, value) => {
+    setEditForm(prev => {
+      const newItems = [...prev.items];
+      newItems[itemIndex] = {
+        ...newItems[itemIndex],
+        [field]: value
+      };
+      return { ...prev, items: newItems };
+    });
+  };
+
+  const handleDeleteItem = (itemIndex) => {
+    setEditForm(prev => {
+      const newItems = prev.items.filter((_, idx) => idx !== itemIndex);
+      return { ...prev, items: newItems };
+    });
+  };
+
   const handleStartEdit = () => {
     if (!selectedExpense) {
       return;
@@ -628,19 +679,22 @@ function ExpensesSummary({
       return;
     }
 
-    const parsedAmount = Number(editForm.totalAmount);
-    if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
-      setEditError('Enter a valid amount.');
-      return;
+    // Calculate total from items if they exist, otherwise use existing total
+    let totalAmount = selectedExpense.totalAmount || 0;
+    if (editForm.items && editForm.items.length > 0) {
+      totalAmount = editForm.items.reduce((sum, item) => {
+        return sum + (Number(item.totalPrice || item.price) || 0);
+      }, 0);
     }
 
     const updates = {
       merchantName: trimmedMerchant,
       date: editForm.date,
-      totalAmount: Number(parsedAmount.toFixed(2)),
+      totalAmount: Number(totalAmount.toFixed(2)),
       category: editForm.category || 'Other',
       paymentMethod: editForm.paymentMethod.trim() || null,
-      currency: selectedExpense.currency
+      currency: selectedExpense.currency,
+      items: editForm.items
     };
 
     setIsSaving(true);
@@ -798,8 +852,8 @@ function ExpensesSummary({
               onChange={(event) => handleFilterChange('category', event.target.value)}
             >
               <option value="all">All</option>
-              {Object.keys(CATEGORY_META).map(category => (
-                <option key={category} value={category}>{category}</option>
+              {allCategories.map(category => (
+                <option key={category.id} value={category.name}>{category.name}</option>
               ))}
             </select>
           </div>
@@ -881,10 +935,41 @@ function ExpensesSummary({
                   {expensesByDate[dateKey].map(expense => (
                     <div key={expense.id || `${expense.date}-${expense.merchantName}`} className="merchant-group">
                       <div className="merchant-header">
-                        <span className="merchant-name">{expense.merchantName || 'Unknown merchant'}</span>
+                        {expense.merchantName ? (
+                          <span className="merchant-name">{expense.merchantName}</span>
+                        ) : (
+                          <span
+                            className="merchant-name placeholder-link"
+                            onClick={() => setSelectedExpense(expense)}
+                            style={{
+                              color: '#999',
+                              fontStyle: 'italic',
+                              cursor: 'pointer',
+                              textDecoration: 'underline'
+                            }}
+                            title="Click to add merchant name"
+                          >
+                            + Add Store/Merchant
+                          </span>
+                        )}
                         <div className="merchant-meta">
-                          {expense.paymentMethod && (
+                          {expense.paymentMethod ? (
                             <span className="tag">{expense.paymentMethod}</span>
+                          ) : (
+                            <span
+                              className="tag placeholder-link"
+                              onClick={() => setSelectedExpense(expense)}
+                              style={{
+                                color: '#999',
+                                fontStyle: 'italic',
+                                cursor: 'pointer',
+                                backgroundColor: '#f5f5f5',
+                                border: '1px dashed #ccc'
+                              }}
+                              title="Click to add payment method"
+                            >
+                              + Add Payment Method
+                            </span>
                           )}
                           {getReceiptPreview(expense) && (
                             <img src={getReceiptPreview(expense)} alt="Receipt" className="receipt-thumb-small" />
@@ -895,7 +980,7 @@ function ExpensesSummary({
                         <div className="product-list">
                           {expense.items.map((item, idx) => {
                             const itemCategory = item.category || expense.category;
-                            const categoryMeta = getCategoryMeta(itemCategory);
+                            const categoryMeta = getCategoryMeta(itemCategory, allCategories);
                             return (
                               <div
                                 key={idx}
@@ -932,9 +1017,9 @@ function ExpensesSummary({
                             <div className="product-details">
                               <span
                                 className="category-pill-compact"
-                                style={{ backgroundColor: getCategoryMeta(expense.category).color + '1f', color: getCategoryMeta(expense.category).color }}
+                                style={{ backgroundColor: getCategoryMeta(expense.category, allCategories).color + '1f', color: getCategoryMeta(expense.category, allCategories).color }}
                               >
-                                <span className="category-icon" role="img" aria-label={expense.category}>{getCategoryMeta(expense.category).icon}</span>
+                                <span className="category-icon" role="img" aria-label={expense.category}>{getCategoryMeta(expense.category, allCategories).icon}</span>
                                 {expense.category || 'Other'}
                               </span>
                               <span className="product-price">{formatCurrency(expense.amount, expense.currency)}</span>
@@ -956,7 +1041,7 @@ function ExpensesSummary({
 
       <div className="expenses-mobile-list">
         {sortedExpenses.map(expense => {
-          const categoryMeta = getCategoryMeta(expense.category);
+          const categoryMeta = getCategoryMeta(expense.category, allCategories);
           const tags = deriveTags(expense);
           const formattedDate = formatDateShort(expense.date);
 
@@ -1041,31 +1126,6 @@ function ExpensesSummary({
                       disabled={isSaving}
                     />
                   </div>
-                  <div className="form-field">
-                    <label htmlFor="edit-amount">Amount</label>
-                    <input
-                      id="edit-amount"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={editForm.totalAmount}
-                      onChange={(event) => handleEditFieldChange('totalAmount', event.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label htmlFor="edit-category">Category</label>
-                    <select
-                      id="edit-category"
-                      value={editForm.category}
-                      onChange={(event) => handleEditFieldChange('category', event.target.value)}
-                      disabled={isSaving}
-                    >
-                      {Object.keys(CATEGORY_META).map(category => (
-                        <option key={category} value={category}>{category}</option>
-                      ))}
-                    </select>
-                  </div>
                   <div className="form-field form-field-full">
                     <label htmlFor="edit-payment">Payment method</label>
                     <input
@@ -1077,6 +1137,86 @@ function ExpensesSummary({
                     />
                   </div>
                 </div>
+
+                {/* Items Section */}
+                {editForm.items && editForm.items.length > 0 && (
+                  <div className="edit-items-section" style={{ marginTop: '1.5rem' }}>
+                    <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#333' }}>Receipt Items</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {editForm.items.map((item, index) => (
+                        <div key={index} style={{
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '8px',
+                          padding: '0.75rem',
+                          backgroundColor: '#f9f9f9'
+                        }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <div className="form-field" style={{ margin: 0 }}>
+                              <label htmlFor={`item-desc-${index}`} style={{ fontSize: '0.85rem', marginBottom: '0.25rem', display: 'block' }}>Description</label>
+                              <input
+                                id={`item-desc-${index}`}
+                                type="text"
+                                value={item.description || ''}
+                                onChange={(e) => handleItemFieldChange(index, 'description', e.target.value)}
+                                disabled={isSaving}
+                                style={{ fontSize: '0.9rem', width: '100%' }}
+                              />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                              <div className="form-field" style={{ margin: 0 }}>
+                                <label htmlFor={`item-price-${index}`} style={{ fontSize: '0.85rem', marginBottom: '0.25rem', display: 'block' }}>Price</label>
+                                <input
+                                  id={`item-price-${index}`}
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={item.totalPrice || item.price || ''}
+                                  onChange={(e) => handleItemFieldChange(index, 'totalPrice', e.target.value)}
+                                  disabled={isSaving}
+                                  style={{ fontSize: '0.9rem', width: '100%' }}
+                                />
+                              </div>
+                              <div className="form-field" style={{ margin: 0 }}>
+                                <label htmlFor={`item-cat-${index}`} style={{ fontSize: '0.85rem', marginBottom: '0.25rem', display: 'block' }}>Category</label>
+                                <select
+                                  id={`item-cat-${index}`}
+                                  value={item.category || 'Other'}
+                                  onChange={(e) => handleItemFieldChange(index, 'category', e.target.value)}
+                                  disabled={isSaving}
+                                  style={{ fontSize: '0.9rem', width: '100%', padding: '0.5rem' }}
+                                >
+                                  {allCategories.map(category => (
+                                    <option key={category.id} value={category.name}>{category.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteItem(index)}
+                              disabled={isSaving}
+                              style={{
+                                background: '#dc3545',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                padding: '0.5rem',
+                                cursor: isSaving ? 'not-allowed' : 'pointer',
+                                fontSize: '0.9rem',
+                                opacity: isSaving ? 0.6 : 1,
+                                width: '100%'
+                              }}
+                              title="Delete item"
+                            >
+                              🗑️ Delete Item
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {editError && (
                   <div className="modal-error">
                     {editError}
@@ -1132,7 +1272,7 @@ function ExpensesSummary({
                     <div className="items-list">
                       {selectedExpense.items.map((item, index) => {
                         const itemCategory = item.category || selectedExpense.category;
-                        const categoryMeta = getCategoryMeta(itemCategory);
+                        const categoryMeta = getCategoryMeta(itemCategory, allCategories);
                         return (
                           <div key={index} className="item-row">
                             <div className="item-description">

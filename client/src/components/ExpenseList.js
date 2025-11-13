@@ -95,10 +95,21 @@ const ExpenseList = ({ expenses, loading, onExpenseSelect, onRefresh }) => {
                 <div className="expense-summary">
                   <div>
                     <div className="expense-merchant">
-                      {expense.merchantName || 'Unknown Merchant'}
+                      {expense.merchantName || (
+                        <span style={{ color: '#999', fontStyle: 'italic' }}>
+                          + Add Store/Merchant
+                        </span>
+                      )}
                     </div>
                     <div className="expense-date">
                       {formatDate(expense.date)} • {expense.category || 'Other'}
+                      {expense.paymentMethod ? (
+                        <span> • {expense.paymentMethod}</span>
+                      ) : (
+                        <span style={{ color: '#999', fontStyle: 'italic' }}>
+                          {' • '}+ Add Payment Method
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
