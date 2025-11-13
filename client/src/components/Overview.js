@@ -250,16 +250,24 @@ function Overview({ expenses = [], dateRange }) {
 
   // Build dynamic color map including custom categories
   const categoryColorMap = useMemo(() => {
-    // Start with base category colors
+    // Start with base category colors - these are already defined
     const colorMap = { ...CATEGORY_COLORS };
 
-    // Extended color palette for additional categories
+    // Ensure the 5 core categories all have colors (they should from CATEGORY_COLORS)
+    const FIXED_CATEGORIES = ['Food', 'Transport', 'Shopping', 'Bills', 'Other'];
     const extendedColors = [
       '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#a29bfe',
       '#fd79a8', '#95afc0', '#e17055', '#74b9ff', '#6c5ce7',
       '#55efc4', '#ffeaa7', '#fab1a0', '#ff7675', '#fdcb6e',
       '#00b894', '#0984e3', '#b2bec3', '#e84393', '#fd79a8'
     ];
+
+    // Make sure all fixed categories have colors
+    FIXED_CATEGORIES.forEach((categoryName, index) => {
+      if (!colorMap[categoryName]) {
+        colorMap[categoryName] = extendedColors[index % extendedColors.length];
+      }
+    });
 
     // Add colors from custom categories defined by user
     categories.forEach(cat => {
@@ -271,22 +279,22 @@ function Overview({ expenses = [], dateRange }) {
 
     // Get all unique categories from current and previous spending
     const allCategories = new Set([
+      ...FIXED_CATEGORIES,
       ...Object.keys(categorySpending),
       ...Object.keys(previousCategorySpending)
     ]);
 
-    // Assign colors to any categories that don't have one yet
-    let colorIndex = 0;
+    // Assign colors to any additional categories that don't have one yet
+    let colorIndex = FIXED_CATEGORIES.length;
     allCategories.forEach(categoryName => {
       if (!colorMap[categoryName]) {
-        // Find the next unused color
         colorMap[categoryName] = extendedColors[colorIndex % extendedColors.length];
         colorIndex++;
       }
     });
 
     console.log('📊 Category Color Map:', colorMap);
-    console.log('📊 Categories in pie chart:', Array.from(allCategories));
+    console.log('📊 Fixed Categories:', FIXED_CATEGORIES);
 
     return colorMap;
   }, [categories, categorySpending, previousCategorySpending]);
@@ -332,50 +340,27 @@ function Overview({ expenses = [], dateRange }) {
 
   const remainingBudget = totalBudget - currentMonthTotal;
 
-  // Pie chart data - ensure at least 5 categories are shown
+  // Pie chart data - ALWAYS show exactly these 5 categories
   const pieChartData = useMemo(() => {
-    // Define core categories that should always appear
-    const coreCategories = ['Food', 'Transport', 'Shopping', 'Bills', 'Other'];
+    // These 5 categories will ALWAYS be shown, regardless of spending
+    const FIXED_CATEGORIES = ['Food', 'Transport', 'Shopping', 'Bills', 'Other'];
 
-    const currentCategories = Object.entries(categorySpending).map(([name, value]) => ({
-      name,
-      value,
-      percentage: ((value / currentMonthTotal) * 100).toFixed(1),
-      source: 'current'
-    }));
+    // Build the data array with all 5 categories
+    const chartData = FIXED_CATEGORIES.map(categoryName => {
+      // Check if this category has spending this month
+      const spent = categorySpending[categoryName] || 0;
+      const percentage = currentMonthTotal > 0 ? ((spent / currentMonthTotal) * 100).toFixed(1) : '0';
 
-    const currentCategoryNames = new Set(Object.keys(categorySpending));
-    const allCategories = [...currentCategories];
-
-    // Add core categories that aren't in current spending
-    coreCategories.forEach(categoryName => {
-      if (!currentCategoryNames.has(categoryName)) {
-        allCategories.push({
-          name: categoryName,
-          value: 0,
-          percentage: '0',
-          source: 'core'
-        });
-      }
+      return {
+        name: categoryName,
+        value: spent,
+        percentage: percentage
+      };
     });
 
-    // If we still don't have 5, add from previous month spending
-    if (allCategories.length < 5) {
-      Object.entries(previousCategorySpending).forEach(([name, value]) => {
-        if (!allCategories.some(cat => cat.name === name) && allCategories.length < 5) {
-          allCategories.push({
-            name,
-            value: 0,
-            percentage: '0',
-            source: 'previous'
-          });
-        }
-      });
-    }
-
-    console.log('📊 Pie Chart Data:', allCategories);
-    return allCategories;
-  }, [categorySpending, previousCategorySpending, currentMonthTotal]);
+    console.log('📊 Pie Chart Data (5 categories guaranteed):', chartData);
+    return chartData;
+  }, [categorySpending, currentMonthTotal]);
 
   // Line chart + daily bar data (daily spending for current period)
   const { lineChartData, dailySpendingData } = useMemo(() => {

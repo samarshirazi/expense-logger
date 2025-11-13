@@ -73,6 +73,10 @@ function CategoryOverview({
     payload: entry
   }));
 
+  console.log('🎨 CategoryOverview received data:', data);
+  console.log('🎨 Pie data (non-zero only):', pieData);
+  console.log('🎨 Legend payload (all categories):', legendPayload);
+
   return (
     <div className="category-overview">
       <div className="category-overview-chart" style={{ height }}>
