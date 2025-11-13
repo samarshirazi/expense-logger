@@ -120,12 +120,6 @@ function ExpensesSummary({
   const [filters, setFilters] = useState(() => ({ ...defaultFilters }));
 
   const sortConfig = useMemo(() => ({ key: 'date', direction: 'desc' }), []);
-  const [showFilters, setShowFilters] = useState(() => {
-    if (typeof window === 'undefined') {
-      return true;
-    }
-    return window.innerWidth > 768;
-  });
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -589,15 +583,8 @@ function ExpensesSummary({
     XLSX.writeFile(wb, filename);
   };
 
-  const handleAddExpense = () => {
-    if (onAddExpense) {
-      onAddExpense();
-    } else {
-      window.alert('Hook up the add expense flow to enable this action.');
-    }
-  };
-
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showFiltersModal, setShowFiltersModal] = useState(false);
 
   const handleExport = () => {
     if (onExport) {
@@ -615,13 +602,6 @@ function ExpensesSummary({
       exportToExcelDaily();
     } else if (type === 'excel-monthly') {
       exportToExcelMonthly();
-    }
-  };
-
-  const toggleFilters = () => {
-    setShowFilters(prev => !prev);
-    if (onFiltersToggle) {
-      onFiltersToggle(!showFilters);
     }
   };
 
@@ -739,36 +719,111 @@ function ExpensesSummary({
           <h1>Expenses</h1>
           <p>Monitor your spending and drill into every transaction at a glance.</p>
         </div>
-        <div className="expenses-header-actions">
-          <button type="button" className="expenses-btn primary" onClick={handleAddExpense}>
-            + Add Expense
-          </button>
-          <button type="button" className="expenses-btn ghost" onClick={toggleFilters}>
-            {showFilters ? 'Hide Filters' : 'Filters'}
-          </button>
+        <div className="expenses-header-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <button
             type="button"
-            className="expenses-btn ghost"
+            className="expenses-btn-icon"
+            onClick={() => setShowFiltersModal(true)}
+            style={{
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.borderColor = '#4a90e2';
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(74, 144, 226, 0.2)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.borderColor = '#ddd';
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+            }}
+            title="Filters"
+          >
+            🔍
+          </button>
+
+          <button
+            type="button"
             onClick={onOpenShoppingList}
+            style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '0.6rem 1.2rem',
+              cursor: 'pointer',
+              fontSize: '0.95rem',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 6px rgba(102, 126, 234, 0.3)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(102, 126, 234, 0.3)';
+            }}
           >
             🛒 Shopping List
           </button>
+
           <div style={{ position: 'relative' }}>
-            <button type="button" className="expenses-btn ghost" onClick={handleExport}>
-              Export {showExportMenu ? '▲' : '▼'}
+            <button
+              type="button"
+              onClick={handleExport}
+              style={{
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '0.6rem 1.2rem',
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 6px rgba(240, 147, 251, 0.3)'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(240, 147, 251, 0.4)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 6px rgba(240, 147, 251, 0.3)';
+              }}
+            >
+              📊 Export {showExportMenu ? '▲' : '▼'}
             </button>
             {showExportMenu && (
               <div style={{
                 position: 'absolute',
                 right: 0,
                 top: '100%',
-                marginTop: '4px',
+                marginTop: '8px',
                 backgroundColor: 'white',
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                minWidth: '180px',
-                zIndex: 1000
+                border: '1px solid #e0e0e0',
+                borderRadius: '12px',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                minWidth: '200px',
+                zIndex: 1000,
+                overflow: 'hidden'
               }}>
                 <button
                   onClick={() => handleExportOption('csv')}
@@ -781,9 +836,10 @@ function ExpensesSummary({
                     textAlign: 'left',
                     cursor: 'pointer',
                     fontSize: '14px',
-                    borderBottom: '1px solid #eee'
+                    borderBottom: '1px solid #f0f0f0',
+                    transition: 'background 0.2s ease'
                   }}
-                  onMouseOver={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
                   onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
                 >
                   📄 Export as CSV
@@ -799,9 +855,10 @@ function ExpensesSummary({
                     textAlign: 'left',
                     cursor: 'pointer',
                     fontSize: '14px',
-                    borderBottom: '1px solid #eee'
+                    borderBottom: '1px solid #f0f0f0',
+                    transition: 'background 0.2s ease'
                   }}
-                  onMouseOver={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
                   onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
                 >
                   📊 Excel (Daily)
@@ -816,9 +873,10 @@ function ExpensesSummary({
                     background: 'none',
                     textAlign: 'left',
                     cursor: 'pointer',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    transition: 'background 0.2s ease'
                   }}
-                  onMouseOver={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
                   onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
                 >
                   📈 Excel (Monthly)
@@ -829,7 +887,7 @@ function ExpensesSummary({
         </div>
       </div>
 
-      <div className={`expenses-filters ${showFilters ? 'is-open' : 'is-collapsed'}`}>
+      <div className={`expenses-filters`} style={{ display: 'none' }}>
         <div className="filter-row">
           <div className="filter-field filter-search">
             <label htmlFor="search">Search</label>
@@ -1345,6 +1403,148 @@ function ExpensesSummary({
                   </button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filters Modal */}
+      {showFiltersModal && (
+        <div className="expense-modal" role="dialog" aria-modal="true">
+          <div className="expense-modal-backdrop" onClick={() => setShowFiltersModal(false)} />
+          <div className="expense-modal-content" style={{ maxWidth: '800px' }}>
+            <button type="button" className="modal-close" onClick={() => setShowFiltersModal(false)} aria-label="Close">
+              ×
+            </button>
+            <h2>Filter Expenses</h2>
+
+            <div className="modal-form" style={{ padding: '1rem 0' }}>
+              <div className="form-grid">
+                <div className="form-field form-field-full">
+                  <label htmlFor="modal-search">Search</label>
+                  <div className="input-with-icon">
+                    <span className="input-icon" aria-hidden="true">🔍</span>
+                    <input
+                      id="modal-search"
+                      type="text"
+                      value={filters.search}
+                      placeholder="Search by merchant, notes, category..."
+                      onChange={(event) => handleFilterChange('search', event.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="modal-category">Category</label>
+                  <select
+                    id="modal-category"
+                    value={filters.category}
+                    onChange={(event) => handleFilterChange('category', event.target.value)}
+                  >
+                    <option value="all">All</option>
+                    {allCategories.map(category => (
+                      <option key={category.id} value={category.name}>{category.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="modal-source">Source</label>
+                  <select
+                    id="modal-source"
+                    value={filters.source}
+                    onChange={(event) => handleFilterChange('source', event.target.value)}
+                  >
+                    <option value="all">All</option>
+                    {sources.map(source => (
+                      <option key={source} value={source}>{source}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="modal-minAmount">Min Amount</label>
+                  <input
+                    id="modal-minAmount"
+                    type="number"
+                    value={filters.minAmount}
+                    placeholder="Min"
+                    onChange={(event) => handleFilterChange('minAmount', event.target.value)}
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="modal-maxAmount">Max Amount</label>
+                  <input
+                    id="modal-maxAmount"
+                    type="number"
+                    value={filters.maxAmount}
+                    placeholder="Max"
+                    onChange={(event) => handleFilterChange('maxAmount', event.target.value)}
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="modal-startDate">Start Date</label>
+                  <input
+                    id="modal-startDate"
+                    type="date"
+                    value={filters.startDate}
+                    onChange={(event) => handleFilterChange('startDate', event.target.value)}
+                  />
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="modal-endDate">End Date</label>
+                  <input
+                    id="modal-endDate"
+                    type="date"
+                    value={filters.endDate}
+                    onChange={(event) => handleFilterChange('endDate', event.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Active Filters Summary */}
+              {activeFilterLabels.length > 0 && (
+                <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>Active Filters:</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {activeFilterLabels.map(label => (
+                      <span key={label} style={{
+                        padding: '0.25rem 0.75rem',
+                        backgroundColor: '#4a90e2',
+                        color: 'white',
+                        borderRadius: '12px',
+                        fontSize: '0.85rem'
+                      }}>
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#e8f4fd', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#333' }}>{resultsLabel}</div>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="expenses-btn ghost"
+                onClick={resetFilters}
+              >
+                Reset All
+              </button>
+              <button
+                type="button"
+                className="expenses-btn primary"
+                onClick={() => setShowFiltersModal(false)}
+              >
+                Apply Filters
+              </button>
             </div>
           </div>
         </div>
