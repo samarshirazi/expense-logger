@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import './ExpensesSummary.css';
-import { updateExpense } from '../services/apiService';
+import { updateExpense, deleteExpense } from '../services/apiService';
 import { getAllCategories } from '../services/categoryService';
 
 const CATEGORY_META = {
@@ -133,6 +133,8 @@ function ExpensesSummary({
   const [isSaving, setIsSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [allCategories, setAllCategories] = useState([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load all categories (default + custom)
   useEffect(() => {
@@ -627,6 +629,45 @@ function ExpensesSummary({
     });
   };
 
+  const handleAddItem = () => {
+    setEditForm(prev => ({
+      ...prev,
+      items: [
+        ...prev.items,
+        {
+          description: '',
+          quantity: 1,
+          totalPrice: 0,
+          category: 'Other'
+        }
+      ]
+    }));
+  };
+
+  const handleDeleteExpense = async () => {
+    if (!selectedExpense || !selectedExpense.id) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setEditError('');
+
+    try {
+      await deleteExpense(selectedExpense.id);
+      setSelectedExpense(null);
+      setShowDeleteConfirm(false);
+      // Notify parent to refresh
+      onExpenseUpdated(null);
+      // Refresh the page to update the list
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to delete expense:', error);
+      setEditError(error.message || 'Failed to delete expense');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleStartEdit = () => {
     if (!selectedExpense) {
       return;
@@ -656,6 +697,12 @@ function ExpensesSummary({
 
     if (!editForm.date) {
       setEditError('Date is required.');
+      return;
+    }
+
+    // Check if all items have been deleted - if so, delete the entire receipt
+    if (editForm.items && editForm.items.length === 0 && selectedExpense.items && selectedExpense.items.length > 0) {
+      setShowDeleteConfirm(true);
       return;
     }
 
@@ -1197,9 +1244,33 @@ function ExpensesSummary({
                 </div>
 
                 {/* Items Section */}
-                {editForm.items && editForm.items.length > 0 && (
-                  <div className="edit-items-section" style={{ marginTop: '1.5rem' }}>
-                    <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#333' }}>Receipt Items</h3>
+                <div className="edit-items-section" style={{ marginTop: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ fontSize: '1rem', margin: 0, color: '#333' }}>Receipt Items</h3>
+                    <button
+                      type="button"
+                      onClick={handleAddItem}
+                      disabled={isSaving}
+                      style={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '0.5rem 1rem',
+                        cursor: isSaving ? 'not-allowed' : 'pointer',
+                        fontSize: '0.9rem',
+                        fontWeight: '500',
+                        opacity: isSaving ? 0.6 : 1,
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseOver={(e) => !isSaving && (e.currentTarget.style.transform = 'translateY(-1px)')}
+                      onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+                      title="Add new item"
+                    >
+                      + Add Item
+                    </button>
+                  </div>
+                  {editForm.items && editForm.items.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       {editForm.items.map((item, index) => (
                         <div key={index} style={{
@@ -1272,8 +1343,13 @@ function ExpensesSummary({
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                  {editForm.items && editForm.items.length === 0 && (
+                    <p style={{ color: '#999', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
+                      No items yet. Click "Add Item" to add products to this receipt.
+                    </p>
+                  )}
+                </div>
 
                 {editError && (
                   <div className="modal-error">
@@ -1397,6 +1473,19 @@ function ExpensesSummary({
                     disabled={!selectedExpense.id}
                   >
                     Edit expense
+                  </button>
+                  <button
+                    type="button"
+                    className="expenses-btn"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    disabled={!selectedExpense.id}
+                    style={{
+                      background: '#dc3545',
+                      color: 'white',
+                      border: 'none'
+                    }}
+                  >
+                    Delete Receipt
                   </button>
                   <button type="button" className="expenses-btn ghost" onClick={() => setSelectedExpense(null)}>
                     Close
@@ -1544,6 +1633,61 @@ function ExpensesSummary({
                 onClick={() => setShowFiltersModal(false)}
               >
                 Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="expense-modal" role="dialog" aria-modal="true">
+          <div className="expense-modal-backdrop" onClick={() => setShowDeleteConfirm(false)} />
+          <div className="expense-modal-content" style={{ maxWidth: '500px' }}>
+            <button type="button" className="modal-close" onClick={() => setShowDeleteConfirm(false)} aria-label="Close">
+              ×
+            </button>
+            <h2>Delete Receipt?</h2>
+            <div className="modal-details">
+              <p style={{ fontSize: '1rem', color: '#666', marginBottom: '1.5rem' }}>
+                Are you sure you want to delete this entire receipt? This action cannot be undone.
+              </p>
+              {selectedExpense && (
+                <div style={{ padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px', marginBottom: '1rem' }}>
+                  <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>{selectedExpense.merchantName}</div>
+                  <div style={{ color: '#666', fontSize: '0.9rem' }}>{formatDate(selectedExpense.date)}</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: '600', marginTop: '0.5rem', color: '#dc3545' }}>
+                    {formatCurrency(selectedExpense.totalAmount || selectedExpense.amount, selectedExpense.currency)}
+                  </div>
+                </div>
+              )}
+              {editError && (
+                <div className="modal-error">
+                  {editError}
+                </div>
+              )}
+            </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="expenses-btn ghost"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="expenses-btn"
+                onClick={handleDeleteExpense}
+                disabled={isDeleting}
+                style={{
+                  background: '#dc3545',
+                  color: 'white',
+                  border: 'none'
+                }}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Receipt'}
               </button>
             </div>
           </div>

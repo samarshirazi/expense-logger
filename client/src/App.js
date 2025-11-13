@@ -328,6 +328,130 @@ function App() {
     });
   }, []);
 
+  // Compute expense statistics for AI Coach
+  useEffect(() => {
+    if (!expenses || expenses.length === 0) {
+      setCoachAnalysis({ data: null, key: null });
+      return;
+    }
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    // Filter expenses by current date range
+    const filteredExpenses = expenses.filter(exp => {
+      if (!exp.date) return false;
+      const expDate = exp.date.substring(0, 10);
+      return expDate >= dateRange.startDate && expDate <= dateRange.endDate;
+    });
+
+    // Calculate totals
+    const totalSpending = filteredExpenses.reduce((sum, exp) => {
+      return sum + (exp.totalAmount || exp.amount || 0);
+    }, 0);
+
+    const averageExpense = filteredExpenses.length > 0 ? totalSpending / filteredExpenses.length : 0;
+
+    // Calculate category breakdown
+    const categoryBreakdown = {};
+    filteredExpenses.forEach(exp => {
+      const category = exp.category || 'Other';
+      if (!categoryBreakdown[category]) {
+        categoryBreakdown[category] = {
+          categoryName: category,
+          spent: 0,
+          count: 0,
+          budget: 0,
+          remaining: 0
+        };
+      }
+      categoryBreakdown[category].spent += (exp.totalAmount || exp.amount || 0);
+      categoryBreakdown[category].count += 1;
+    });
+
+    // Get budgets from localStorage
+    let monthlyBudgets = {};
+    try {
+      const stored = window.localStorage.getItem('monthlyBudgets');
+      if (stored) {
+        monthlyBudgets = JSON.parse(stored) || {};
+      }
+    } catch (error) {
+      console.error('Failed to parse monthly budgets:', error);
+    }
+
+    const monthKey = dateRange.startDate.substring(0, 7);
+    const budgets = monthlyBudgets[monthKey] || {};
+
+    // Add budget info to categories
+    Object.keys(categoryBreakdown).forEach(category => {
+      const budget = budgets[category] || 0;
+      categoryBreakdown[category].budget = budget;
+      categoryBreakdown[category].remaining = budget - categoryBreakdown[category].spent;
+    });
+
+    const categorySummary = Object.values(categoryBreakdown);
+
+    // Calculate total budget
+    const totalBudget = Object.values(budgets).reduce((sum, val) => sum + (val || 0), 0);
+    const deltaVsBudget = totalBudget - totalSpending;
+
+    // Find top merchant
+    const merchantStats = {};
+    filteredExpenses.forEach(exp => {
+      const merchant = exp.merchantName || 'Unknown';
+      if (!merchantStats[merchant]) {
+        merchantStats[merchant] = { name: merchant, count: 0, totalSpent: 0 };
+      }
+      merchantStats[merchant].count += 1;
+      merchantStats[merchant].totalSpent += (exp.totalAmount || exp.amount || 0);
+    });
+
+    const topMerchants = Object.values(merchantStats)
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, 5);
+
+    // Calculate most active day
+    const dayStats = {};
+    filteredExpenses.forEach(exp => {
+      if (!exp.date) return;
+      const date = new Date(exp.date);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+      dayStats[dayName] = (dayStats[dayName] || 0) + 1;
+    });
+
+    const mostActiveDay = Object.keys(dayStats).reduce((a, b) =>
+      dayStats[a] > dayStats[b] ? a : b
+    , null);
+
+    const analysisData = {
+      context: {
+        activeView: coachContext,
+        dateRange: dateRange,
+        currentMonth: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`
+      },
+      totals: {
+        spending: totalSpending,
+        average: averageExpense,
+        budget: totalBudget,
+        deltaVsBudget: deltaVsBudget
+      },
+      expenseCount: filteredExpenses.length,
+      categorySummary: categorySummary,
+      spendingPatterns: {
+        topMerchants: topMerchants,
+        mostActiveDay: mostActiveDay
+      },
+      preferences: {
+        mood: coachMood
+      }
+    };
+
+    const analysisKey = `${dateRange.startDate}_${dateRange.endDate}_${expenses.length}`;
+    setCoachAnalysis({ data: analysisData, key: analysisKey });
+  }, [expenses, dateRange, coachContext, coachMood]);
+
   const handleCoachAssistantMessage = useCallback(() => {
     if (!isCoachOpen) {
       setCoachHasUnread(true);
