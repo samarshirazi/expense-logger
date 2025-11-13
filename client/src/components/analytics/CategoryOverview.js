@@ -31,8 +31,13 @@ function CategoryOverview({
   ];
 
   // Get color for a category with multiple fallbacks
-  const getColorForCategory = (categoryName, index) => {
-    // Try colors prop first
+  const getColorForCategory = (entry, index) => {
+    // Try entry.color first (from category object)
+    if (entry && entry.color) {
+      return entry.color;
+    }
+    const categoryName = entry?.name || '';
+    // Try colors prop
     if (colors && colors[categoryName]) {
       return colors[categoryName];
     }
@@ -69,7 +74,7 @@ function CategoryOverview({
   const legendPayload = data.map((entry, index) => ({
     value: entry.name,
     type: 'square',
-    color: getColorForCategory(entry.name, index),
+    color: getColorForCategory(entry, index),
     payload: entry
   }));
 
@@ -95,7 +100,8 @@ function CategoryOverview({
               {pieData.map((entry, index) => {
                 // Find the original index in the full data array for consistent colors
                 const originalIndex = data.findIndex(d => d.name === entry.name);
-                const color = getColorForCategory(entry.name, originalIndex);
+                const originalEntry = data[originalIndex] || entry;
+                const color = getColorForCategory(originalEntry, originalIndex);
                 console.log(`🎨 Category: ${entry.name}, Color: ${color}, Value: ${entry.value}`);
                 return (
                   <Cell

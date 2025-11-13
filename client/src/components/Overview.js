@@ -340,27 +340,22 @@ function Overview({ expenses = [], dateRange }) {
 
   const remainingBudget = totalBudget - currentMonthTotal;
 
-  // Pie chart data - ALWAYS show exactly these 5 categories
+  // Pie chart data - show ALL categories (matching old Dashboard behavior)
   const pieChartData = useMemo(() => {
-    // These 5 categories will ALWAYS be shown, regardless of spending
-    const FIXED_CATEGORIES = ['Food', 'Transport', 'Shopping', 'Bills', 'Other'];
-
-    // Build the data array with all 5 categories
-    const chartData = FIXED_CATEGORIES.map(categoryName => {
-      // Check if this category has spending this month
+    // Get all categories (includes default + custom categories)
+    return categories.map(category => {
+      const categoryName = category.name || category.id;
       const spent = categorySpending[categoryName] || 0;
       const percentage = currentMonthTotal > 0 ? ((spent / currentMonthTotal) * 100).toFixed(1) : '0';
 
       return {
         name: categoryName,
         value: spent,
-        percentage: percentage
+        percentage: percentage,
+        color: category.color // Include the color from the category object
       };
     });
-
-    console.log('📊 Pie Chart Data (5 categories guaranteed):', chartData);
-    return chartData;
-  }, [categorySpending, currentMonthTotal]);
+  }, [categories, categorySpending, currentMonthTotal]);
 
   // Line chart + daily bar data (daily spending for current period)
   const { lineChartData, dailySpendingData } = useMemo(() => {
