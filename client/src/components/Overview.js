@@ -343,7 +343,7 @@ function Overview({ expenses = [], dateRange }) {
   // Pie chart data - show ALL categories (matching old Dashboard behavior)
   const pieChartData = useMemo(() => {
     // Get all categories (includes default + custom categories)
-    return categories.map(category => {
+    const chartData = categories.map(category => {
       const categoryName = category.name || category.id;
       const spent = categorySpending[categoryName] || 0;
       const percentage = currentMonthTotal > 0 ? ((spent / currentMonthTotal) * 100).toFixed(1) : '0';
@@ -355,6 +355,12 @@ function Overview({ expenses = [], dateRange }) {
         color: category.color // Include the color from the category object
       };
     });
+
+    console.log('📊 ALL Categories from getAllCategories():', categories);
+    console.log('📊 Category Spending:', categorySpending);
+    console.log('📊 Pie Chart Data (all categories):', chartData);
+
+    return chartData;
   }, [categories, categorySpending, currentMonthTotal]);
 
   // Line chart + daily bar data (daily spending for current period)
