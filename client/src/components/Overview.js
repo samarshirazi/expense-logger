@@ -138,17 +138,6 @@ function Overview({ expenses = [], dateRange }) {
   const [expandedCard, setExpandedCard] = useState(null);
   const touchStartRef = useRef(null);
 
-  // Build dynamic color map including custom categories
-  const categoryColorMap = useMemo(() => {
-    const colorMap = { ...CATEGORY_COLORS };
-    categories.forEach(cat => {
-      if (cat.color && (cat.name || cat.id)) {
-        colorMap[cat.name || cat.id] = cat.color;
-      }
-    });
-    return colorMap;
-  }, [categories]);
-
   useEffect(() => {
     if (typeof window === 'undefined') {
       return undefined;
@@ -259,6 +248,37 @@ function Overview({ expenses = [], dateRange }) {
     });
     return spending;
   }, [previousMonthExpenses]);
+
+  // Build dynamic color map including custom categories
+  const categoryColorMap = useMemo(() => {
+    const colorMap = { ...CATEGORY_COLORS };
+
+    // Add custom category colors
+    categories.forEach(cat => {
+      if (cat.color && (cat.name || cat.id)) {
+        colorMap[cat.name || cat.id] = cat.color;
+      }
+    });
+
+    // Generate colors for any categories that don't have one
+    const defaultColors = [
+      '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#a29bfe',
+      '#fd79a8', '#95afc0', '#e17055', '#74b9ff', '#a29bfe',
+      '#55efc4', '#ffeaa7', '#fab1a0', '#ff7675', '#fdcb6e'
+    ];
+
+    let colorIndex = 0;
+    const allCategories = [...new Set([...Object.keys(categorySpending), ...Object.keys(previousCategorySpending)])];
+
+    allCategories.forEach(category => {
+      if (!colorMap[category]) {
+        colorMap[category] = defaultColors[colorIndex % defaultColors.length];
+        colorIndex++;
+      }
+    });
+
+    return colorMap;
+  }, [categories, categorySpending, previousCategorySpending]);
 
   // Top spending category
   const topCategory = useMemo(() => {
@@ -774,7 +794,7 @@ function Overview({ expenses = [], dateRange }) {
               ) : (
                 monthlyTrendData.length ? (
                   <ResponsiveContainer width="100%" height={320}>
-                    <BarChart data={monthlyTrendData}>
+                    <LineChart data={monthlyTrendData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="month"
@@ -785,8 +805,8 @@ function Overview({ expenses = [], dateRange }) {
                       />
                       <YAxis label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} />
                       <Tooltip formatter={(value) => formatCurrency(value)} />
-                      <Bar dataKey="amount" fill="#667eea" radius={[6, 6, 0, 0]} />
-                    </BarChart>
+                      <Line type="monotone" dataKey="amount" stroke="#667eea" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </LineChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="chart-empty-state">Monthly comparison will appear once you have data.</div>

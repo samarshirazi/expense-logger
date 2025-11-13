@@ -425,6 +425,22 @@ function App() {
       dayStats[a] > dayStats[b] ? a : b
     , null);
 
+    // Prepare expense details for AI Coach
+    const recentExpenses = filteredExpenses
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 50) // Last 50 expenses
+      .map(exp => ({
+        date: exp.date,
+        merchant: exp.merchantName,
+        amount: exp.totalAmount || exp.amount || 0,
+        category: exp.category,
+        items: exp.items ? exp.items.map(item => ({
+          description: item.description,
+          price: item.totalPrice || item.price || 0,
+          category: item.category
+        })) : []
+      }));
+
     const analysisData = {
       context: {
         activeView: coachContext,
@@ -442,6 +458,12 @@ function App() {
       spendingPatterns: {
         topMerchants: topMerchants,
         mostActiveDay: mostActiveDay
+      },
+      recentExpenses: recentExpenses,
+      allExpenses: {
+        total: expenses.length,
+        inCurrentPeriod: filteredExpenses.length,
+        totalAllTime: expenses.reduce((sum, exp) => sum + (exp.totalAmount || exp.amount || 0), 0)
       },
       preferences: {
         mood: coachMood
