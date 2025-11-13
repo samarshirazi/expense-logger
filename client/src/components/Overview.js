@@ -134,8 +134,20 @@ function Overview({ expenses = [], dateRange }) {
   const [categories, setCategories] = useState(() => getAllCategories());
   const [activeChartTab, setActiveChartTab] = useState('pie');
   const [barChartView, setBarChartView] = useState('daily');
+  const [trendView, setTrendView] = useState('cumulative'); // 'cumulative' or 'monthly'
   const [expandedCard, setExpandedCard] = useState(null);
   const touchStartRef = useRef(null);
+
+  // Build dynamic color map including custom categories
+  const categoryColorMap = useMemo(() => {
+    const colorMap = { ...CATEGORY_COLORS };
+    categories.forEach(cat => {
+      if (cat.color && (cat.name || cat.id)) {
+        colorMap[cat.name || cat.id] = cat.color;
+      }
+    });
+    return colorMap;
+  }, [categories]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -391,6 +403,40 @@ function Overview({ expenses = [], dateRange }) {
       lastMonth: previousCategorySpending[category] || 0
     }));
   }, [categorySpending, previousCategorySpending]);
+
+  // Monthly comparison trend data
+  const monthlyTrendData = useMemo(() => {
+    // Get last 6 months including current
+    const now = new Date();
+    const months = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+      const parseLocalDate = (dateStr) => {
+        if (!dateStr) return null;
+        const [year, month, day] = dateStr.split('-').map(Number);
+        return new Date(year, month - 1, day);
+      };
+
+      const monthExpenses = expenses.filter(exp => {
+        const expDate = parseLocalDate(exp.date);
+        if (!expDate) return false;
+        return expDate >= monthStart && expDate <= monthEnd;
+      });
+
+      const total = monthExpenses.reduce((sum, exp) => sum + (exp.totalAmount || exp.amount || 0), 0);
+
+      months.push({
+        month: date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+        amount: total
+      });
+    }
+
+    return months;
+  }, [expenses]);
 
   // AI Insights
   const aiInsights = useMemo(() => {
@@ -679,28 +725,74 @@ function Overview({ expenses = [], dateRange }) {
           {activeChartTab === 'pie' && (
             <CategoryOverview
               data={pieChartData}
-              colors={CATEGORY_COLORS}
+              colors={categoryColorMap}
               remainingBudget={remainingBudget}
               totalBudget={totalBudget}
               budgetUsedPercent={budgetUsedPercent}
               emptyMessage="Log a few expenses to unlock this view."
+              isMobile={true}
             />
           )}
 
           {activeChartTab === 'line' && (
-            lineChartData.length ? (
-              <ResponsiveContainer width="100%" height={320}>
-                <LineChart data={lineChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" label={{ value: 'Day of Month', position: 'insideBottom', offset: -5 }} />
-                  <YAxis label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} />
-                  <Tooltip formatter={(value) => formatCurrency(value)} />
-                  <Line type="monotone" dataKey="amount" stroke="#667eea" strokeWidth={3} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="chart-empty-state">Spending trend will appear once you add expenses.</div>
-            )
+            <>
+              <div className="bar-mode-toggle" style={{ marginBottom: '1rem' }}>
+                <button
+                  type="button"
+                  className={trendView === 'cumulative' ? 'active' : ''}
+                  onClick={() => setTrendView('cumulative')}
+                >
+                  This Month
+                </button>
+                <button
+                  type="button"
+                  className={trendView === 'monthly' ? 'active' : ''}
+                  onClick={() => setTrendView('monthly')}
+                >
+                  6-Month Trend
+                </button>
+              </div>
+              {trendView === 'cumulative' ? (
+                lineChartData.length ? (
+                  <ResponsiveContainer width="100%" height={320}>
+                    <LineChart data={lineChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="day"
+                        label={{ value: 'Day of Month', position: 'insideBottom', offset: -5 }}
+                        interval="preserveStartEnd"
+                        minTickGap={20}
+                      />
+                      <YAxis label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} />
+                      <Tooltip formatter={(value) => formatCurrency(value)} />
+                      <Line type="monotone" dataKey="amount" stroke="#667eea" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="chart-empty-state">Spending trend will appear once you add expenses.</div>
+                )
+              ) : (
+                monthlyTrendData.length ? (
+                  <ResponsiveContainer width="100%" height={320}>
+                    <BarChart data={monthlyTrendData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="month"
+                        label={{ value: 'Month', position: 'insideBottom', offset: -5 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                      />
+                      <YAxis label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} />
+                      <Tooltip formatter={(value) => formatCurrency(value)} />
+                      <Bar dataKey="amount" fill="#667eea" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="chart-empty-state">Monthly comparison will appear once you have data.</div>
+                )
+              )}
+            </>
           )}
 
           {activeChartTab === 'bars' && (
@@ -726,7 +818,12 @@ function Overview({ expenses = [], dateRange }) {
                   <ResponsiveContainer width="100%" height={320}>
                     <BarChart data={dailySpendingData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="day" label={{ value: 'Day of Month', position: 'insideBottom', offset: -5 }} />
+                      <XAxis
+                        dataKey="day"
+                        label={{ value: 'Day of Month', position: 'insideBottom', offset: -5 }}
+                        interval="preserveStartEnd"
+                        minTickGap={20}
+                      />
                       <YAxis label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} />
                       <Tooltip formatter={(value) => formatCurrency(value)} />
                       <Bar dataKey="amount" fill="#ff6b6b" radius={[6, 6, 0, 0]} />
@@ -737,9 +834,16 @@ function Overview({ expenses = [], dateRange }) {
                 )
               ) : barChartData.length ? (
                 <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={barChartData}>
+                  <BarChart data={barChartData} layout="horizontal" margin={{ left: 20, right: 20, top: 10, bottom: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="category" />
+                    <XAxis
+                      dataKey="category"
+                      angle={barChartData.length > 5 ? -45 : 0}
+                      textAnchor={barChartData.length > 5 ? "end" : "middle"}
+                      height={barChartData.length > 5 ? 80 : 60}
+                      interval={0}
+                      tick={{ fontSize: 11 }}
+                    />
                     <YAxis label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} />
                     <Tooltip formatter={(value) => formatCurrency(value)} />
                     <Legend />
@@ -889,10 +993,11 @@ function Overview({ expenses = [], dateRange }) {
             <h3 className="chart-title">Spending by Category</h3>
             <CategoryOverview
               data={pieChartData}
-              colors={CATEGORY_COLORS}
+              colors={categoryColorMap}
               showRemaining={false}
               height={300}
               emptyMessage="Log a few expenses to unlock this view."
+              isMobile={false}
             />
           </div>
 
@@ -901,10 +1006,15 @@ function Overview({ expenses = [], dateRange }) {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={lineChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" label={{ value: 'Day of Month', position: 'insideBottom', offset: -5 }} />
+                <XAxis
+                  dataKey="day"
+                  label={{ value: 'Day of Month', position: 'insideBottom', offset: -5 }}
+                  interval="preserveStartEnd"
+                  minTickGap={30}
+                />
                 <YAxis label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} />
                 <Tooltip formatter={(value) => formatCurrency(value)} />
-                <Line type="monotone" dataKey="amount" stroke="#667eea" strokeWidth={2} />
+                <Line type="monotone" dataKey="amount" stroke="#667eea" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -914,7 +1024,12 @@ function Overview({ expenses = [], dateRange }) {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={dailySpendingData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" label={{ value: 'Day of Month', position: 'insideBottom', offset: -5 }} />
+                <XAxis
+                  dataKey="day"
+                  label={{ value: 'Day of Month', position: 'insideBottom', offset: -5 }}
+                  interval="preserveStartEnd"
+                  minTickGap={30}
+                />
                 <YAxis label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} />
                 <Tooltip formatter={(value) => formatCurrency(value)} />
                 <Bar dataKey="amount" fill="#ff6b6b" name="Spent" />
@@ -925,9 +1040,16 @@ function Overview({ expenses = [], dateRange }) {
           <div className="chart-card chart-card-wide">
             <h3 className="chart-title">Category Comparison: This Month vs Last Month</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={barChartData}>
+              <BarChart data={barChartData} margin={{ bottom: barChartData.length > 5 ? 60 : 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="category" />
+                <XAxis
+                  dataKey="category"
+                  angle={barChartData.length > 5 ? -45 : 0}
+                  textAnchor={barChartData.length > 5 ? "end" : "middle"}
+                  height={barChartData.length > 5 ? 80 : 50}
+                  interval={0}
+                  tick={{ fontSize: 12 }}
+                />
                 <YAxis label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} />
                 <Tooltip formatter={(value) => formatCurrency(value)} />
                 <Legend />

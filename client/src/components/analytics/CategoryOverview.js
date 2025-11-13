@@ -11,7 +11,8 @@ function CategoryOverview({
   budgetUsedPercent,
   height = 300,
   showRemaining = true,
-  emptyMessage = 'No category activity yet.'
+  emptyMessage = 'No category activity yet.',
+  isMobile = false
 }) {
   if (!Array.isArray(data) || data.length === 0) {
     return <div className="category-overview-empty">{emptyMessage}</div>;
@@ -21,10 +22,22 @@ function CategoryOverview({
     ? Math.max(0, 100 - Math.round(budgetUsedPercent))
     : null;
 
-  // Custom label renderer for pie chart
+  // Custom label renderer for pie chart - only show percentage on mobile
   const renderLabel = (entry) => {
     const percent = entry.percentage || 0;
-    return `${entry.name} (${percent}%)`;
+    // On mobile, only show percentage if it's significant (>8%)
+    if (isMobile && parseFloat(percent) < 8) {
+      return '';
+    }
+    // On mobile, show shorter labels
+    if (isMobile) {
+      return `${parseFloat(percent).toFixed(0)}%`;
+    }
+    // On desktop, show full label if percentage is significant
+    if (parseFloat(percent) < 5) {
+      return '';
+    }
+    return `${entry.name} ${parseFloat(percent).toFixed(0)}%`;
   };
 
   return (
@@ -36,10 +49,11 @@ function CategoryOverview({
               data={data}
               cx="50%"
               cy="50%"
-              labelLine={true}
+              labelLine={!isMobile}
               label={renderLabel}
-              outerRadius="70%"
+              outerRadius={isMobile ? "65%" : "70%"}
               dataKey="value"
+              style={{ fontSize: isMobile ? '10px' : '12px' }}
             >
               {data.map((entry, index) => (
                 <Cell
@@ -53,10 +67,15 @@ function CategoryOverview({
             />
             <Legend
               verticalAlign="bottom"
-              height={36}
+              height={isMobile ? 60 : 40}
+              wrapperStyle={{ fontSize: isMobile ? '11px' : '12px', paddingTop: '10px' }}
               formatter={(value, entry) => {
                 const amount = entry.payload?.value || 0;
                 const percent = entry.payload?.percentage || 0;
+                if (isMobile) {
+                  // Shorter format for mobile
+                  return `${value}: $${amount.toFixed(0)}`;
+                }
                 return `${value}: $${amount.toFixed(0)} (${percent}%)`;
               }}
             />
