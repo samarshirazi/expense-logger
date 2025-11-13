@@ -1,5 +1,5 @@
 import React from 'react';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import { CATEGORY_COLORS } from './categoryConstants';
 import './CategoryOverview.css';
 
@@ -21,6 +21,12 @@ function CategoryOverview({
     ? Math.max(0, 100 - Math.round(budgetUsedPercent))
     : null;
 
+  // Custom label renderer for pie chart
+  const renderLabel = (entry) => {
+    const percent = entry.percentage || 0;
+    return `${entry.name} (${percent}%)`;
+  };
+
   return (
     <div className="category-overview">
       <div className="category-overview-chart" style={{ height }}>
@@ -30,8 +36,9 @@ function CategoryOverview({
               data={data}
               cx="50%"
               cy="50%"
-              labelLine={false}
-              outerRadius="80%"
+              labelLine={true}
+              label={renderLabel}
+              outerRadius="70%"
               dataKey="value"
             >
               {data.map((entry, index) => (
@@ -41,7 +48,18 @@ function CategoryOverview({
                 />
               ))}
             </Pie>
-            <Tooltip formatter={(value) => typeof value === 'number' ? value.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }) : value} />
+            <Tooltip
+              formatter={(value) => typeof value === 'number' ? value.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }) : value}
+            />
+            <Legend
+              verticalAlign="bottom"
+              height={36}
+              formatter={(value, entry) => {
+                const amount = entry.payload?.value || 0;
+                const percent = entry.payload?.percentage || 0;
+                return `${value}: $${amount.toFixed(0)} (${percent}%)`;
+              }}
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>

@@ -201,15 +201,24 @@ function Overview({ expenses = [], dateRange }) {
       });
     }
 
+    // Parse dates as local dates to avoid timezone issues
+    const parseLocalDate = (dateStr) => {
+      if (!dateStr) return null;
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    };
+
     const currentMonthExpenses = expenses.filter(exp => {
-      const date = new Date(exp.date);
+      const date = parseLocalDate(exp.date);
+      if (!date) return false;
       return date >= currentStart && date <= currentEnd;
     });
 
     console.log('📊 Filtered expenses:', currentMonthExpenses.length, 'out of', expenses.length);
 
     const previousMonthExpenses = expenses.filter(exp => {
-      const date = new Date(exp.date);
+      const date = parseLocalDate(exp.date);
+      if (!date) return false;
       return date >= prevStart && date <= prevEnd;
     });
 
@@ -291,6 +300,12 @@ function Overview({ expenses = [], dateRange }) {
 
   // Line chart + daily bar data (daily spending for current period)
   const { lineChartData, dailySpendingData } = useMemo(() => {
+    const parseLocalDate = (dateStr) => {
+      if (!dateStr) return null;
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    };
+
     const normalize = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const formatKey = (date) => {
       const year = date.getFullYear();
@@ -304,12 +319,19 @@ function Overview({ expenses = [], dateRange }) {
     let rangeEnd;
 
     if (dateRange?.startDate && dateRange?.endDate) {
-      rangeStart = new Date(dateRange.startDate);
-      rangeEnd = new Date(dateRange.endDate);
+      const [startYear, startMonth, startDay] = dateRange.startDate.split('-').map(Number);
+      const [endYear, endMonth, endDay] = dateRange.endDate.split('-').map(Number);
+      rangeStart = new Date(startYear, startMonth - 1, startDay);
+      rangeEnd = new Date(endYear, endMonth - 1, endDay);
     } else if (currentMonthExpenses.length > 0) {
-      const expenseDates = currentMonthExpenses.map(exp => new Date(exp.date));
-      rangeStart = new Date(Math.min(...expenseDates));
-      rangeEnd = new Date(Math.max(...expenseDates));
+      const expenseDates = currentMonthExpenses.map(exp => parseLocalDate(exp.date)).filter(Boolean);
+      if (expenseDates.length > 0) {
+        rangeStart = new Date(Math.min(...expenseDates));
+        rangeEnd = new Date(Math.max(...expenseDates));
+      } else {
+        rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      }
     } else {
       rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
       rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -332,11 +354,13 @@ function Overview({ expenses = [], dateRange }) {
     }
 
     currentMonthExpenses.forEach(exp => {
-      const expDate = normalize(new Date(exp.date));
-      if (expDate < rangeStart || expDate > effectiveEnd) {
+      const expDate = parseLocalDate(exp.date);
+      if (!expDate) return;
+      const normalizedExpDate = normalize(expDate);
+      if (normalizedExpDate < rangeStart || normalizedExpDate > effectiveEnd) {
         return;
       }
-      const key = formatKey(expDate);
+      const key = formatKey(normalizedExpDate);
       dailyTotals[key] = (dailyTotals[key] || 0) + (exp.totalAmount || exp.amount || 0);
     });
 
