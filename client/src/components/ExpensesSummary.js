@@ -110,7 +110,7 @@ function ExpensesSummary({
 
   const [filters, setFilters] = useState(() => ({ ...defaultFilters }));
 
-  const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+  const sortConfig = useMemo(() => ({ key: 'date', direction: 'desc' }), []);
   const [showFilters, setShowFilters] = useState(() => {
     if (typeof window === 'undefined') {
       return true;
@@ -336,21 +336,6 @@ function ExpensesSummary({
       tags: deriveTags(selectedExpense)
     };
   }, [selectedExpense]);
-
-  const handleSort = (key) => {
-    setSortConfig(prev => {
-      if (prev.key === key) {
-        return {
-          key,
-          direction: prev.direction === 'asc' ? 'desc' : 'asc'
-        };
-      }
-      return {
-        key,
-        direction: key === 'date' ? 'desc' : 'asc'
-      };
-    });
-  };
 
   const exportToCSV = () => {
     const rows = [
