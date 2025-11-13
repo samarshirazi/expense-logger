@@ -332,14 +332,38 @@ function Overview({ expenses = [], dateRange }) {
 
   const remainingBudget = totalBudget - currentMonthTotal;
 
-  // Pie chart data
+  // Pie chart data - ensure at least 5 categories are shown
   const pieChartData = useMemo(() => {
-    return Object.entries(categorySpending).map(([name, value]) => ({
+    const currentCategories = Object.entries(categorySpending).map(([name, value]) => ({
       name,
       value,
-      percentage: ((value / currentMonthTotal) * 100).toFixed(1)
+      percentage: ((value / currentMonthTotal) * 100).toFixed(1),
+      source: 'current'
     }));
-  }, [categorySpending, currentMonthTotal]);
+
+    // If we have 5 or more categories, just return current data
+    if (currentCategories.length >= 5) {
+      return currentCategories;
+    }
+
+    // Otherwise, add categories from previous month that aren't in current month
+    const currentCategoryNames = new Set(Object.keys(categorySpending));
+    const additionalCategories = [];
+
+    Object.entries(previousCategorySpending).forEach(([name, value]) => {
+      // Only add if not already in current categories and we need more
+      if (!currentCategoryNames.has(name) && (currentCategories.length + additionalCategories.length) < 5) {
+        additionalCategories.push({
+          name,
+          value: 0, // Show as 0 in current period
+          percentage: '0',
+          source: 'previous'
+        });
+      }
+    });
+
+    return [...currentCategories, ...additionalCategories];
+  }, [categorySpending, previousCategorySpending, currentMonthTotal]);
 
   // Line chart + daily bar data (daily spending for current period)
   const { lineChartData, dailySpendingData } = useMemo(() => {

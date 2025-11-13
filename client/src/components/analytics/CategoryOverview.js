@@ -62,13 +62,24 @@ function CategoryOverview({
     return `${entry.name} ${parseFloat(percent).toFixed(0)}%`;
   };
 
+  // Filter data for pie - only show categories with actual values
+  const pieData = data.filter(entry => entry.value > 0);
+
+  // Create custom legend payload to show all categories (including 0 values)
+  const legendPayload = data.map((entry, index) => ({
+    value: entry.name,
+    type: 'square',
+    color: getColorForCategory(entry.name, index),
+    payload: entry
+  }));
+
   return (
     <div className="category-overview">
       <div className="category-overview-chart" style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={data}
+              data={pieData}
               cx="50%"
               cy="50%"
               labelLine={!isMobile}
@@ -77,9 +88,11 @@ function CategoryOverview({
               dataKey="value"
               style={{ fontSize: isMobile ? '10px' : '12px' }}
             >
-              {data.map((entry, index) => {
-                const color = getColorForCategory(entry.name, index);
-                console.log(`🎨 Category: ${entry.name}, Color: ${color}`);
+              {pieData.map((entry, index) => {
+                // Find the original index in the full data array for consistent colors
+                const originalIndex = data.findIndex(d => d.name === entry.name);
+                const color = getColorForCategory(entry.name, originalIndex);
+                console.log(`🎨 Category: ${entry.name}, Color: ${color}, Value: ${entry.value}`);
                 return (
                   <Cell
                     key={`category-slice-${entry.name || index}`}
@@ -92,6 +105,7 @@ function CategoryOverview({
               formatter={(value) => typeof value === 'number' ? value.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }) : value}
             />
             <Legend
+              payload={legendPayload}
               verticalAlign="bottom"
               height={isMobile ? 60 : 40}
               wrapperStyle={{ fontSize: isMobile ? '11px' : '12px', paddingTop: '10px' }}
