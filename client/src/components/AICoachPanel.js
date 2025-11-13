@@ -54,10 +54,6 @@ function AICoachPanel({
   );
 
   const fetchInsights = useCallback(async ({ userMessage, retry = false } = {}) => {
-    if (!enrichedAnalysis) {
-      return;
-    }
-
     conversationContextRef.current = contextView;
 
     const baseConversation = messages.map(message => ({
@@ -83,7 +79,7 @@ function AICoachPanel({
     try {
       const response = await requestCoachInsights({
         conversation: conversationPayload,
-        analysis: enrichedAnalysis
+        analysis: enrichedAnalysis || { context: contextView }
       });
 
       const assistantMessage = {

@@ -530,18 +530,19 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
     const authHeader = req.headers.authorization;
     const userToken = authHeader ? authHeader.substring(7) : null;
 
-    // Add user_id to expense data
-    const expenseWithUser = {
+    // Prepare expense data (don't include user_id in data, it's passed separately)
+    const expenseWithDefaults = {
       ...expenseData,
-      user_id: req.user.id,
       currency: expenseData.currency || 'USD',
       category: expenseData.category || 'Other',
-      upload_date: new Date().toISOString()
+      upload_date: new Date().toISOString(),
+      originalFilename: null,
+      driveFileId: null
     };
 
-    console.log('Creating manual expense:', expenseWithUser);
+    console.log('Creating manual expense for user:', req.user.id);
 
-    const expense = await saveExpense(expenseWithUser, userToken);
+    const expense = await saveExpense(expenseWithDefaults, req.user.id, userToken);
 
     res.status(201).json({
       success: true,
