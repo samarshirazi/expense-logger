@@ -212,6 +212,19 @@ function ExpensesSummary({
     return sorted;
   }, [filteredExpenses, sortConfig]);
 
+  // Group expenses by date for the new layout
+  const expensesByDate = useMemo(() => {
+    const grouped = {};
+    sortedExpenses.forEach(expense => {
+      const dateKey = expense.dateStr || 'No date';
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey].push(expense);
+    });
+    return grouped;
+  }, [sortedExpenses]);
+
   const totals = useMemo(() => {
     const count = sortedExpenses.length;
     const totalAmount = sortedExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
@@ -870,89 +883,90 @@ function ExpensesSummary({
         </div>
       </div>
 
-      <div className="expenses-table-wrapper">
-        <table className="expenses-table">
-          <thead>
-            <tr>
-              <th>
-                <button type="button" onClick={() => handleSort('date')}>
-                  Date
-                  {sortConfig.key === 'date' && (
-                    <span className={`sort-indicator ${sortConfig.direction}`} />
-                  )}
-                </button>
-              </th>
-              <th>Merchant</th>
-              <th>Category</th>
-              <th>
-                <button type="button" onClick={() => handleSort('amount')}>
-                  Amount
-                  {sortConfig.key === 'amount' && (
-                    <span className={`sort-indicator ${sortConfig.direction}`} />
-                  )}
-                </button>
-              </th>
-              <th>Payment Method</th>
-              <th>Receipt</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedExpenses.length ? (
-              sortedExpenses.map(expense => {
-                const categoryMeta = getCategoryMeta(expense.category);
-                const receiptPreview = getReceiptPreview(expense);
-
-                return (
-                  <tr key={expense.id || `${expense.date}-${expense.merchantName}`} onClick={() => setSelectedExpense(expense)}>
-                    <td>{formatDate(expense.date)}</td>
-                    <td>
-                      <div className="cell-merchant">{expense.merchantName || 'Unknown merchant'}</div>
-                      {expense.items && expense.items.length > 0 && (
-                        <div className="cell-items">
-                          {expense.items.map((item, idx) => (
-                            <div key={idx} className="item-compact">
-                              <span className="item-compact-desc">{item.description}</span>
-                              {item.quantity > 1 && <span className="item-compact-qty">×{item.quantity}</span>}
-                              <span className="item-compact-price">{formatCurrency(item.totalPrice || item.price, expense.currency)}</span>
+      <div className="expenses-grouped-view">
+        {Object.keys(expensesByDate).length > 0 ? (
+          Object.keys(expensesByDate)
+            .sort((a, b) => sortConfig.direction === 'desc' ? b.localeCompare(a) : a.localeCompare(b))
+            .map(dateKey => (
+              <div key={dateKey} className="date-group">
+                <div className="date-header">
+                  {formatDate(dateKey)}
+                </div>
+                <div className="date-expenses">
+                  {expensesByDate[dateKey].map(expense => (
+                    <div key={expense.id || `${expense.date}-${expense.merchantName}`} className="merchant-group">
+                      <div className="merchant-header">
+                        <span className="merchant-name">{expense.merchantName || 'Unknown merchant'}</span>
+                        <div className="merchant-meta">
+                          {expense.paymentMethod && (
+                            <span className="tag">{expense.paymentMethod}</span>
+                          )}
+                          {getReceiptPreview(expense) && (
+                            <img src={getReceiptPreview(expense)} alt="Receipt" className="receipt-thumb-small" />
+                          )}
+                        </div>
+                      </div>
+                      {expense.items && expense.items.length > 0 ? (
+                        <div className="product-list">
+                          {expense.items.map((item, idx) => {
+                            const itemCategory = item.category || expense.category;
+                            const categoryMeta = getCategoryMeta(itemCategory);
+                            return (
+                              <div
+                                key={idx}
+                                className="product-item"
+                                onClick={() => setSelectedExpense(expense)}
+                              >
+                                <div className="product-main">
+                                  <span className="product-name">{item.description}</span>
+                                  {item.quantity > 1 && <span className="product-qty">×{item.quantity}</span>}
+                                </div>
+                                <div className="product-details">
+                                  <span
+                                    className="category-pill-compact"
+                                    style={{ backgroundColor: categoryMeta.color + '1f', color: categoryMeta.color }}
+                                  >
+                                    <span className="category-icon" role="img" aria-label={itemCategory}>{categoryMeta.icon}</span>
+                                    {itemCategory || 'Other'}
+                                  </span>
+                                  <span className="product-price">{formatCurrency(item.totalPrice || item.price, expense.currency)}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="product-list">
+                          <div
+                            className="product-item"
+                            onClick={() => setSelectedExpense(expense)}
+                          >
+                            <div className="product-main">
+                              <span className="product-name">{expense.description || expense.merchantName}</span>
                             </div>
-                          ))}
+                            <div className="product-details">
+                              <span
+                                className="category-pill-compact"
+                                style={{ backgroundColor: getCategoryMeta(expense.category).color + '1f', color: getCategoryMeta(expense.category).color }}
+                              >
+                                <span className="category-icon" role="img" aria-label={expense.category}>{getCategoryMeta(expense.category).icon}</span>
+                                {expense.category || 'Other'}
+                              </span>
+                              <span className="product-price">{formatCurrency(expense.amount, expense.currency)}</span>
+                            </div>
+                          </div>
                         </div>
                       )}
-                      {expense.notes && <div className="cell-notes">{expense.notes}</div>}
-                    </td>
-                    <td>
-                      <span className="category-pill" style={{ backgroundColor: categoryMeta.color + '1f', color: categoryMeta.color }}>
-                        <span className="category-icon" role="img" aria-label={expense.category || 'Other'}>{categoryMeta.icon}</span>
-                        {expense.category || 'Other'}
-                      </span>
-                    </td>
-                    <td className="cell-amount">{formatCurrency(expense.amount, expense.currency)}</td>
-                    <td>
-                      {expense.paymentMethod ? (
-                        <span className="tag">{expense.paymentMethod}</span>
-                      ) : (
-                        <span className="tag tag-empty">—</span>
-                      )}
-                    </td>
-                    <td>
-                      {receiptPreview ? (
-                        <img src={receiptPreview} alt="Receipt preview" className="receipt-thumb" />
-                      ) : (
-                        <span className="tag tag-empty">No receipt</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan={6} className="empty-state">
-                  No expenses match your filters yet. Try broadening the range or add a new transaction.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+        ) : (
+          <div className="empty-state-grouped">
+            No expenses match your filters yet. Try broadening the range or add a new transaction.
+          </div>
+        )}
       </div>
 
       <div className="expenses-mobile-list">
@@ -1131,17 +1145,28 @@ function ExpensesSummary({
                   <div className="modal-detail modal-items">
                     <span>Items ({selectedExpense.items.length})</span>
                     <div className="items-list">
-                      {selectedExpense.items.map((item, index) => (
-                        <div key={index} className="item-row">
-                          <div className="item-description">
-                            {item.description}
-                            {item.quantity > 1 && <span className="item-quantity"> ×{item.quantity}</span>}
+                      {selectedExpense.items.map((item, index) => {
+                        const itemCategory = item.category || selectedExpense.category;
+                        const categoryMeta = getCategoryMeta(itemCategory);
+                        return (
+                          <div key={index} className="item-row">
+                            <div className="item-description">
+                              {item.description}
+                              {item.quantity > 1 && <span className="item-quantity"> ×{item.quantity}</span>}
+                              <span
+                                className="category-pill-compact"
+                                style={{ backgroundColor: categoryMeta.color + '1f', color: categoryMeta.color, marginLeft: '8px' }}
+                              >
+                                <span className="category-icon" role="img" aria-label={itemCategory}>{categoryMeta.icon}</span>
+                                {itemCategory || 'Other'}
+                              </span>
+                            </div>
+                            <div className="item-price">
+                              {formatCurrency(item.totalPrice || item.price, selectedExpense.currency)}
+                            </div>
                           </div>
-                          <div className="item-price">
-                            {formatCurrency(item.totalPrice || item.price, selectedExpense.currency)}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
