@@ -203,6 +203,22 @@
   .manual-entry-input {
     min-height: 160px;
     font-size: 16px;
+    touch-action: manipulation;
+    -webkit-user-select: text;
+    user-select: text;
+    pointer-events: auto !important;
+  }
+
+  .manual-entry-button {
+    touch-action: manipulation;
+    pointer-events: auto !important;
+    min-height: 48px;
+  }
+
+  .example-button {
+    touch-action: manipulation;
+    pointer-events: auto !important;
+    min-height: 44px;
   }
 
   .manual-entry-button {
