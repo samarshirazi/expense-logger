@@ -1113,10 +1113,20 @@ async function generateCoachInsights({ conversation = [], analysis }) {
   const viewDetails = viewContext ? (VIEW_CONTEXT_DETAILS[viewContext] || null) : null;
 
   const systemPrompt = `You are "Finch", an empathetic financial coach living inside a budgeting app with deep memory of user expenses.
-You receive a JSON snapshot containing transaction history, category budgets, merchant patterns, and comparisons. Treat it as your single source of truth.
+You receive a comprehensive JSON snapshot containing:
+- Complete transaction history with dates, merchants, amounts, categories, and individual items
+- Recent expenses (last 50) with full details
+- Category budgets, spending totals, and comparisons
+- Merchant patterns and spending trends
+- All-time spending statistics
+
+Treat this data as your single source of truth.
+
 Core principles:
+- You have access to ACTUAL expense data - use it! When asked about totals, merchants, or specific spending, reference the exact data.
 - Answer only the specific question the user asked; skip broad dashboards or unrelated summaries unless they explicitly request them.
 - Pull concrete numbers, comparisons, or patterns from the snapshot that directly support your answer.
+- When asked about totals or spending, check recentExpenses array for specific transactions and amounts.
 - If the data cannot answer the question, say so briefly and point them to the closest metric or a practical next step.
 - Skip greetings or sign-offs unless the user uses them—jump straight into helpful guidance.
 - Keep responses under 120 words. Vary sentence structure so the reply feels conversational, not templated.
@@ -1177,8 +1187,30 @@ Core principles:
 
     const question = lastUserMessage.toLowerCase();
     const responseParts = [];
+    const recentExpenses = Array.isArray(analysis?.recentExpenses) ? analysis.recentExpenses : [];
+    const allExpenses = analysis?.allExpenses || {};
 
-    if (question.includes('budget') || question.includes('goal')) {
+    // Check for total/grand total questions
+    if (question.includes('total') || question.includes('grand total')) {
+      if (question.includes('month') || question.includes('this month')) {
+        responseParts.push(
+          `Your total spending this month is ${formatCurrency(totalSpending)} across ${expenseCount} expenses.`
+        );
+        if (topCategory) {
+          responseParts.push(
+            `${topCategory.categoryName} is your biggest category at ${formatCurrency(topCategory.spent)}.`
+          );
+        }
+      } else if (question.includes('all time') || question.includes('ever')) {
+        responseParts.push(
+          `All-time, you've logged ${allExpenses.total || 0} expenses totaling ${formatCurrency(allExpenses.totalAllTime || 0)}.`
+        );
+      } else {
+        responseParts.push(
+          `Your total spending this period is ${formatCurrency(totalSpending)}.`
+        );
+      }
+    } else if (question.includes('budget') || question.includes('goal')) {
       if (Number.isFinite(budgetDelta) && budgetDelta !== 0) {
         responseParts.push(
           budgetDelta > 0
@@ -1210,7 +1242,7 @@ Core principles:
       if (mostActiveDay) {
         responseParts.push(`Spending peaks on ${mostActiveDay}s right now.`);
       }
-    } else if (question.includes('merchant')) {
+    } else if (question.includes('merchant') || question.includes('store')) {
       if (topMerchant) {
         const merchantTotal = Number(topMerchant.total ?? topMerchant.totalSpent ?? 0);
         responseParts.push(
@@ -1218,6 +1250,19 @@ Core principles:
         );
       } else {
         responseParts.push("I don't see a clear top merchant in this snapshot.");
+      }
+    } else if (question.includes('recent') || question.includes('last')) {
+      if (recentExpenses.length > 0) {
+        const lastExpense = recentExpenses[0];
+        responseParts.push(
+          `Your most recent expense was ${formatCurrency(lastExpense.amount)} at ${lastExpense.merchant} on ${lastExpense.date}.`
+        );
+        if (recentExpenses.length > 1) {
+          const last5Total = recentExpenses.slice(0, 5).reduce((sum, exp) => sum + exp.amount, 0);
+          responseParts.push(`Your last 5 expenses total ${formatCurrency(last5Total)}.`);
+        }
+      } else {
+        responseParts.push("No recent expenses found.");
       }
     } else if (question.includes('income') || question.includes('saving')) {
       responseParts.push(
