@@ -340,28 +340,61 @@ function Overview({ expenses = [], dateRange }) {
 
   const remainingBudget = totalBudget - currentMonthTotal;
 
-  // Pie chart data - show ALL categories (matching old Dashboard behavior)
+  // Build unified category list so charts always see every tracked category
+  const allCategoryNames = useMemo(() => {
+    const namesFromConfig = categories
+      .map(category => category.name || category.id)
+      .filter(Boolean);
+    const namesFromBudget = Object.keys(categoryBudget || {});
+    const namesFromCurrent = Object.keys(categorySpending || {});
+    const namesFromPrevious = Object.keys(previousCategorySpending || {});
+
+    return Array.from(new Set([
+      ...namesFromConfig,
+      ...namesFromBudget,
+      ...namesFromCurrent,
+      ...namesFromPrevious
+    ])).filter(Boolean);
+  }, [categories, categoryBudget, categorySpending, previousCategorySpending]);
+
+  // Pie chart data - now mirrors every known category with consistent coloring
   const pieChartData = useMemo(() => {
-    // Get all categories (includes default + custom categories)
-    const chartData = categories.map(category => {
-      const categoryName = category.name || category.id;
+    const formatPercentage = (value) => {
+      if (!Number.isFinite(value)) {
+        return '0';
+      }
+      return value.toFixed(1);
+    };
+
+    const fallbackColor = '#dfe6e9';
+
+    const chartData = allCategoryNames.map(categoryName => {
       const spent = categorySpending[categoryName] || 0;
-      const percentage = currentMonthTotal > 0 ? ((spent / currentMonthTotal) * 100).toFixed(1) : '0';
+      const percentage = currentMonthTotal > 0
+        ? formatPercentage((spent / currentMonthTotal) * 100)
+        : '0';
+
+      const configuredCategory = categories.find(
+        category => (category.name || category.id) === categoryName
+      );
 
       return {
         name: categoryName,
         value: spent,
-        percentage: percentage,
-        color: category.color // Include the color from the category object
+        percentage,
+        color: categoryColorMap[categoryName]
+          || configuredCategory?.color
+          || CATEGORY_COLORS[categoryName]
+          || fallbackColor
       };
     });
 
-    console.log('📊 ALL Categories from getAllCategories():', categories);
+    console.log('📊 Unified Categories:', allCategoryNames);
     console.log('📊 Category Spending:', categorySpending);
     console.log('📊 Pie Chart Data (all categories):', chartData);
 
     return chartData;
-  }, [categories, categorySpending, currentMonthTotal]);
+  }, [allCategoryNames, categories, categorySpending, categoryColorMap, currentMonthTotal]);
 
   // Line chart + daily bar data (daily spending for current period)
   const { lineChartData, dailySpendingData } = useMemo(() => {

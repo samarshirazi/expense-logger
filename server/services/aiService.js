@@ -1173,6 +1173,52 @@ Core principles:
     const patterns = analysis?.spendingPatterns || {};
     const topMerchant = Array.isArray(patterns.topMerchants) ? patterns.topMerchants[0] : null;
     const mostActiveDay = patterns?.mostActiveDay || null;
+    const history = analysis?.history || {};
+    const expenseHistory = Array.isArray(history?.expenseHistory) ? history.expenseHistory : [];
+    const monthlyHistory = Array.isArray(history?.recentMonthlyTotals) && history.recentMonthlyTotals.length
+      ? history.recentMonthlyTotals
+      : (Array.isArray(history?.monthlyTotals) ? history.monthlyTotals.slice(-12) : []);
+    const trailingAverage = Number(history?.trailingAverage ?? 0);
+    const lifetimeCategoryTotals = history?.lifetimeCategoryTotals || {};
+    const firstExpenseDate = history?.firstExpenseDate || null;
+    const latestExpenseDate = history?.latestExpenseDate || null;
+    const projections = analysis?.projections || {};
+    const projectedTotal = Number(projections?.projectedTotal ?? 0);
+    const projectedRemaining = Number(projections?.remainingVsBudget ?? 0);
+
+    const merchantHistoryMap = expenseHistory.reduce((acc, exp) => {
+      const merchantName = (exp.merchant || '').toLowerCase();
+      if (!merchantName) {
+        return acc;
+      }
+      if (!acc[merchantName]) {
+        acc[merchantName] = {
+          name: exp.merchant,
+          count: 0,
+          total: 0,
+          lastDate: null
+        };
+      }
+      acc[merchantName].count += 1;
+      acc[merchantName].total += Number(exp.amount) || 0;
+      if (!acc[merchantName].lastDate) {
+        acc[merchantName].lastDate = exp.date || null;
+      }
+      return acc;
+    }, {});
+
+    const riskiestCategory = categorySummary.reduce((worst, current) => {
+      if (!current) return worst;
+      const remaining = Number(current.remaining ?? 0);
+      if (!worst) {
+        return current;
+      }
+      const worstRemaining = Number(worst.remaining ?? 0);
+      if (remaining < worstRemaining) {
+        return current;
+      }
+      return worst;
+    }, null);
 
     const lastUserMessage = sanitizedConversation
       .filter(message => message.role === 'user')
@@ -1190,8 +1236,116 @@ Core principles:
     const recentExpenses = Array.isArray(analysis?.recentExpenses) ? analysis.recentExpenses : [];
     const allExpenses = analysis?.allExpenses || {};
 
-    // Check for total/grand total questions
-    if (question.includes('total') || question.includes('grand total')) {
+    const includesAny = (keywords = []) => keywords.some(keyword => keyword && question.includes(keyword));
+    const wantsPrediction = includesAny(['predict', 'forecast', 'projection', 'future', 'estimate', 'on track', 'finish', 'end up', 'projected', 'expect']);
+    const wantsHistory = includesAny(['history', 'trend', 'over time', 'past year', 'previous months', 'month over month', 'month-by-month', 'year-over-year']);
+    const wantsLastMonthSummary = includesAny(['last month', 'previous month', 'prior month']);
+    const merchantMatchKey = Object.keys(merchantHistoryMap).find(key => question.includes(key));
+    const matchedMerchantStats = merchantMatchKey ? merchantHistoryMap[merchantMatchKey] : null;
+    const wantsAdvice = includesAny(['advice', 'should i', 'plan', 'suggest']);
+
+    if (wantsPrediction) {
+      if (Number.isFinite(projectedTotal) && projectedTotal > 0) {
+        const daysElapsed = Number(projections?.daysElapsed ?? 0);
+        const totalDays = Number(projections?.totalDays ?? 0);
+        responseParts.push(
+          `Based on ${daysElapsed}/${totalDays} days logged, you're on pace to finish around ${formatCurrency(projectedTotal)} this period.`
+        );
+      } else if (trailingAverage > 0) {
+        responseParts.push(
+          `I don't have a live projection, but your trailing monthly average is ${formatCurrency(trailingAverage)}.`
+        );
+      } else {
+        responseParts.push("I need a bit more recent history before I can project this period with confidence.");
+      }
+
+      if (Number.isFinite(projectedRemaining)) {
+        responseParts.push(
+          projectedRemaining >= 0
+            ? `That path keeps you roughly ${formatCurrency(projectedRemaining)} under budget.`
+            : `That trajectory would run about ${formatCurrency(Math.abs(projectedRemaining))} over budget.`
+        );
+      }
+
+      if (monthlyHistory.length > 1) {
+        const lastMonth = monthlyHistory[monthlyHistory.length - 1];
+        const prevMonth = monthlyHistory[monthlyHistory.length - 2];
+        const delta = lastMonth && prevMonth ? lastMonth.total - prevMonth.total : 0;
+        if (lastMonth && prevMonth) {
+          responseParts.push(
+            `Last month (${lastMonth.month}) landed at ${formatCurrency(lastMonth.total)}, ${delta >= 0 ? 'up' : 'down'} ${formatCurrency(Math.abs(delta))} vs the month before.`
+          );
+        }
+      }
+
+      if (riskiestCategory) {
+        const remaining = Number(riskiestCategory.remaining ?? 0);
+        const direction = remaining < 0 ? 'already over' : 'most active';
+        responseParts.push(
+          `Focus on ${riskiestCategory.categoryName}—it's ${direction} with ${formatCurrency(Math.abs(remaining))} ${remaining < 0 ? 'beyond' : 'left in'} its budget.`
+        );
+      } else if (topCategory) {
+        responseParts.push(
+          `${topCategory.categoryName} dominates the forecast, so trimming even a couple of trips there moves the projection fast.`
+        );
+      }
+
+      if (wantsAdvice && recentExpenses.length) {
+        const lastExpense = recentExpenses[0];
+        responseParts.push(
+          `Start by reviewing the ${formatCurrency(lastExpense.amount)} from ${lastExpense.merchant}—that pattern shows up often this month.`
+        );
+      }
+    } else if (wantsHistory || wantsLastMonthSummary) {
+      if (monthlyHistory.length > 0) {
+        const describedMonths = monthlyHistory.length;
+        const lastMonth = monthlyHistory[monthlyHistory.length - 1];
+        const prevMonth = monthlyHistory.length > 1 ? monthlyHistory[monthlyHistory.length - 2] : null;
+        responseParts.push(
+          `You've tracked ${describedMonths} months so far. Last month (${lastMonth.month}) totaled ${formatCurrency(lastMonth.total)}.`
+        );
+        if (prevMonth) {
+          const delta = lastMonth.total - prevMonth.total;
+          responseParts.push(
+            `That's ${delta >= 0 ? 'up' : 'down'} ${formatCurrency(Math.abs(delta))} compared to ${prevMonth.month}.`
+          );
+        }
+      } else if (expenseHistory.length > 0) {
+        responseParts.push(
+          `I can see ${expenseHistory.length} logged expenses stretching back to ${firstExpenseDate || 'your earliest entry'}.`
+        );
+      } else {
+        responseParts.push("I don't have enough historical data to summarize yet.");
+      }
+
+      if (trailingAverage > 0) {
+        responseParts.push(`Your rolling monthly average sits near ${formatCurrency(trailingAverage)}.`);
+      }
+
+      const lifetimeTopCategory = Object.entries(lifetimeCategoryTotals).reduce((best, [name, total]) => {
+        if (!best || total > best.total) {
+          return { name, total };
+        }
+        return best;
+      }, null);
+
+      if (lifetimeTopCategory) {
+        responseParts.push(
+          `${lifetimeTopCategory.name} has absorbed ${formatCurrency(lifetimeTopCategory.total)} all-time, more than any other category.`
+        );
+      }
+
+      if (firstExpenseDate && latestExpenseDate) {
+        responseParts.push(`History spans ${firstExpenseDate} through ${latestExpenseDate}.`);
+      }
+    } else if (matchedMerchantStats) {
+      responseParts.push(
+        `You've shopped at ${matchedMerchantStats.name} ${matchedMerchantStats.count} times for ${formatCurrency(matchedMerchantStats.total)}.`
+      );
+      if (matchedMerchantStats.lastDate) {
+        responseParts.push(`Last visit: ${matchedMerchantStats.lastDate}.`);
+      }
+    } else if (question.includes('total') || question.includes('grand total')) {
       if (question.includes('month') || question.includes('this month')) {
         responseParts.push(
           `Your total spending this month is ${formatCurrency(totalSpending)} across ${expenseCount} expenses.`
@@ -1251,7 +1405,7 @@ Core principles:
       } else {
         responseParts.push("I don't see a clear top merchant in this snapshot.");
       }
-    } else if (question.includes('recent') || question.includes('last')) {
+    } else if (question.includes('recent') || (question.includes('last') && !wantsLastMonthSummary)) {
       if (recentExpenses.length > 0) {
         const lastExpense = recentExpenses[0];
         responseParts.push(
@@ -1276,6 +1430,10 @@ Core principles:
         responseParts.push(
           `${topCategory.categoryName} accounts for ${formatCurrency(topCategory.spent)}, and the average transaction lands around ${formatCurrency(averageExpense)}.`
         );
+      }
+      if (monthlyHistory.length > 0) {
+        const lastMonth = monthlyHistory[monthlyHistory.length - 1];
+        responseParts.push(`Last month's run rate was ${formatCurrency(lastMonth.total)}.`);
       }
     }
 

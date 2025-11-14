@@ -426,7 +426,7 @@ function App() {
     , null);
 
     // Prepare expense details for AI Coach
-    const recentExpenses = filteredExpenses
+    const recentExpenses = [...filteredExpenses]
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, 50) // Last 50 expenses
       .map(exp => ({
@@ -440,6 +440,101 @@ function App() {
           category: item.category
         })) : []
       }));
+
+    // Full expense history for AI context + trend analysis
+    const expenseHistory = expenses
+      .map((exp, index) => ({
+        id: exp.id || exp.uuid || exp.clientId || `exp-${index}`,
+        date: exp.date,
+        merchant: exp.merchantName || exp.description || 'Unknown',
+        amount: exp.totalAmount || exp.amount || 0,
+        category: exp.category || 'Other'
+      }))
+      .filter(entry => Number.isFinite(entry.amount))
+      .sort((a, b) => {
+        if (!a.date && !b.date) {
+          return 0;
+        }
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return new Date(b.date) - new Date(a.date);
+      });
+
+    const monthlyTotalsMap = expenseHistory.reduce((acc, exp) => {
+      if (!exp.date) {
+        return acc;
+      }
+      const monthKey = exp.date.substring(0, 7);
+      if (!monthKey) {
+        return acc;
+      }
+      acc[monthKey] = (acc[monthKey] || 0) + exp.amount;
+      return acc;
+    }, {});
+
+    const orderedMonthlyTotals = Object.entries(monthlyTotalsMap)
+      .map(([month, total]) => ({ month, total }))
+      .sort((a, b) => new Date(`${a.month}-01`) - new Date(`${b.month}-01`));
+
+    const lastTwelveMonths = orderedMonthlyTotals.slice(-12);
+    const trailingAverage = lastTwelveMonths.length
+      ? lastTwelveMonths.reduce((sum, entry) => sum + entry.total, 0) / lastTwelveMonths.length
+      : totalSpending;
+
+    const lifetimeCategoryTotals = expenseHistory.reduce((acc, exp) => {
+      const category = exp.category || 'Other';
+      acc[category] = (acc[category] || 0) + exp.amount;
+      return acc;
+    }, {});
+
+    const earliestExpense = expenseHistory[expenseHistory.length - 1] || null;
+    const latestExpense = expenseHistory[0] || null;
+
+    const resolveRangeDate = (rawDate, fallback) => {
+      if (rawDate) {
+        return new Date(rawDate);
+      }
+      return fallback;
+    };
+
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+    const currentPeriodStart = resolveRangeDate(
+      dateRange.startDate,
+      new Date(currentYear, currentMonth, 1)
+    );
+    const currentPeriodEnd = resolveRangeDate(
+      dateRange.endDate,
+      new Date(currentYear, currentMonth + 1, 0)
+    );
+
+    const normalizeDate = (date) => {
+      if (!date) return null;
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    };
+
+    const normalizedStart = normalizeDate(currentPeriodStart);
+    const normalizedEnd = normalizeDate(currentPeriodEnd);
+    const today = normalizeDate(new Date());
+
+    let effectiveToday = normalizedEnd;
+    if (today && normalizedStart && normalizedEnd) {
+      if (today < normalizedStart) {
+        effectiveToday = normalizedStart;
+      } else if (today <= normalizedEnd) {
+        effectiveToday = today;
+      }
+    }
+
+    const totalDaysInPeriod = (normalizedStart && normalizedEnd)
+      ? Math.max(1, Math.floor((normalizedEnd - normalizedStart) / MS_PER_DAY) + 1)
+      : 1;
+
+    const daysElapsed = (normalizedStart && effectiveToday)
+      ? Math.max(1, Math.floor((effectiveToday - normalizedStart) / MS_PER_DAY) + 1)
+      : 1;
+
+    const averageDailySpend = totalSpending / daysElapsed;
+    const projectedTotal = averageDailySpend * totalDaysInPeriod;
 
     const analysisData = {
       context: {
@@ -465,12 +560,29 @@ function App() {
         inCurrentPeriod: filteredExpenses.length,
         totalAllTime: expenses.reduce((sum, exp) => sum + (exp.totalAmount || exp.amount || 0), 0)
       },
+      history: {
+        expenseHistory,
+        monthlyTotals: orderedMonthlyTotals,
+        recentMonthlyTotals: lastTwelveMonths,
+        trailingAverage,
+        lifetimeCategoryTotals,
+        firstExpenseDate: earliestExpense?.date || null,
+        latestExpenseDate: latestExpense?.date || null
+      },
+      projections: {
+        daysElapsed,
+        totalDays: totalDaysInPeriod,
+        averageDailySpend,
+        projectedTotal,
+        remainingVsBudget: totalBudget - projectedTotal,
+        trailingAverageMonthlySpend: trailingAverage
+      },
       preferences: {
         mood: coachMood
       }
     };
 
-    const analysisKey = `${dateRange.startDate}_${dateRange.endDate}_${expenses.length}`;
+    const analysisKey = `${dateRange.startDate}_${dateRange.endDate}_${expenses.length}_${Math.round(totalSpending)}`;
     setCoachAnalysis({ data: analysisData, key: analysisKey });
   }, [expenses, dateRange, coachContext, coachMood]);
 
