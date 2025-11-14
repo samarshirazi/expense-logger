@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './Overview.css';
 import { getAllCategories } from '../services/categoryService';
 import SummaryCards from './analytics/SummaryCards';
@@ -436,20 +436,13 @@ function Overview({ expenses = [], dateRange }) {
 
   // Pie chart data - now mirrors every known category with consistent coloring
   const pieChartData = useMemo(() => {
-    const formatPercentage = (value) => {
-      if (!Number.isFinite(value)) {
-        return '0';
-      }
-      return value.toFixed(1);
-    };
-
     const fallbackColor = '#dfe6e9';
 
     const chartData = allCategoryIds.map(categoryId => {
       const spent = categorySpending[categoryId] || 0;
       const percentage = currentMonthTotal > 0
-        ? formatPercentage((spent / currentMonthTotal) * 100)
-        : '0';
+        ? (spent / currentMonthTotal) * 100
+        : 0;
 
       const configuredCategory = categoryMetaMap[categoryId];
       const displayName = configuredCategory?.name || categoryId;
@@ -473,6 +466,21 @@ function Overview({ expenses = [], dateRange }) {
 
     return chartData;
   }, [allCategoryIds, categoryColorMap, categoryMetaMap, categorySpending, currentMonthTotal]);
+
+  const pieChartHasData = useMemo(
+    () => pieChartData.some(entry => entry.value > 0),
+    [pieChartData]
+  );
+
+  const pieChartLegend = useMemo(() => {
+    return pieChartData.map(entry => ({
+      id: entry.id,
+      label: entry.name,
+      value: entry.value,
+      percentage: entry.percentage,
+      color: entry.color
+    }));
+  }, [pieChartData]);
 
   // Line chart + daily bar data (daily spending for current period)
   const { lineChartData, dailySpendingData } = useMemo(() => {
@@ -856,15 +864,61 @@ function Overview({ expenses = [], dateRange }) {
 
         <div className={`chart-panel active-${activeChartTab}`}>
           {activeChartTab === 'pie' && (
-            <CategoryOverview
-              data={pieChartData}
-              colors={categoryColorMap}
-              remainingBudget={remainingBudget}
-              totalBudget={totalBudget}
-              budgetUsedPercent={budgetUsedPercent}
-              emptyMessage="Log a few expenses to unlock this view."
-              isMobile={true}
-            />
+            <div className="chart-card pie-chart-card">
+              <h3 className="chart-title">Spending by Category</h3>
+              {pieChartHasData ? (
+                <div className="pie-chart-layout">
+                  <div className="pie-chart-visual">
+                    <ResponsiveContainer width="100%" height={isMobileLayout ? 260 : 320}>
+                      <PieChart>
+                        <Pie
+                          data={pieChartData}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={isMobileLayout ? 60 : 80}
+                          outerRadius={isMobileLayout ? 100 : 120}
+                          paddingAngle={2}
+                          labelLine={false}
+                          label={({ name, percent }) => {
+                            if (percent < 0.04) {
+                              return '';
+                            }
+                            return `${name} ${(percent * 100).toFixed(0)}%`;
+                          }}
+                        >
+                          {pieChartData.map((entry) => (
+                            <Cell key={`pie-slice-${entry.id}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => formatCurrency(value)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="pie-chart-legend">
+                    {pieChartLegend.map(item => (
+                      <div key={item.id || item.label} className="pie-legend-item">
+                        <div className="pie-legend-label">
+                          <span className="pie-legend-dot" style={{ backgroundColor: item.color }} />
+                          <div>
+                            <p className="pie-legend-name">{item.label}</p>
+                            <p className="pie-legend-sub">
+                              {formatCurrency(item.value)} · {item.percentage.toFixed(1)}%
+                            </p>
+                          </div>
+                        </div>
+                        <div className="pie-legend-bar">
+                          <span style={{ width: `${Math.min(100, item.percentage)}%`, backgroundColor: item.color }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="chart-empty-state">Log a few expenses to unlock this view.</div>
+              )}
+            </div>
           )}
 
           {activeChartTab === 'line' && (
