@@ -82,9 +82,12 @@ function CategoryOverview({
   console.log('🎨 Pie data (non-zero only):', pieData);
   console.log('🎨 Legend payload (all categories):', legendPayload);
 
+  // Adjust height for mobile to accommodate auto-sized legend
+  const chartHeight = isMobile ? (height + 40) : height;
+
   return (
     <div className="category-overview">
-      <div className="category-overview-chart" style={{ height }}>
+      <div className="category-overview-chart" style={{ height: chartHeight }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -117,8 +120,13 @@ function CategoryOverview({
             <Legend
               payload={legendPayload}
               verticalAlign="bottom"
-              height={isMobile ? 60 : 40}
-              wrapperStyle={{ fontSize: isMobile ? '11px' : '12px', paddingTop: '10px' }}
+              height={isMobile ? 'auto' : 40}
+              wrapperStyle={{
+                fontSize: isMobile ? '11px' : '12px',
+                paddingTop: '10px',
+                maxHeight: isMobile ? 'none' : undefined,
+                overflow: 'visible'
+              }}
               formatter={(value, entry) => {
                 const amount = entry.payload?.value || 0;
                 const percent = entry.payload?.percentage || 0;
