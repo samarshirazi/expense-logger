@@ -918,12 +918,12 @@ function Overview({ expenses = [], dateRange }) {
 
         <div className={`chart-panel active-${activeChartTab}`}>
           {activeChartTab === 'pie' && (
-            <div className="chart-card pie-chart-card">
+            <>
               <h3 className="chart-title">Spending by Category</h3>
               {pieChartHasData ? (
                 <div className="pie-chart-layout">
                   <div className="pie-chart-visual">
-                    <ResponsiveContainer width="100%" height={isMobileLayout ? 220 : 320}>
+                    <ResponsiveContainer width="100%" height={isMobileLayout ? 300 : 320}>
                       <PieChart>
                         <Pie
                           data={pieChartData}
@@ -973,7 +973,30 @@ function Overview({ expenses = [], dateRange }) {
               ) : (
                 <div className="chart-empty-state">Log a few expenses to unlock this view.</div>
               )}
-            </div>
+
+              {/* AI Insights integrated with pie chart */}
+              <div className="ai-insights-panel compact integrated" id="overview-ai-panel">
+                <div className="ai-panel-header">
+                  <span className="ai-icon-large">✨</span>
+                  <div>
+                    <h2 className="ai-insights-title">AI Highlights</h2>
+                    <p className="ai-insights-subtitle">Smart nudges for this period</p>
+                  </div>
+                </div>
+                <div className="ai-insights-content compact">
+                  {aiInsights.length ? (
+                    aiInsights.map((insight, index) => (
+                      <div key={index} className="insight-item compact">
+                        <span className="insight-bullet">•</span>
+                        <p>{insight}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="insight-empty">Keep logging expenses to unlock personalized guidance.</p>
+                  )}
+                </div>
+              </div>
+            </>
           )}
 
           {activeChartTab === 'line' && (
@@ -1064,31 +1087,6 @@ function Overview({ expenses = [], dateRange }) {
             <p>{chartTip}</p>
           </div>
         </div>
-      </section>
-
-      <section className="ai-insights-panel compact" id="overview-ai-panel">
-        <div className="ai-panel-header">
-          <span className="ai-icon-large">✨</span>
-          <div>
-            <h2 className="ai-insights-title">AI Highlights</h2>
-            <p className="ai-insights-subtitle">Smart nudges for this period</p>
-          </div>
-        </div>
-        <div className="ai-insights-content compact">
-          {aiInsights.length ? (
-            aiInsights.map((insight, index) => (
-              <div key={index} className="insight-item compact">
-                <span className="insight-bullet">•</span>
-                <p>{insight}</p>
-              </div>
-            ))
-          ) : (
-            <p className="insight-empty">Keep logging expenses to unlock personalized guidance.</p>
-          )}
-        </div>
-        <button className="ask-ai-btn" type="button">
-          💬 View Full AI Report
-        </button>
       </section>
 
       <div className="forecast-sticky">
