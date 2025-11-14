@@ -35,6 +35,8 @@ const DEFAULT_BUDGET = {
   Other: 150
 };
 
+const RADIAN = Math.PI / 180;
+
 const toLocalDateString = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -482,12 +484,57 @@ function Overview({ expenses = [], dateRange }) {
     }));
   }, [pieChartData]);
 
-  const pieLabelRenderer = useCallback(({ name, percent }) => {
-    if (!Number.isFinite(percent) || percent < 0.06) {
-      return '';
-    }
-    return `${name} ${(percent * 100).toFixed(1)}%`;
-  }, []);
+  const pieLabelRenderer = useCallback(
+    ({ cx, cy, midAngle, outerRadius, percent, payload }) => {
+      if (!Number.isFinite(percent) || percent < 0.01) {
+        return null;
+      }
+
+      const sliceColor = payload?.color || '#667eea';
+      const angle = -midAngle * RADIAN;
+      const startRadius = outerRadius + 4;
+      const endRadius = outerRadius + (isMobileLayout ? 18 : 28);
+      const startX = cx + startRadius * Math.cos(angle);
+      const startY = cy + startRadius * Math.sin(angle);
+      const endX = cx + endRadius * Math.cos(angle);
+      const endY = cy + endRadius * Math.sin(angle);
+      const textAnchor = endX > cx ? 'start' : 'end';
+      const offset = textAnchor === 'start' ? 8 : -8;
+
+      const rawName = payload?.name || 'Category';
+      const normalizedName = isMobileLayout && rawName.length > 12
+        ? `${rawName.slice(0, 11)}…`
+        : rawName;
+      const displayPercent = `${(percent * 100).toFixed(1)}%`;
+      const labelText = `${normalizedName} ${displayPercent}`;
+
+      return (
+        <g>
+          <line
+            x1={startX}
+            y1={startY}
+            x2={endX}
+            y2={endY}
+            stroke={sliceColor}
+            strokeWidth={2}
+            strokeLinecap="round"
+          />
+          <text
+            x={endX + offset}
+            y={endY}
+            fill={sliceColor}
+            fontSize={isMobileLayout ? 11 : 13}
+            fontWeight="600"
+            textAnchor={textAnchor}
+            dominantBaseline="central"
+          >
+            {labelText}
+          </text>
+        </g>
+      );
+    },
+    [isMobileLayout]
+  );
 
   // Line chart + daily bar data (daily spending for current period)
   const { lineChartData, dailySpendingData } = useMemo(() => {
@@ -887,8 +934,8 @@ function Overview({ expenses = [], dateRange }) {
                           innerRadius={isMobileLayout ? 55 : 80}
                           outerRadius={isMobileLayout ? 90 : 120}
                           paddingAngle={2}
-                          labelLine={!isMobileLayout}
-                          label={isMobileLayout ? false : pieLabelRenderer}
+                          labelLine={false}
+                          label={pieLabelRenderer}
                         >
                           {pieChartData.map((entry) => (
                             <Cell key={`pie-slice-${entry.id}`} fill={entry.color} />
