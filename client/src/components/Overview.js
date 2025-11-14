@@ -441,7 +441,7 @@ function Overview({ expenses = [], dateRange }) {
     const chartData = allCategoryIds.map(categoryId => {
       const spent = categorySpending[categoryId] || 0;
       const percentage = currentMonthTotal > 0
-        ? (spent / currentMonthTotal) * 100
+        ? Number(((spent / currentMonthTotal) * 100).toFixed(1))
         : 0;
 
       const configuredCategory = categoryMetaMap[categoryId];
@@ -481,6 +481,13 @@ function Overview({ expenses = [], dateRange }) {
       color: entry.color
     }));
   }, [pieChartData]);
+
+  const pieLabelRenderer = useCallback(({ name, percent }) => {
+    if (!Number.isFinite(percent) || percent < 0.06) {
+      return '';
+    }
+    return `${name} ${(percent * 100).toFixed(1)}%`;
+  }, []);
 
   // Line chart + daily bar data (daily spending for current period)
   const { lineChartData, dailySpendingData } = useMemo(() => {
@@ -869,7 +876,7 @@ function Overview({ expenses = [], dateRange }) {
               {pieChartHasData ? (
                 <div className="pie-chart-layout">
                   <div className="pie-chart-visual">
-                    <ResponsiveContainer width="100%" height={isMobileLayout ? 260 : 320}>
+                    <ResponsiveContainer width="100%" height={isMobileLayout ? 240 : 320}>
                       <PieChart>
                         <Pie
                           data={pieChartData}
@@ -877,22 +884,23 @@ function Overview({ expenses = [], dateRange }) {
                           nameKey="name"
                           cx="50%"
                           cy="50%"
-                          innerRadius={isMobileLayout ? 60 : 80}
-                          outerRadius={isMobileLayout ? 100 : 120}
+                          innerRadius={isMobileLayout ? 55 : 80}
+                          outerRadius={isMobileLayout ? 90 : 120}
                           paddingAngle={2}
-                          labelLine={false}
-                          label={({ name, percent }) => {
-                            if (percent < 0.04) {
-                              return '';
-                            }
-                            return `${name} ${(percent * 100).toFixed(0)}%`;
-                          }}
+                          labelLine={!isMobileLayout}
+                          label={isMobileLayout ? false : pieLabelRenderer}
                         >
                           {pieChartData.map((entry) => (
                             <Cell key={`pie-slice-${entry.id}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value) => formatCurrency(value)} />
+                        <Tooltip
+                          formatter={(value, name, { payload }) => {
+                            const percent = Number(payload?.percentage);
+                            const percentLabel = Number.isFinite(percent) ? `${percent.toFixed(1)}%` : '';
+                            return [formatCurrency(value), percentLabel ? `${name} (${percentLabel})` : name];
+                          }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
