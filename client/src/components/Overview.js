@@ -607,7 +607,7 @@ function Overview({ expenses = [], dateRange }) {
     }
 
     return insights.slice(0, 3);
-  }, [topCategory, spendingTrend, categorySpending, previousCategorySpending, remainingBudget, currentMonthTotal, totalBudget]);
+  }, [topCategory, spendingTrend, categorySpending, previousCategorySpending, remainingBudget, currentMonthTotal, totalBudget, categoryMetaMap]);
 
   // Projected period-end spending
   const projectedSpending = useMemo(() => {
