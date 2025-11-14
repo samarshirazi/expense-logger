@@ -923,7 +923,7 @@ function Overview({ expenses = [], dateRange }) {
               {pieChartHasData ? (
                 <div className="pie-chart-layout">
                   <div className="pie-chart-visual">
-                    <ResponsiveContainer width="100%" height={isMobileLayout ? 240 : 320}>
+                    <ResponsiveContainer width="100%" height={isMobileLayout ? 220 : 320}>
                       <PieChart>
                         <Pie
                           data={pieChartData}
@@ -931,8 +931,8 @@ function Overview({ expenses = [], dateRange }) {
                           nameKey="name"
                           cx="50%"
                           cy="50%"
-                          innerRadius={isMobileLayout ? 55 : 80}
-                          outerRadius={isMobileLayout ? 90 : 120}
+                          innerRadius={isMobileLayout ? 50 : 80}
+                          outerRadius={isMobileLayout ? 85 : 120}
                           paddingAngle={2}
                           labelLine={false}
                           label={pieLabelRenderer}

@@ -152,6 +152,10 @@
   margin-bottom: 20px;
 }
 
+.pie-chart-card {
+  padding: 16px 20px;
+}
+
 .pie-chart-card .pie-chart-layout {
   display: flex;
   flex-direction: column;
@@ -224,6 +228,33 @@
   display: block;
   height: 100%;
   border-radius: 999px;
+}
+
+@media (max-width: 768px) {
+  .pie-chart-card {
+    padding: 12px 14px;
+  }
+
+  .pie-chart-card .pie-chart-layout {
+    gap: 16px;
+  }
+
+  .pie-legend-item {
+    padding: 8px 10px;
+  }
+
+  .pie-legend-name {
+    font-size: 13px;
+  }
+
+  .pie-legend-sub {
+    font-size: 12px;
+  }
+
+  .pie-legend-dot {
+    width: 12px;
+    height: 12px;
+  }
 }
 
 /* AI Insights Panel */
