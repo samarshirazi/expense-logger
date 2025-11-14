@@ -15,6 +15,7 @@ import NotificationPrompt from './components/NotificationPrompt';
 import TimeNavigator from './components/TimeNavigator';
 import BottomNav from './components/BottomNav';
 import { getExpenses } from './services/apiService';
+import { getAllCategories } from './services/categoryService';
 import {
   scheduleDailyExpenseReminder,
   cancelDailyExpenseReminder,
@@ -51,6 +52,14 @@ function App() {
   const coachAnalysisData = coachAnalysis.data;
   const coachAnalysisKey = coachAnalysis.key;
   const [pendingGroceryExpense, setPendingGroceryExpense] = useState(null);
+  const [allCategories, setAllCategories] = useState(() => {
+    try {
+      return getAllCategories();
+    } catch (error) {
+      console.warn('Failed to load categories for coach analysis:', error);
+      return [];
+    }
+  });
   const [themePreference, setThemePreference] = useState(() => {
     if (typeof window === 'undefined') return 'system';
     try {
@@ -132,6 +141,26 @@ function App() {
     });
 
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const handleCategoriesUpdated = () => {
+      try {
+        setAllCategories(getAllCategories());
+      } catch (error) {
+        console.warn('Failed to refresh categories:', error);
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('categoriesUpdated', handleCategoriesUpdated);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('categoriesUpdated', handleCategoriesUpdated);
+      }
+    };
   }, []);
 
   const loadExpenses = async () => {
@@ -346,6 +375,34 @@ function App() {
       return expDate >= dateRange.startDate && expDate <= dateRange.endDate;
     });
 
+    const categoryLookup = allCategories.reduce((map, category) => {
+      const id = category.id || category.name;
+      if (!id) {
+        return map;
+      }
+      map[id] = category;
+      return map;
+    }, {});
+
+    const ensureCategoryEntry = (bucket, categoryId) => {
+      const key = categoryId || 'Other';
+      if (bucket[key]) {
+        return bucket[key];
+      }
+      const meta = categoryLookup[key] || null;
+      bucket[key] = {
+        categoryId: key,
+        categoryName: meta?.name || key,
+        isCustom: Boolean(meta?.isCustom),
+        color: meta?.color || null,
+        spent: 0,
+        count: 0,
+        budget: 0,
+        remaining: 0
+      };
+      return bucket[key];
+    };
+
     // Calculate totals
     const totalSpending = filteredExpenses.reduce((sum, exp) => {
       return sum + (exp.totalAmount || exp.amount || 0);
@@ -356,18 +413,10 @@ function App() {
     // Calculate category breakdown
     const categoryBreakdown = {};
     filteredExpenses.forEach(exp => {
-      const category = exp.category || 'Other';
-      if (!categoryBreakdown[category]) {
-        categoryBreakdown[category] = {
-          categoryName: category,
-          spent: 0,
-          count: 0,
-          budget: 0,
-          remaining: 0
-        };
-      }
-      categoryBreakdown[category].spent += (exp.totalAmount || exp.amount || 0);
-      categoryBreakdown[category].count += 1;
+      const categoryId = exp.category || 'Other';
+      const entry = ensureCategoryEntry(categoryBreakdown, categoryId);
+      entry.spent += (exp.totalAmount || exp.amount || 0);
+      entry.count += 1;
     });
 
     // Get budgets from localStorage
@@ -385,10 +434,15 @@ function App() {
     const budgets = monthlyBudgets[monthKey] || {};
 
     // Add budget info to categories
-    Object.keys(categoryBreakdown).forEach(category => {
-      const budget = budgets[category] || 0;
-      categoryBreakdown[category].budget = budget;
-      categoryBreakdown[category].remaining = budget - categoryBreakdown[category].spent;
+    Object.keys(budgets).forEach(categoryId => {
+      ensureCategoryEntry(categoryBreakdown, categoryId);
+    });
+
+    Object.keys(categoryBreakdown).forEach(categoryId => {
+      const entry = categoryBreakdown[categoryId];
+      const budget = budgets[categoryId] || 0;
+      entry.budget = budget;
+      entry.remaining = budget - entry.spent;
     });
 
     const categorySummary = Object.values(categoryBreakdown);
@@ -434,10 +488,14 @@ function App() {
         merchant: exp.merchantName,
         amount: exp.totalAmount || exp.amount || 0,
         category: exp.category,
+        categoryName: categoryLookup[exp.category]?.name || exp.category,
+        isCustomCategory: Boolean(categoryLookup[exp.category]?.isCustom),
         items: exp.items ? exp.items.map(item => ({
           description: item.description,
           price: item.totalPrice || item.price || 0,
-          category: item.category
+          category: item.category,
+          categoryName: categoryLookup[item.category]?.name || item.category,
+          isCustomCategory: Boolean(categoryLookup[item.category]?.isCustom)
         })) : []
       }));
 
@@ -448,7 +506,8 @@ function App() {
         date: exp.date,
         merchant: exp.merchantName || exp.description || 'Unknown',
         amount: exp.totalAmount || exp.amount || 0,
-        category: exp.category || 'Other'
+        category: exp.category || 'Other',
+        categoryName: categoryLookup[exp.category]?.name || exp.category || 'Other'
       }))
       .filter(entry => Number.isFinite(entry.amount))
       .sort((a, b) => {
@@ -536,6 +595,14 @@ function App() {
     const averageDailySpend = totalSpending / daysElapsed;
     const projectedTotal = averageDailySpend * totalDaysInPeriod;
 
+    const categoryDefinitions = allCategories.map(category => ({
+      id: category.id || category.name,
+      name: category.name || category.id,
+      color: category.color || null,
+      icon: category.icon || null,
+      isCustom: Boolean(category.isCustom)
+    }));
+
     const analysisData = {
       context: {
         activeView: coachContext,
@@ -554,6 +621,7 @@ function App() {
         topMerchants: topMerchants,
         mostActiveDay: mostActiveDay
       },
+      categories: categoryDefinitions,
       recentExpenses: recentExpenses,
       allExpenses: {
         total: expenses.length,
@@ -582,9 +650,14 @@ function App() {
       }
     };
 
-    const analysisKey = `${dateRange.startDate}_${dateRange.endDate}_${expenses.length}_${Math.round(totalSpending)}`;
+    const categoryKey = allCategories
+      .map(category => category.id || category.name)
+      .filter(Boolean)
+      .join('|');
+
+    const analysisKey = `${dateRange.startDate}_${dateRange.endDate}_${expenses.length}_${Math.round(totalSpending)}_${categoryKey}`;
     setCoachAnalysis({ data: analysisData, key: analysisKey });
-  }, [expenses, dateRange, coachContext, coachMood]);
+  }, [expenses, dateRange, coachContext, coachMood, allCategories]);
 
   const handleCoachAssistantMessage = useCallback(() => {
     if (!isCoachOpen) {

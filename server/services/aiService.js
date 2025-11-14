@@ -1159,6 +1159,9 @@ Core principles:
     const categorySummary = Array.isArray(analysis?.categorySummary)
       ? analysis.categorySummary
       : [];
+    const categoryDefinitions = Array.isArray(analysis?.categories)
+      ? analysis.categories.filter(Boolean)
+      : [];
 
     const topCategory = categorySummary.reduce((best, current) => {
       if (!current || typeof current.spent !== 'number') {
@@ -1220,6 +1223,71 @@ Core principles:
       return worst;
     }, null);
 
+    const normalizeAlias = (value) => {
+      if (typeof value !== 'string') {
+        return '';
+      }
+      return value.trim();
+    };
+
+    const camelCaseToWords = (value) => {
+      if (typeof value !== 'string') {
+        return '';
+      }
+      return value.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+    };
+
+    const buildCategoryAliases = (category) => {
+      const aliases = new Set();
+      const idAlias = normalizeAlias(category?.id);
+      const nameAlias = normalizeAlias(category?.name);
+      if (idAlias) {
+        aliases.add(idAlias.toLowerCase());
+        const splitId = camelCaseToWords(idAlias).toLowerCase();
+        if (splitId !== idAlias.toLowerCase()) {
+          aliases.add(splitId);
+        }
+      }
+      if (nameAlias) {
+        aliases.add(nameAlias.toLowerCase());
+      }
+      return Array.from(aliases)
+        .filter(Boolean)
+        .map(alias => ({ alias, category }));
+    };
+
+    const categoryAliases = categoryDefinitions.flatMap(buildCategoryAliases);
+    const customCategories = categoryDefinitions.filter(category => category && category.isCustom);
+
+    const categorySummaryById = categorySummary.reduce((map, entry) => {
+      const rawId = entry?.categoryId || entry?.categoryName;
+      if (!rawId) {
+        return map;
+      }
+      map[rawId.toLowerCase()] = entry;
+      return map;
+    }, {});
+
+    const escapeRegex = (value) => {
+      if (typeof value !== 'string') {
+        return '';
+      }
+      return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    };
+
+    const findCategoryInQuestion = () => {
+      for (const entry of categoryAliases) {
+        if (!entry?.alias) {
+          continue;
+        }
+        const pattern = new RegExp(`\\b${escapeRegex(entry.alias)}\\b`, 'i');
+        if (pattern.test(question)) {
+          return entry.category;
+        }
+      }
+      return null;
+    };
+
     const lastUserMessage = sanitizedConversation
       .filter(message => message.role === 'user')
       .pop()?.content?.trim();
@@ -1243,8 +1311,50 @@ Core principles:
     const merchantMatchKey = Object.keys(merchantHistoryMap).find(key => question.includes(key));
     const matchedMerchantStats = merchantMatchKey ? merchantHistoryMap[merchantMatchKey] : null;
     const wantsAdvice = includesAny(['advice', 'should i', 'plan', 'suggest']);
+    const asksAboutCustomCategories = includesAny(['custom category', 'custom categories', 'custom-budget', 'custom budget']);
+    const matchedCategory = findCategoryInQuestion();
 
-    if (wantsPrediction) {
+    const resolveCategorySummary = (category) => {
+      if (!category) {
+        return null;
+      }
+      const idKey = typeof category.id === 'string' ? category.id.toLowerCase() : null;
+      const nameKey = typeof category.name === 'string' ? category.name.toLowerCase() : null;
+      return (idKey && categorySummaryById[idKey])
+        || (nameKey && categorySummaryById[nameKey])
+        || null;
+    };
+
+    if (matchedCategory) {
+      const summaryEntry = resolveCategorySummary(matchedCategory);
+      const categoryLabel = matchedCategory.name || matchedCategory.id || 'that category';
+      if (summaryEntry && Number.isFinite(summaryEntry.spent)) {
+        responseParts.push(
+          `${categoryLabel} has ${formatCurrency(summaryEntry.spent)} across ${summaryEntry.count || 0} expenses in this range.`
+        );
+        if (Number.isFinite(summaryEntry.remaining) && Number.isFinite(summaryEntry.budget) && summaryEntry.budget > 0) {
+          responseParts.push(
+            summaryEntry.remaining >= 0
+              ? `You still have ${formatCurrency(summaryEntry.remaining)} left from its ${formatCurrency(summaryEntry.budget)} budget.`
+              : `It's ${formatCurrency(Math.abs(summaryEntry.remaining))} over its ${formatCurrency(summaryEntry.budget)} budget.`
+          );
+        }
+      } else if (matchedCategory.isCustom) {
+        responseParts.push(`Yes—${categoryLabel} is one of your custom categories, but there are no expenses in this period yet.`);
+      } else {
+        responseParts.push(`I don't see any recent activity in ${categoryLabel}.`);
+      }
+      if (matchedCategory.isCustom) {
+        responseParts.push('That category was created by you, not one of the defaults.');
+      }
+    } else if (asksAboutCustomCategories) {
+      if (customCategories.length === 0) {
+        responseParts.push('I only see the default categories right now. Add custom ones from the Categories view.');
+      } else {
+        const names = customCategories.map(category => category.name || category.id).filter(Boolean);
+        responseParts.push(`You currently have ${customCategories.length} custom categories: ${names.join(', ')}.`);
+      }
+    } else if (wantsPrediction) {
       if (Number.isFinite(projectedTotal) && projectedTotal > 0) {
         const daysElapsed = Number(projections?.daysElapsed ?? 0);
         const totalDays = Number(projections?.totalDays ?? 0);

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './Overview.css';
 import { getAllCategories } from '../services/categoryService';
@@ -229,32 +229,108 @@ function Overview({ expenses = [], dateRange }) {
   }, [expenses, dateRange]);
 
   // Calculate category spending
-  const categorySpending = useMemo(() => {
-    const spending = {};
-    currentMonthExpenses.forEach(exp => {
-      const category = exp.category || 'Other';
-      spending[category] = (spending[category] || 0) + (exp.totalAmount || exp.amount || 0);
+  const categoryMetaMap = useMemo(() => {
+    return categories.reduce((map, category) => {
+      const key = category.id || category.name;
+      if (!key) {
+        return map;
+      }
+      map[key] = category;
+      return map;
+    }, {});
+  }, [categories]);
+
+  const categoryIdLookup = useMemo(() => {
+    const lookup = {};
+    categories.forEach(category => {
+      const id = category.id || category.name;
+      if (!id) {
+        return;
+      }
+      lookup[id.toLowerCase()] = id;
+      if (category.name) {
+        lookup[category.name.toLowerCase()] = id;
+      }
     });
-    return spending;
-  }, [currentMonthExpenses]);
+    return lookup;
+  }, [categories]);
+
+  const normalizeCategoryId = useCallback((rawCategory) => {
+    if (!rawCategory || typeof rawCategory !== 'string') {
+      return 'Other';
+    }
+    const trimmed = rawCategory.trim();
+    if (!trimmed) {
+      return 'Other';
+    }
+    const lookupKey = trimmed.toLowerCase();
+    return categoryIdLookup[lookupKey] || trimmed;
+  }, [categoryIdLookup]);
+
+  const getItemAmount = useCallback((item) => {
+    if (!item) {
+      return 0;
+    }
+    const candidates = [item.totalPrice, item.totalAmount, item.unitPrice];
+    for (const candidate of candidates) {
+      const numeric = Number(candidate);
+      if (Number.isFinite(numeric) && numeric > 0) {
+        return numeric;
+      }
+    }
+    if (item.quantity && item.unitPrice) {
+      const computed = Number(item.quantity) * Number(item.unitPrice);
+      if (Number.isFinite(computed) && computed > 0) {
+        return computed;
+      }
+    }
+    return 0;
+  }, []);
+
+  const buildCategoryTotals = useCallback((expenseList = []) => {
+    const totals = {};
+
+    const applyAmount = (rawCategory, amount) => {
+      const numericAmount = Number(amount) || 0;
+      if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+        return;
+      }
+      const categoryId = normalizeCategoryId(rawCategory || 'Other');
+      totals[categoryId] = (totals[categoryId] || 0) + numericAmount;
+    };
+
+    expenseList.forEach(expense => {
+      if (!expense) {
+        return;
+      }
+      if (Array.isArray(expense.items) && expense.items.length > 0) {
+        expense.items.forEach(item => {
+          applyAmount(item?.category || expense.category, getItemAmount(item));
+        });
+      } else {
+        applyAmount(expense.category, expense.totalAmount || expense.amount || 0);
+      }
+    });
+
+    return totals;
+  }, [getItemAmount, normalizeCategoryId]);
+
+  const categorySpending = useMemo(() => {
+    return buildCategoryTotals(currentMonthExpenses);
+  }, [buildCategoryTotals, currentMonthExpenses]);
 
   // Previous month category spending
   const previousCategorySpending = useMemo(() => {
-    const spending = {};
-    previousMonthExpenses.forEach(exp => {
-      const category = exp.category || 'Other';
-      spending[category] = (spending[category] || 0) + (exp.totalAmount || exp.amount || 0);
-    });
-    return spending;
-  }, [previousMonthExpenses]);
+    return buildCategoryTotals(previousMonthExpenses);
+  }, [buildCategoryTotals, previousMonthExpenses]);
 
   // Build dynamic color map including custom categories
   const categoryColorMap = useMemo(() => {
     // Start with base category colors - these are already defined
     const colorMap = { ...CATEGORY_COLORS };
 
-    // Ensure the 5 core categories all have colors (they should from CATEGORY_COLORS)
-    const FIXED_CATEGORIES = ['Food', 'Transport', 'Shopping', 'Bills', 'Other'];
+    // Ensure the core categories all have colors (they should from CATEGORY_COLORS)
+    const FIXED_CATEGORIES = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Other'];
     const extendedColors = [
       '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#a29bfe',
       '#fd79a8', '#95afc0', '#e17055', '#74b9ff', '#6c5ce7',
@@ -271,9 +347,9 @@ function Overview({ expenses = [], dateRange }) {
 
     // Add colors from custom categories defined by user
     categories.forEach(cat => {
-      const categoryName = cat.name || cat.id;
-      if (categoryName && cat.color) {
-        colorMap[categoryName] = cat.color;
+      const categoryKey = cat.id || cat.name;
+      if (categoryKey && cat.color) {
+        colorMap[categoryKey] = cat.color;
       }
     });
 
@@ -302,10 +378,11 @@ function Overview({ expenses = [], dateRange }) {
   // Top spending category
   const topCategory = useMemo(() => {
     const entries = Object.entries(categorySpending);
-    if (entries.length === 0) return { name: 'N/A', amount: 0 };
-    const [name, amount] = entries.reduce((max, curr) => curr[1] > max[1] ? curr : max);
-    return { name, amount };
-  }, [categorySpending]);
+    if (entries.length === 0) return { id: 'N/A', name: 'N/A', amount: 0 };
+    const [categoryId, amount] = entries.reduce((max, curr) => (curr[1] > max[1] ? curr : max));
+    const displayName = categoryMetaMap[categoryId]?.name || categoryId;
+    return { id: categoryId, name: displayName, amount };
+  }, [categoryMetaMap, categorySpending]);
 
   // Calculate savings (mock data - would integrate with Income & Savings)
   const savings = useMemo(() => {
@@ -341,19 +418,19 @@ function Overview({ expenses = [], dateRange }) {
   const remainingBudget = totalBudget - currentMonthTotal;
 
   // Build unified category list so charts always see every tracked category
-  const allCategoryNames = useMemo(() => {
-    const namesFromConfig = categories
-      .map(category => category.name || category.id)
+  const allCategoryIds = useMemo(() => {
+    const idsFromConfig = categories
+      .map(category => category.id || category.name)
       .filter(Boolean);
-    const namesFromBudget = Object.keys(categoryBudget || {});
-    const namesFromCurrent = Object.keys(categorySpending || {});
-    const namesFromPrevious = Object.keys(previousCategorySpending || {});
+    const idsFromBudget = Object.keys(categoryBudget || {});
+    const idsFromCurrent = Object.keys(categorySpending || {});
+    const idsFromPrevious = Object.keys(previousCategorySpending || {});
 
     return Array.from(new Set([
-      ...namesFromConfig,
-      ...namesFromBudget,
-      ...namesFromCurrent,
-      ...namesFromPrevious
+      ...idsFromConfig,
+      ...idsFromBudget,
+      ...idsFromCurrent,
+      ...idsFromPrevious
     ])).filter(Boolean);
   }, [categories, categoryBudget, categorySpending, previousCategorySpending]);
 
@@ -368,33 +445,34 @@ function Overview({ expenses = [], dateRange }) {
 
     const fallbackColor = '#dfe6e9';
 
-    const chartData = allCategoryNames.map(categoryName => {
-      const spent = categorySpending[categoryName] || 0;
+    const chartData = allCategoryIds.map(categoryId => {
+      const spent = categorySpending[categoryId] || 0;
       const percentage = currentMonthTotal > 0
         ? formatPercentage((spent / currentMonthTotal) * 100)
         : '0';
 
-      const configuredCategory = categories.find(
-        category => (category.name || category.id) === categoryName
-      );
+      const configuredCategory = categoryMetaMap[categoryId];
+      const displayName = configuredCategory?.name || categoryId;
 
       return {
-        name: categoryName,
+        id: categoryId,
+        name: displayName,
         value: spent,
         percentage,
-        color: categoryColorMap[categoryName]
+        color: categoryColorMap[categoryId]
           || configuredCategory?.color
-          || CATEGORY_COLORS[categoryName]
+          || CATEGORY_COLORS[categoryId]
+          || CATEGORY_COLORS[displayName]
           || fallbackColor
       };
     });
 
-    console.log('📊 Unified Categories:', allCategoryNames);
+    console.log('📊 Unified Categories:', allCategoryIds);
     console.log('📊 Category Spending:', categorySpending);
     console.log('📊 Pie Chart Data (all categories):', chartData);
 
     return chartData;
-  }, [allCategoryNames, categories, categorySpending, categoryColorMap, currentMonthTotal]);
+  }, [allCategoryIds, categoryColorMap, categoryMetaMap, categorySpending, currentMonthTotal]);
 
   // Line chart + daily bar data (daily spending for current period)
   const { lineChartData, dailySpendingData } = useMemo(() => {
@@ -482,13 +560,14 @@ function Overview({ expenses = [], dateRange }) {
 
   // Bar chart data (category comparison)
   const barChartData = useMemo(() => {
-    const categories = new Set([...Object.keys(categorySpending), ...Object.keys(previousCategorySpending)]);
-    return Array.from(categories).map(category => ({
-      category,
-      thisMonth: categorySpending[category] || 0,
-      lastMonth: previousCategorySpending[category] || 0
+    const categoriesSet = new Set([...Object.keys(categorySpending), ...Object.keys(previousCategorySpending)]);
+    return Array.from(categoriesSet).map(categoryId => ({
+      categoryId,
+      category: categoryMetaMap[categoryId]?.name || categoryId,
+      thisMonth: categorySpending[categoryId] || 0,
+      lastMonth: previousCategorySpending[categoryId] || 0
     }));
-  }, [categorySpending, previousCategorySpending]);
+  }, [categoryMetaMap, categorySpending, previousCategorySpending]);
 
 
   // AI Insights
@@ -509,12 +588,13 @@ function Overview({ expenses = [], dateRange }) {
     }
 
     // Category-specific insights
-    Object.entries(categorySpending).forEach(([category, amount]) => {
-      const previousAmount = previousCategorySpending[category] || 0;
+    Object.entries(categorySpending).forEach(([categoryId, amount]) => {
+      const previousAmount = previousCategorySpending[categoryId] || 0;
       if (previousAmount > 0) {
         const change = ((amount - previousAmount) / previousAmount) * 100;
         if (Math.abs(change) > 20) {
-          insights.push(`${category} spending ${change > 0 ? 'increased' : 'decreased'} by ${Math.abs(change).toFixed(0)}%.`);
+          const label = categoryMetaMap[categoryId]?.name || categoryId;
+          insights.push(`${label} spending ${change > 0 ? 'increased' : 'decreased'} by ${Math.abs(change).toFixed(0)}%.`);
         }
       }
     });
