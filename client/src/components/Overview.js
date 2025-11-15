@@ -5,7 +5,7 @@ import { getAllCategories } from '../services/categoryService';
 import SummaryCards from './analytics/SummaryCards';
 import CategoryOverview from './analytics/CategoryOverview';
 import { CATEGORY_COLORS, CATEGORY_ICONS } from './analytics/categoryConstants';
-import { normalizeBudgets, buildBudgetLookup } from '../constants/defaultBudgets';
+import { normalizeBudgets } from '../constants/defaultBudgets';
 
 const CHART_TABS = [
   { id: 'pie', label: 'Categories', icon: '🥧' },
@@ -27,13 +27,6 @@ const formatPercent = (value) => `${Number.isFinite(value) ? Math.round(value) :
 const MOBILE_BREAKPOINT = 900;
 
 const RADIAN = Math.PI / 180;
-
-const toLocalDateString = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
 
 const getIsMobileViewport = () => {
   if (typeof window === 'undefined') {
@@ -320,30 +313,6 @@ function Overview({ expenses = [], dateRange, categoryBudgets = {} }) {
     [categoryBudgets]
   );
 
-  const budgetLookup = useMemo(() => buildBudgetLookup(mergedBudgets), [mergedBudgets]);
-
-  const categoryBudget = useMemo(() => {
-    const budgets = {};
-    categories.forEach(category => {
-      const key = category.id || category.name;
-      const nameKey = category.name || key;
-      budgets[key] =
-        budgetLookup[key] ??
-        budgetLookup[nameKey] ??
-        budgetLookup[key?.toLowerCase()] ??
-        budgetLookup[nameKey?.toLowerCase()] ??
-        0;
-    });
-
-    Object.entries(mergedBudgets).forEach(([name, value]) => {
-      if (budgets[name] === undefined) {
-        budgets[name] = Number(value) || 0;
-      }
-    });
-
-    return budgets;
-  }, [categories, mergedBudgets, budgetLookup]);
-
   const totalBudget = useMemo(() => {
     return Object.values(mergedBudgets || {}).reduce((sum, value) => sum + (value || 0), 0);
   }, [mergedBudgets]);
@@ -365,7 +334,7 @@ function Overview({ expenses = [], dateRange, categoryBudgets = {} }) {
       ...idsFromCurrent,
       ...idsFromPrevious
     ])).filter(Boolean);
-  }, [categories, categoryBudget, categorySpending, previousCategorySpending]);
+  }, [categories, mergedBudgets, categorySpending, previousCategorySpending]);
 
   // Pie chart data - now mirrors every known category with consistent coloring
   const pieChartData = useMemo(() => {
