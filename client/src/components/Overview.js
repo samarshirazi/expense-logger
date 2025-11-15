@@ -5,15 +5,12 @@ import { getAllCategories } from '../services/categoryService';
 import SummaryCards from './analytics/SummaryCards';
 import CategoryOverview from './analytics/CategoryOverview';
 import { CATEGORY_COLORS, CATEGORY_ICONS } from './analytics/categoryConstants';
-import CategoryBudgets from './CategoryBudgets';
-import RecurringExpenses from './RecurringExpenses';
+import { normalizeBudgets, buildBudgetLookup } from '../constants/defaultBudgets';
 
 const CHART_TABS = [
   { id: 'pie', label: 'Categories', icon: '🥧' },
   { id: 'line', label: 'Trend', icon: '📈' },
-  { id: 'bars', label: 'Comparisons', icon: '📊' },
-  { id: 'budgets', label: 'Budgets', icon: '💳' },
-  { id: 'recurring', label: 'Recurring', icon: '🔄' }
+  { id: 'bars', label: 'Comparisons', icon: '📊' }
 ];
 
 const formatCurrency = (amount) => {
@@ -29,16 +26,6 @@ const formatPercent = (value) => `${Number.isFinite(value) ? Math.round(value) :
 
 const MOBILE_BREAKPOINT = 900;
 
-const DEFAULT_BUDGET = {
-  Food: 500,
-  Transport: 200,
-  Shopping: 300,
-  Bills: 400,
-  Entertainment: 250,
-  Health: 200,
-  Other: 150
-};
-
 const RADIAN = Math.PI / 180;
 
 const toLocalDateString = (date) => {
@@ -48,80 +35,6 @@ const toLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-const getMonthKey = (dateString) => {
-  if (!dateString || dateString.length < 7) {
-    return null;
-  }
-  return dateString.substring(0, 7);
-};
-
-const getPreviousMonthKey = (monthKey) => {
-  if (!monthKey) {
-    return null;
-  }
-  const [yearStr, monthStr] = monthKey.split('-');
-  let year = Number(yearStr);
-  let month = Number(monthStr);
-  if (!Number.isFinite(year) || !Number.isFinite(month)) {
-    return null;
-  }
-  month -= 1;
-  if (month < 1) {
-    month = 12;
-    year -= 1;
-  }
-  if (year < 1) {
-    return null;
-  }
-  return `${year}-${String(month).padStart(2, '0')}`;
-};
-
-const ensureBudgetShape = (candidate = {}, categories) => {
-  const shaped = {};
-  categories.forEach(category => {
-    const rawValue = candidate[category.id];
-    const numeric = typeof rawValue === 'number' ? rawValue : parseFloat(rawValue);
-    shaped[category.id] = Number.isFinite(numeric) ? numeric : 0;
-  });
-  return shaped;
-};
-
-const getEffectiveBudgetForMonth = (monthKey, categories) => {
-  const fallback = ensureBudgetShape(DEFAULT_BUDGET, categories);
-
-  if (typeof window === 'undefined') {
-    return fallback;
-  }
-
-  let budgets = {};
-  try {
-    const stored = window.localStorage.getItem('monthlyBudgets');
-    if (stored) {
-      budgets = JSON.parse(stored) || {};
-    }
-  } catch (error) {
-    console.error('Failed to parse monthly budgets:', error);
-    return fallback;
-  }
-
-  if (monthKey && budgets[monthKey]) {
-    return ensureBudgetShape(budgets[monthKey], categories);
-  }
-
-  let fallbackKey = monthKey;
-  for (let i = 0; i < 24; i += 1) {
-    fallbackKey = getPreviousMonthKey(fallbackKey);
-    if (!fallbackKey) {
-      break;
-    }
-    if (budgets[fallbackKey]) {
-      return ensureBudgetShape(budgets[fallbackKey], categories);
-    }
-  }
-
-  return fallback;
-};
-
 const getIsMobileViewport = () => {
   if (typeof window === 'undefined') {
     return false;
@@ -129,7 +42,7 @@ const getIsMobileViewport = () => {
   return window.innerWidth <= MOBILE_BREAKPOINT;
 };
 
-function Overview({ expenses = [], dateRange }) {
+function Overview({ expenses = [], dateRange, categoryBudgets = {} }) {
 
   // Debug: Log dateRange changes
   console.log('📊 Overview dateRange:', dateRange);
@@ -402,24 +315,38 @@ function Overview({ expenses = [], dateRange }) {
     return ((currentMonthTotal - previousMonthTotal) / previousMonthTotal) * 100;
   }, [currentMonthTotal, previousMonthTotal]);
 
-  const monthKey = useMemo(() => {
-    if (dateRange?.startDate) {
-      return getMonthKey(dateRange.startDate);
-    }
-    if (dateRange?.endDate) {
-      return getMonthKey(dateRange.endDate);
-    }
-    return getMonthKey(toLocalDateString(new Date()));
-  }, [dateRange]);
-
-  const categoryBudget = useMemo(
-    () => getEffectiveBudgetForMonth(monthKey, categories),
-    [monthKey, categories]
+  const mergedBudgets = useMemo(
+    () => normalizeBudgets(categoryBudgets),
+    [categoryBudgets]
   );
 
+  const budgetLookup = useMemo(() => buildBudgetLookup(mergedBudgets), [mergedBudgets]);
+
+  const categoryBudget = useMemo(() => {
+    const budgets = {};
+    categories.forEach(category => {
+      const key = category.id || category.name;
+      const nameKey = category.name || key;
+      budgets[key] =
+        budgetLookup[key] ??
+        budgetLookup[nameKey] ??
+        budgetLookup[key?.toLowerCase()] ??
+        budgetLookup[nameKey?.toLowerCase()] ??
+        0;
+    });
+
+    Object.entries(mergedBudgets).forEach(([name, value]) => {
+      if (budgets[name] === undefined) {
+        budgets[name] = Number(value) || 0;
+      }
+    });
+
+    return budgets;
+  }, [categories, mergedBudgets, budgetLookup]);
+
   const totalBudget = useMemo(() => {
-    return Object.values(categoryBudget || {}).reduce((sum, value) => sum + (value || 0), 0);
-  }, [categoryBudget]);
+    return Object.values(mergedBudgets || {}).reduce((sum, value) => sum + (value || 0), 0);
+  }, [mergedBudgets]);
 
   const remainingBudget = totalBudget - currentMonthTotal;
 
@@ -428,7 +355,7 @@ function Overview({ expenses = [], dateRange }) {
     const idsFromConfig = categories
       .map(category => category.id || category.name)
       .filter(Boolean);
-    const idsFromBudget = Object.keys(categoryBudget || {});
+    const idsFromBudget = Object.keys(mergedBudgets || {});
     const idsFromCurrent = Object.keys(categorySpending || {});
     const idsFromPrevious = Object.keys(previousCategorySpending || {});
 
@@ -1084,18 +1011,6 @@ function Overview({ expenses = [], dateRange }) {
                 <div className="chart-empty-state">Need at least two months of data for comparisons.</div>
               )}
             </>
-          )}
-
-          {activeChartTab === 'budgets' && (
-            <div className="budgets-tab-content">
-              <CategoryBudgets />
-            </div>
-          )}
-
-          {activeChartTab === 'recurring' && (
-            <div className="recurring-tab-content">
-              <RecurringExpenses />
-            </div>
           )}
 
           <div className="chart-ai-tip">

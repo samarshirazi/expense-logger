@@ -20,6 +20,12 @@ function CategoryBudgets() {
     setCategories(getAllCategories());
   }, []);
 
+  const notifyBudgetsUpdated = () => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('categoryBudgetsUpdated'));
+    }
+  };
+
   const fetchBudgets = async () => {
     try {
       setLoading(true);
@@ -43,6 +49,7 @@ function CategoryBudgets() {
       setError(null);
       await deleteCategoryBudget(id);
       await fetchBudgets();
+      notifyBudgetsUpdated();
     } catch (err) {
       console.error('Error deleting budget:', err);
       setError(err.message);
@@ -79,6 +86,7 @@ function CategoryBudgets() {
       setFormData({ category: '', monthly_limit: '', currency: 'USD' });
       setEditingCategory(null);
       await fetchBudgets();
+      notifyBudgetsUpdated();
     } catch (err) {
       console.error('Error saving budget:', err);
       setError(err.message);

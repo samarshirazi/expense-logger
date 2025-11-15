@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import AICoachPanel from './components/AICoachPanel';
 import LogExpense from './components/LogExpense';
@@ -16,7 +16,7 @@ import Auth from './components/Auth';
 import NotificationPrompt from './components/NotificationPrompt';
 import TimeNavigator from './components/TimeNavigator';
 import BottomNav from './components/BottomNav';
-import { getExpenses } from './services/apiService';
+import { getExpenses, getCategoryBudgets } from './services/apiService';
 import { getAllCategories } from './services/categoryService';
 import {
   scheduleDailyExpenseReminder,
@@ -27,6 +27,7 @@ import {
   getStoredNotificationsEnabled
 } from './services/notificationService';
 import authService from './services/authService';
+import { normalizeBudgets, buildBudgetLookup } from './constants/defaultBudgets';
 import './AppLayout.css';
 
 // Helper function to format date in local timezone
@@ -35,6 +36,19 @@ const toLocalDateString = (date) => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const mapBudgetsByCategory = (records = []) => {
+  const shaped = {};
+  (records || []).forEach(record => {
+    const name = record?.category;
+    const amount = Number(record?.monthly_limit);
+    if (!name || !Number.isFinite(amount)) {
+      return;
+    }
+    shaped[name] = amount;
+  });
+  return shaped;
 };
 
 function App() {
@@ -102,6 +116,7 @@ function App() {
     currentDate: new Date()
   });
   const [expensesMode, setExpensesMode] = useState('summary');
+  const [categoryBudgets, setCategoryBudgets] = useState({});
 
   // Shared date range for all sections
   const [dateRange, setDateRange] = useState(() => {
@@ -115,6 +130,47 @@ function App() {
       endDate: toLocalDateString(endOfMonth)
     };
   });
+
+  const loadCategoryBudgets = useCallback(async () => {
+    try {
+      const data = await getCategoryBudgets();
+      setCategoryBudgets(mapBudgetsByCategory(Array.isArray(data) ? data : []));
+    } catch (error) {
+      console.warn('Failed to load category budgets:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setCategoryBudgets({});
+      return;
+    }
+    loadCategoryBudgets();
+  }, [user, loadCategoryBudgets]);
+
+  useEffect(() => {
+    const handleBudgetsUpdated = () => {
+      if (!user) {
+        return;
+      }
+      loadCategoryBudgets();
+    };
+
+    window.addEventListener('categoryBudgetsUpdated', handleBudgetsUpdated);
+    return () => {
+      window.removeEventListener('categoryBudgetsUpdated', handleBudgetsUpdated);
+    };
+  }, [user, loadCategoryBudgets]);
+
+  const normalizedCategoryBudgets = useMemo(
+    () => normalizeBudgets(categoryBudgets),
+    [categoryBudgets]
+  );
+
+  const categoryBudgetLookup = useMemo(
+    () => buildBudgetLookup(normalizedCategoryBudgets),
+    [normalizedCategoryBudgets]
+  );
 
   useEffect(() => {
     // Initialize auth state
@@ -421,19 +477,22 @@ function App() {
       entry.count += 1;
     });
 
-    // Get budgets from localStorage
-    let monthlyBudgets = {};
-    try {
-      const stored = window.localStorage.getItem('monthlyBudgets');
-      if (stored) {
-        monthlyBudgets = JSON.parse(stored) || {};
-      }
-    } catch (error) {
-      console.error('Failed to parse monthly budgets:', error);
-    }
+    const budgets = normalizedCategoryBudgets;
 
-    const monthKey = dateRange.startDate.substring(0, 7);
-    const budgets = monthlyBudgets[monthKey] || {};
+    const resolveBudgetForCategory = (categoryId) => {
+      if (!categoryId) {
+        return 0;
+      }
+      const meta = categoryLookup[categoryId] || null;
+      const displayName = meta?.name || categoryId;
+      return (
+        categoryBudgetLookup[categoryId] ??
+        categoryBudgetLookup[displayName] ??
+        categoryBudgetLookup[categoryId?.toLowerCase()] ??
+        categoryBudgetLookup[displayName?.toLowerCase()] ??
+        0
+      );
+    };
 
     // Add budget info to categories
     Object.keys(budgets).forEach(categoryId => {
@@ -442,7 +501,7 @@ function App() {
 
     Object.keys(categoryBreakdown).forEach(categoryId => {
       const entry = categoryBreakdown[categoryId];
-      const budget = budgets[categoryId] || 0;
+      const budget = resolveBudgetForCategory(categoryId);
       entry.budget = budget;
       entry.remaining = budget - entry.spent;
     });
@@ -450,7 +509,7 @@ function App() {
     const categorySummary = Object.values(categoryBreakdown);
 
     // Calculate total budget
-    const totalBudget = Object.values(budgets).reduce((sum, val) => sum + (val || 0), 0);
+    const totalBudget = Object.values(budgets || {}).reduce((sum, val) => sum + (val || 0), 0);
     const deltaVsBudget = totalBudget - totalSpending;
 
     // Find top merchant
@@ -657,9 +716,13 @@ function App() {
       .filter(Boolean)
       .join('|');
 
-    const analysisKey = `${dateRange.startDate}_${dateRange.endDate}_${expenses.length}_${Math.round(totalSpending)}_${categoryKey}`;
+    const budgetKey = Object.entries(budgets || {})
+      .map(([name, value]) => `${name}:${value}`)
+      .sort()
+      .join('|');
+    const analysisKey = `${dateRange.startDate}_${dateRange.endDate}_${expenses.length}_${Math.round(totalSpending)}_${categoryKey}_${budgetKey}`;
     setCoachAnalysis({ data: analysisData, key: analysisKey });
-  }, [expenses, dateRange, coachContext, coachMood, allCategories]);
+  }, [expenses, dateRange, coachContext, coachMood, allCategories, normalizedCategoryBudgets, categoryBudgetLookup]);
 
   const handleCoachAssistantMessage = useCallback(() => {
     if (!isCoachOpen) {
@@ -1022,6 +1085,7 @@ function App() {
                 onExpenseUpdated={handleExpenseUpdated}
                 onOpenShoppingList={() => setExpensesMode('shopping')}
                 onOpenRecurring={() => setActiveView('recurring')}
+                categoryBudgets={normalizedCategoryBudgets}
               />
             )}
           </div>
@@ -1044,6 +1108,7 @@ function App() {
           <Overview
             expenses={expenses}
             dateRange={dateRange}
+            categoryBudgets={normalizedCategoryBudgets}
           />
         </div>
 

@@ -106,7 +106,8 @@ function ExpensesSummary({
   onExport,
   onExpenseUpdated = () => {},
   onOpenShoppingList = () => {},
-  onOpenRecurring = () => {}
+  onOpenRecurring = () => {},
+  categoryBudgets = {}
 }) {
   const defaultFilters = {
     search: '',
@@ -262,6 +263,21 @@ function ExpensesSummary({
       average: count ? totalAmount / count : 0
     };
   }, [sortedExpenses]);
+
+  const totalBudgetLimit = useMemo(() => {
+    return Object.values(categoryBudgets || {}).reduce((sum, value) => sum + (value || 0), 0);
+  }, [categoryBudgets]);
+
+  const remainingBudget = useMemo(() => {
+    return totalBudgetLimit - totals.totalAmount;
+  }, [totalBudgetLimit, totals.totalAmount]);
+
+  const budgetUsage = useMemo(() => {
+    if (!totalBudgetLimit) {
+      return 0;
+    }
+    return Math.min(100, (totals.totalAmount / totalBudgetLimit) * 100);
+  }, [totalBudgetLimit, totals.totalAmount]);
 
   const activeFilterLabels = useMemo(() => {
     const labels = [];
@@ -962,6 +978,18 @@ function ExpensesSummary({
               </div>
             )}
           </div>
+      </div>
+    </div>
+      <div className="expenses-budget-summary">
+        <div className="budget-summary-card">
+          <p>Total Budget</p>
+          <h3>{formatCurrency(totalBudgetLimit)}</h3>
+          <span className="budget-usage-chip">{budgetUsage.toFixed(0)}% used</span>
+        </div>
+        <div className={`budget-summary-card ${remainingBudget < 0 ? 'over-budget' : ''}`}>
+          <p>{remainingBudget < 0 ? 'Over Budget' : 'Remaining'}</p>
+          <h3>{formatCurrency(Math.abs(remainingBudget))}</h3>
+          <small>{remainingBudget < 0 ? 'Adjust your plan for this month.' : 'Plenty of room left this month.'}</small>
         </div>
       </div>
 
