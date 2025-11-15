@@ -88,100 +88,139 @@ function CategoryBudgets() {
     return <div className="category-budgets-loading">Loading budgets...</div>;
   }
 
+  const getBudgetForCategory = (categoryName) => {
+    return budgets.find(b => b.category === categoryName);
+  };
+
+  const [editingCategory, setEditingCategory] = useState(null);
+
+  const handleAddClick = (category) => {
+    setEditingCategory(category.name);
+    setFormData({ ...formData, category: category.name, monthly_limit: '' });
+  };
+
+  const handleSave = async (categoryName) => {
+    if (!formData.monthly_limit) {
+      setError('Please enter a monthly limit');
+      return;
+    }
+
+    try {
+      setError(null);
+      await saveCategoryBudget({
+        category: categoryName,
+        monthly_limit: parseFloat(formData.monthly_limit),
+        currency: 'USD'
+      });
+
+      setFormData({ category: '', monthly_limit: '', currency: 'USD' });
+      setEditingCategory(null);
+      await fetchBudgets();
+    } catch (err) {
+      console.error('Error saving budget:', err);
+      setError(err.message);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCategory(null);
+    setFormData({ category: '', monthly_limit: '', currency: 'USD' });
+  };
+
   return (
     <div className="category-budgets-container">
       <div className="category-budgets-header">
         <h2>Category Budgets</h2>
-        <button
-          className="add-budget-btn"
-          onClick={() => setShowForm(!showForm)}
-        >
-          {showForm ? 'Cancel' : '+ Add Budget'}
-        </button>
       </div>
 
       {error && <div className="error-message">{error}</div>}
 
-      {showForm && (
-        <form className="budget-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="category">Category</label>
-            <select
-              id="category"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              required
-            >
-              <option value="">Select a category</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.name}>
-                  {cat.icon} {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="monthly_limit">Monthly Limit</label>
-            <div className="input-with-currency">
-              <span className="currency-symbol">$</span>
-              <input
-                type="number"
-                id="monthly_limit"
-                value={formData.monthly_limit}
-                onChange={(e) => setFormData({ ...formData, monthly_limit: e.target.value })}
-                placeholder="0.00"
-                step="0.01"
-                min="0"
-                required
-              />
-            </div>
-          </div>
-
-          <button type="submit" className="submit-budget-btn">
-            Save Budget
-          </button>
-        </form>
-      )}
-
       <div className="budgets-list">
-        {budgets.length === 0 ? (
-          <div className="no-budgets">
-            <p>No budgets set yet</p>
-            <p className="hint">Click "Add Budget" to set a monthly spending limit for a category</p>
-          </div>
-        ) : (
-          budgets.map(budget => (
+        {categories.map(category => {
+          const budget = getBudgetForCategory(category.name);
+          const isEditing = editingCategory === category.name;
+
+          return (
             <div
-              key={budget.id}
+              key={category.id}
               className="budget-item"
-              style={{ borderLeftColor: getCategoryColor(budget.category) }}
+              style={{ borderLeftColor: category.color }}
             >
               <div className="budget-info">
                 <div className="budget-category">
-                  <span className="category-icon">{getCategoryIcon(budget.category)}</span>
-                  <span className="category-name">{budget.category}</span>
+                  <span className="category-icon">{category.icon}</span>
+                  <span className="category-name">{category.name}</span>
                 </div>
-                <div className="budget-amount">
-                  <span className="amount-label">Monthly Limit:</span>
-                  <span className="amount-value">${parseFloat(budget.monthly_limit).toFixed(2)}</span>
-                </div>
-                {!budget.is_active && (
-                  <span className="inactive-badge">Inactive</span>
+
+                {budget && !isEditing ? (
+                  <div className="budget-amount">
+                    <span className="amount-label">Monthly Limit:</span>
+                    <span className="amount-value">${parseFloat(budget.monthly_limit).toFixed(2)}</span>
+                  </div>
+                ) : isEditing ? (
+                  <div className="budget-edit-form">
+                    <div className="input-with-currency">
+                      <span className="currency-symbol">$</span>
+                      <input
+                        type="number"
+                        value={formData.monthly_limit}
+                        onChange={(e) => setFormData({ ...formData, monthly_limit: e.target.value })}
+                        placeholder="0.00"
+                        step="0.01"
+                        min="0"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="budget-actions">
+                {!budget && !isEditing ? (
+                  <button
+                    className="add-btn"
+                    onClick={() => handleAddClick(category)}
+                  >
+                    Add Budget
+                  </button>
+                ) : isEditing ? (
+                  <>
+                    <button
+                      className="save-btn"
+                      onClick={() => handleSave(category.name)}
+                    >
+                      Save
+                    </button>
+                    <button
+                      className="cancel-btn"
+                      onClick={handleCancelEdit}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="edit-btn"
+                      onClick={() => {
+                        setEditingCategory(category.name);
+                        setFormData({ ...formData, category: category.name, monthly_limit: budget.monthly_limit });
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="delete-btn"
+                      onClick={() => handleDelete(budget.id)}
+                    >
+                      Delete
+                    </button>
+                  </>
                 )}
               </div>
-              <div className="budget-actions">
-                <button
-                  className="delete-btn"
-                  onClick={() => handleDelete(budget.id)}
-                  title="Delete budget"
-                >
-                  Delete
-                </button>
-              </div>
             </div>
-          ))
-        )}
+          );
+        })}
       </div>
     </div>
   );

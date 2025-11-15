@@ -5,11 +5,15 @@ import { getAllCategories } from '../services/categoryService';
 import SummaryCards from './analytics/SummaryCards';
 import CategoryOverview from './analytics/CategoryOverview';
 import { CATEGORY_COLORS, CATEGORY_ICONS } from './analytics/categoryConstants';
+import CategoryBudgets from './CategoryBudgets';
+import RecurringExpenses from './RecurringExpenses';
 
 const CHART_TABS = [
   { id: 'pie', label: 'Categories', icon: '🥧' },
   { id: 'line', label: 'Trend', icon: '📈' },
-  { id: 'bars', label: 'Comparisons', icon: '📊' }
+  { id: 'bars', label: 'Comparisons', icon: '📊' },
+  { id: 'budgets', label: 'Budgets', icon: '💳' },
+  { id: 'recurring', label: 'Recurring', icon: '🔄' }
 ];
 
 const formatCurrency = (amount) => {
@@ -1080,6 +1084,18 @@ function Overview({ expenses = [], dateRange }) {
                 <div className="chart-empty-state">Need at least two months of data for comparisons.</div>
               )}
             </>
+          )}
+
+          {activeChartTab === 'budgets' && (
+            <div className="budgets-tab-content">
+              <CategoryBudgets />
+            </div>
+          )}
+
+          {activeChartTab === 'recurring' && (
+            <div className="recurring-tab-content">
+              <RecurringExpenses />
+            </div>
           )}
 
           <div className="chart-ai-tip">

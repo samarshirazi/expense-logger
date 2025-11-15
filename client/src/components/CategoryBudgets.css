@@ -204,9 +204,77 @@
   font-weight: 500;
 }
 
+.budget-edit-form {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
 .budget-actions {
   display: flex;
   gap: 8px;
+}
+
+.add-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-btn:hover {
+  background-color: #45a049;
+}
+
+.save-btn {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.save-btn:hover {
+  background-color: #1976D2;
+}
+
+.cancel-btn {
+  background-color: #9E9E9E;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancel-btn:hover {
+  background-color: #757575;
+}
+
+.edit-btn {
+  background-color: #FF9800;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.edit-btn:hover {
+  background-color: #F57C00;
 }
 
 .delete-btn {
