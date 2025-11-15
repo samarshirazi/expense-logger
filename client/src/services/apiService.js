@@ -1,32 +1,10 @@
 import axios from 'axios';
 import authService from './authService';
 
-// Use relative path for production (works with Vercel), localhost for development
-// For mobile testing on local network, use the host's IP address
-const getApiBaseUrl = () => {
-  if (process.env.NODE_ENV === 'production') {
-    return '/api';
-  }
-
-  // In development, check if we're accessing from network (not localhost)
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    console.log('🔍 Detected hostname:', hostname);
-    console.log('🔍 Location:', window.location.href);
-
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      // Access from network, use the same hostname with port 5000
-      const networkUrl = `http://${hostname}:5000/api`;
-      console.log('🌐 Using network URL:', networkUrl);
-      return networkUrl;
-    }
-  }
-
-  console.log('🏠 Using localhost URL');
-  return 'http://localhost:5000/api';
-};
-
-const API_BASE_URL = getApiBaseUrl();
+// Use relative path for both development and production
+// The setupProxy.js will handle proxying to localhost:5000 in development
+// In production (Vercel), /api routes to the serverless functions
+const API_BASE_URL = '/api';
 
 console.log('✅ Final API Base URL:', API_BASE_URL);
 
