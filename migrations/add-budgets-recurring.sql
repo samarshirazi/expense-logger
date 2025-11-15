@@ -43,35 +43,43 @@ ALTER TABLE category_budgets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE recurring_expenses ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for category_budgets
-CREATE POLICY IF NOT EXISTS "Users can view their own category budgets"
+DROP POLICY IF EXISTS "Users can view their own category budgets" ON category_budgets;
+CREATE POLICY "Users can view their own category budgets"
   ON category_budgets FOR SELECT
   USING (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can insert their own category budgets"
+DROP POLICY IF EXISTS "Users can insert their own category budgets" ON category_budgets;
+CREATE POLICY "Users can insert their own category budgets"
   ON category_budgets FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can update their own category budgets"
+DROP POLICY IF EXISTS "Users can update their own category budgets" ON category_budgets;
+CREATE POLICY "Users can update their own category budgets"
   ON category_budgets FOR UPDATE
   USING (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can delete their own category budgets"
+DROP POLICY IF EXISTS "Users can delete their own category budgets" ON category_budgets;
+CREATE POLICY "Users can delete their own category budgets"
   ON category_budgets FOR DELETE
   USING (auth.uid() = user_id);
 
 -- Create RLS policies for recurring_expenses
-CREATE POLICY IF NOT EXISTS "Users can view their own recurring expenses"
+DROP POLICY IF EXISTS "Users can view their own recurring expenses" ON recurring_expenses;
+CREATE POLICY "Users can view their own recurring expenses"
   ON recurring_expenses FOR SELECT
   USING (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can insert their own recurring expenses"
+DROP POLICY IF EXISTS "Users can insert their own recurring expenses" ON recurring_expenses;
+CREATE POLICY "Users can insert their own recurring expenses"
   ON recurring_expenses FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can update their own recurring expenses"
+DROP POLICY IF EXISTS "Users can update their own recurring expenses" ON recurring_expenses;
+CREATE POLICY "Users can update their own recurring expenses"
   ON recurring_expenses FOR UPDATE
   USING (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can delete their own recurring expenses"
+DROP POLICY IF EXISTS "Users can delete their own recurring expenses" ON recurring_expenses;
+CREATE POLICY "Users can delete their own recurring expenses"
   ON recurring_expenses FOR DELETE
   USING (auth.uid() = user_id);

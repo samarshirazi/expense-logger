@@ -34,31 +34,6 @@ function CategoryBudgets() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!formData.category || !formData.monthly_limit) {
-      setError('Please select a category and enter a monthly limit');
-      return;
-    }
-
-    try {
-      setError(null);
-      await saveCategoryBudget({
-        category: formData.category,
-        monthly_limit: parseFloat(formData.monthly_limit),
-        currency: formData.currency
-      });
-
-      setFormData({ category: '', monthly_limit: '', currency: 'USD' });
-      setShowForm(false);
-      await fetchBudgets();
-    } catch (err) {
-      console.error('Error saving budget:', err);
-      setError(err.message);
-    }
-  };
-
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this budget?')) {
       return;
@@ -72,16 +47,6 @@ function CategoryBudgets() {
       console.error('Error deleting budget:', err);
       setError(err.message);
     }
-  };
-
-  const getCategoryIcon = (categoryName) => {
-    const category = categories.find(c => c.name === categoryName);
-    return category?.icon || '📦';
-  };
-
-  const getCategoryColor = (categoryName) => {
-    const category = categories.find(c => c.name === categoryName);
-    return category?.color || '#95afc0';
   };
 
   if (loading) {

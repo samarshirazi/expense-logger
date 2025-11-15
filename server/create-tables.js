@@ -142,40 +142,64 @@ async function createTables() {
       console.log('\n🔄 Creating RLS policies...');
       const policies = [
         // Income sources policies
-        `CREATE POLICY IF NOT EXISTS "Users can view their own income sources" ON income_sources FOR SELECT USING (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can insert their own income sources" ON income_sources FOR INSERT WITH CHECK (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can update their own income sources" ON income_sources FOR UPDATE USING (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can delete their own income sources" ON income_sources FOR DELETE USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can view their own income sources" ON income_sources`,
+        `CREATE POLICY "Users can view their own income sources" ON income_sources FOR SELECT USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can insert their own income sources" ON income_sources`,
+        `CREATE POLICY "Users can insert their own income sources" ON income_sources FOR INSERT WITH CHECK (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can update their own income sources" ON income_sources`,
+        `CREATE POLICY "Users can update their own income sources" ON income_sources FOR UPDATE USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can delete their own income sources" ON income_sources`,
+        `CREATE POLICY "Users can delete their own income sources" ON income_sources FOR DELETE USING (auth.uid() = user_id)`,
 
         // Extra income policies
-        `CREATE POLICY IF NOT EXISTS "Users can view their own extra income" ON extra_income FOR SELECT USING (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can insert their own extra income" ON extra_income FOR INSERT WITH CHECK (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can update their own extra income" ON extra_income FOR UPDATE USING (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can delete their own extra income" ON extra_income FOR DELETE USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can view their own extra income" ON extra_income`,
+        `CREATE POLICY "Users can view their own extra income" ON extra_income FOR SELECT USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can insert their own extra income" ON extra_income`,
+        `CREATE POLICY "Users can insert their own extra income" ON extra_income FOR INSERT WITH CHECK (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can update their own extra income" ON extra_income`,
+        `CREATE POLICY "Users can update their own extra income" ON extra_income FOR UPDATE USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can delete their own extra income" ON extra_income`,
+        `CREATE POLICY "Users can delete their own extra income" ON extra_income FOR DELETE USING (auth.uid() = user_id)`,
 
         // Savings transactions policies
-        `CREATE POLICY IF NOT EXISTS "Users can view their own savings transactions" ON savings_transactions FOR SELECT USING (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can insert their own savings transactions" ON savings_transactions FOR INSERT WITH CHECK (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can update their own savings transactions" ON savings_transactions FOR UPDATE USING (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can delete their own savings transactions" ON savings_transactions FOR DELETE USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can view their own savings transactions" ON savings_transactions`,
+        `CREATE POLICY "Users can view their own savings transactions" ON savings_transactions FOR SELECT USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can insert their own savings transactions" ON savings_transactions`,
+        `CREATE POLICY "Users can insert their own savings transactions" ON savings_transactions FOR INSERT WITH CHECK (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can update their own savings transactions" ON savings_transactions`,
+        `CREATE POLICY "Users can update their own savings transactions" ON savings_transactions FOR UPDATE USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can delete their own savings transactions" ON savings_transactions`,
+        `CREATE POLICY "Users can delete their own savings transactions" ON savings_transactions FOR DELETE USING (auth.uid() = user_id)`,
 
         // Savings goals policies
-        `CREATE POLICY IF NOT EXISTS "Users can view their own savings goals" ON savings_goals FOR SELECT USING (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can insert their own savings goals" ON savings_goals FOR INSERT WITH CHECK (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can update their own savings goals" ON savings_goals FOR UPDATE USING (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can delete their own savings goals" ON savings_goals FOR DELETE USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can view their own savings goals" ON savings_goals`,
+        `CREATE POLICY "Users can view their own savings goals" ON savings_goals FOR SELECT USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can insert their own savings goals" ON savings_goals`,
+        `CREATE POLICY "Users can insert their own savings goals" ON savings_goals FOR INSERT WITH CHECK (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can update their own savings goals" ON savings_goals`,
+        `CREATE POLICY "Users can update their own savings goals" ON savings_goals FOR UPDATE USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can delete their own savings goals" ON savings_goals`,
+        `CREATE POLICY "Users can delete their own savings goals" ON savings_goals FOR DELETE USING (auth.uid() = user_id)`,
 
         // Category budgets policies
-        `CREATE POLICY IF NOT EXISTS "Users can view their own category budgets" ON category_budgets FOR SELECT USING (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can insert their own category budgets" ON category_budgets FOR INSERT WITH CHECK (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can update their own category budgets" ON category_budgets FOR UPDATE USING (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can delete their own category budgets" ON category_budgets FOR DELETE USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can view their own category budgets" ON category_budgets`,
+        `CREATE POLICY "Users can view their own category budgets" ON category_budgets FOR SELECT USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can insert their own category budgets" ON category_budgets`,
+        `CREATE POLICY "Users can insert their own category budgets" ON category_budgets FOR INSERT WITH CHECK (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can update their own category budgets" ON category_budgets`,
+        `CREATE POLICY "Users can update their own category budgets" ON category_budgets FOR UPDATE USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can delete their own category budgets" ON category_budgets`,
+        `CREATE POLICY "Users can delete their own category budgets" ON category_budgets FOR DELETE USING (auth.uid() = user_id)`,
 
         // Recurring expenses policies
-        `CREATE POLICY IF NOT EXISTS "Users can view their own recurring expenses" ON recurring_expenses FOR SELECT USING (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can insert their own recurring expenses" ON recurring_expenses FOR INSERT WITH CHECK (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can update their own recurring expenses" ON recurring_expenses FOR UPDATE USING (auth.uid() = user_id)`,
-        `CREATE POLICY IF NOT EXISTS "Users can delete their own recurring expenses" ON recurring_expenses FOR DELETE USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can view their own recurring expenses" ON recurring_expenses`,
+        `CREATE POLICY "Users can view their own recurring expenses" ON recurring_expenses FOR SELECT USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can insert their own recurring expenses" ON recurring_expenses`,
+        `CREATE POLICY "Users can insert their own recurring expenses" ON recurring_expenses FOR INSERT WITH CHECK (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can update their own recurring expenses" ON recurring_expenses`,
+        `CREATE POLICY "Users can update their own recurring expenses" ON recurring_expenses FOR UPDATE USING (auth.uid() = user_id)`,
+        `DROP POLICY IF EXISTS "Users can delete their own recurring expenses" ON recurring_expenses`,
+        `CREATE POLICY "Users can delete their own recurring expenses" ON recurring_expenses FOR DELETE USING (auth.uid() = user_id)`,
       ];
 
       for (const policy of policies) {
