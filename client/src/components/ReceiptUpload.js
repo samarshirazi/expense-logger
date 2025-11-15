@@ -7,8 +7,6 @@ import {
   getStoredNotificationsEnabled,
   getStoredNotificationPreferences
 } from '../services/notificationService';
-import CameraCapture from './CameraCapture';
-import ImageCropModal from './ImageCropModal';
 import './CameraCapture.css';
 
 const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
@@ -16,10 +14,8 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [showCamera, setShowCamera] = useState(false);
-  const [showCropModal, setShowCropModal] = useState(false);
-  const [imageToProcess, setImageToProcess] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const cameraInputRef = React.useRef(null);
 
   // Detect mobile device
   React.useEffect(() => {
@@ -164,21 +160,14 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
   }, [getMonthKey, expenses]);
 
   const handleFileUpload = useCallback(async (file) => {
-    // Show crop modal with the image
-    const imageUrl = URL.createObjectURL(file);
-    setImageToProcess({ file, url: imageUrl });
-    setShowCropModal(true);
-  }, []);
-
-  const handleCropComplete = useCallback(async (croppedFile) => {
-    setShowCropModal(false);
+    // Upload directly without cropping
     setUploading(true);
     setError(null);
     setSuccess(null);
     setProgress(0);
 
     try {
-      const result = await uploadReceipt(croppedFile, (progressPercent) => {
+      const result = await uploadReceipt(file, (progressPercent) => {
         setProgress(progressPercent);
       });
 
@@ -219,12 +208,6 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
         setSuccess('Receipt processed successfully!');
       }
 
-      // Clean up
-      if (imageToProcess?.url) {
-        URL.revokeObjectURL(imageToProcess.url);
-      }
-      setImageToProcess(null);
-
     } catch (err) {
       setError(err.message || 'Failed to process receipt');
       console.error('Upload error:', err);
@@ -232,15 +215,7 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
       setUploading(false);
       setProgress(0);
     }
-  }, [onExpenseAdded, checkBudgetThresholds, imageToProcess]);
-
-  const handleCropCancel = useCallback(() => {
-    setShowCropModal(false);
-    if (imageToProcess?.url) {
-      URL.revokeObjectURL(imageToProcess.url);
-    }
-    setImageToProcess(null);
-  }, [imageToProcess]);
+  }, [onExpenseAdded, checkBudgetThresholds]);
 
   const onDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];
@@ -248,19 +223,21 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
     await handleFileUpload(file);
   }, [handleFileUpload]);
 
-  const handleCameraCapture = useCallback(async (file) => {
-    setShowCamera(false);
-    await handleFileUpload(file);
-  }, [handleFileUpload]);
-
-  const handleCameraCancel = useCallback(() => {
-    setShowCamera(false);
-  }, []);
-
-  const openCamera = useCallback(() => {
+  const handleCameraClick = useCallback(() => {
     clearMessages();
-    setShowCamera(true);
+    if (cameraInputRef.current) {
+      cameraInputRef.current.click();
+    }
   }, []);
+
+  const handleCameraInputChange = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await handleFileUpload(file);
+    }
+    // Reset input so the same file can be selected again if needed
+    e.target.value = '';
+  }, [handleFileUpload]);
 
   const {
     getRootProps,
@@ -296,7 +273,15 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
       {/* Camera button for mobile devices */}
       {isMobile && !uploading && (
         <div className="camera-section">
-          <button className="camera-btn" onClick={openCamera}>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleCameraInputChange}
+            style={{ display: 'none' }}
+          />
+          <button className="camera-btn" onClick={handleCameraClick}>
             📷 Take Photo
           </button>
           <span className="camera-divider">or</span>
@@ -375,23 +360,6 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
             ×
           </button>
         </div>
-      )}
-
-      {/* Camera capture modal */}
-      {showCamera && (
-        <CameraCapture
-          onCapture={handleCameraCapture}
-          onCancel={handleCameraCancel}
-        />
-      )}
-
-      {/* Image crop modal */}
-      {showCropModal && imageToProcess && (
-        <ImageCropModal
-          imageUrl={imageToProcess.url}
-          onCropComplete={handleCropComplete}
-          onCancel={handleCropCancel}
-        />
       )}
 
     </div>

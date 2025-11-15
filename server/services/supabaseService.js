@@ -1865,6 +1865,338 @@ async function getAllTransactions(userId, startDate = null, endDate = null, type
   }
 }
 
+// ==================== CATEGORY BUDGETS ====================
+
+async function saveCategoryBudget(budgetData, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { data, error } = await supabase
+      .from('category_budgets')
+      .upsert({
+        user_id: userId,
+        category: budgetData.category,
+        monthly_limit: budgetData.monthly_limit,
+        currency: budgetData.currency || 'USD',
+        is_active: budgetData.is_active !== undefined ? budgetData.is_active : true,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id,category' })
+      .select()
+      .single();
+
+    if (error) throw error;
+    console.log('✅ Category budget saved:', data.id);
+    return data;
+  } catch (error) {
+    console.error('❌ Error saving category budget:', error);
+    throw new Error(`Failed to save category budget: ${error.message}`);
+  }
+}
+
+async function getCategoryBudgets(userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { data, error } = await supabase
+      .from('category_budgets')
+      .select('*')
+      .eq('user_id', userId)
+      .order('category', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('❌ Error fetching category budgets:', error);
+    throw new Error(`Failed to fetch category budgets: ${error.message}`);
+  }
+}
+
+async function updateCategoryBudget(id, budgetData, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { data, error } = await supabase
+      .from('category_budgets')
+      .update({
+        ...budgetData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    console.log('✅ Category budget updated:', id);
+    return data;
+  } catch (error) {
+    console.error('❌ Error updating category budget:', error);
+    throw new Error(`Failed to update category budget: ${error.message}`);
+  }
+}
+
+async function deleteCategoryBudget(id, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { error } = await supabase
+      .from('category_budgets')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    console.log('✅ Category budget deleted:', id);
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error deleting category budget:', error);
+    throw new Error(`Failed to delete category budget: ${error.message}`);
+  }
+}
+
+// ==================== RECURRING EXPENSES ====================
+
+async function saveRecurringExpense(recurringData, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { data, error } = await supabase
+      .from('recurring_expenses')
+      .insert({
+        user_id: userId,
+        merchant_name: recurringData.merchant_name,
+        product_name: recurringData.product_name,
+        amount: recurringData.amount,
+        category: recurringData.category,
+        payment_day: recurringData.payment_day,
+        currency: recurringData.currency || 'USD',
+        is_active: recurringData.is_active !== undefined ? recurringData.is_active : true,
+        notes: recurringData.notes
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    console.log('✅ Recurring expense saved:', data.id);
+    return data;
+  } catch (error) {
+    console.error('❌ Error saving recurring expense:', error);
+    throw new Error(`Failed to save recurring expense: ${error.message}`);
+  }
+}
+
+async function getRecurringExpenses(userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { data, error } = await supabase
+      .from('recurring_expenses')
+      .select('*')
+      .eq('user_id', userId)
+      .order('payment_day', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('❌ Error fetching recurring expenses:', error);
+    throw new Error(`Failed to fetch recurring expenses: ${error.message}`);
+  }
+}
+
+async function updateRecurringExpense(id, recurringData, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { data, error } = await supabase
+      .from('recurring_expenses')
+      .update({
+        ...recurringData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    console.log('✅ Recurring expense updated:', id);
+    return data;
+  } catch (error) {
+    console.error('❌ Error updating recurring expense:', error);
+    throw new Error(`Failed to update recurring expense: ${error.message}`);
+  }
+}
+
+async function deleteRecurringExpense(id, userId, userToken = null) {
+  try {
+    let supabase;
+    if (userToken) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      supabase = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${userToken}` } }
+      });
+    } else {
+      supabase = initSupabase();
+    }
+
+    const { error } = await supabase
+      .from('recurring_expenses')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    console.log('✅ Recurring expense deleted:', id);
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error deleting recurring expense:', error);
+    throw new Error(`Failed to delete recurring expense: ${error.message}`);
+  }
+}
+
+async function processRecurringExpenses(userToken = null) {
+  try {
+    const supabase = initSupabase();
+    const today = new Date();
+    const currentDay = today.getDate();
+    const currentMonth = today.toISOString().slice(0, 7); // YYYY-MM
+
+    // Get all active recurring expenses where payment_day matches today
+    // and haven't been processed this month
+    const { data: recurringExpenses, error } = await supabase
+      .from('recurring_expenses')
+      .select('*')
+      .eq('is_active', true)
+      .eq('payment_day', currentDay);
+
+    if (error) throw error;
+
+    const processedExpenses = [];
+
+    for (const recurring of recurringExpenses) {
+      // Check if already processed this month
+      if (recurring.last_processed_date) {
+        const lastProcessedMonth = recurring.last_processed_date.slice(0, 7);
+        if (lastProcessedMonth === currentMonth) {
+          console.log(`⏭️  Skipping ${recurring.merchant_name} - already processed this month`);
+          continue;
+        }
+      }
+
+      // Create the expense
+      const expenseData = {
+        user_id: recurring.user_id,
+        merchant_name: recurring.merchant_name,
+        date: today.toISOString().split('T')[0],
+        total_amount: recurring.amount,
+        currency: recurring.currency,
+        category: recurring.category,
+        items: recurring.product_name ? [{
+          description: recurring.product_name,
+          quantity: 1,
+          price: recurring.amount,
+          category: recurring.category
+        }] : [],
+        payment_method: 'Recurring',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { data: newExpense, error: expenseError } = await supabase
+        .from('expenses')
+        .insert(expenseData)
+        .select()
+        .single();
+
+      if (expenseError) {
+        console.error(`❌ Error creating expense for ${recurring.merchant_name}:`, expenseError);
+        continue;
+      }
+
+      // Update last_processed_date
+      await supabase
+        .from('recurring_expenses')
+        .update({ last_processed_date: today.toISOString().split('T')[0] })
+        .eq('id', recurring.id);
+
+      console.log(`✅ Created recurring expense: ${recurring.merchant_name} - $${recurring.amount}`);
+      processedExpenses.push({
+        recurringExpense: recurring,
+        createdExpense: newExpense
+      });
+    }
+
+    return processedExpenses;
+  } catch (error) {
+    console.error('❌ Error processing recurring expenses:', error);
+    throw new Error(`Failed to process recurring expenses: ${error.message}`);
+  }
+}
+
 module.exports = {
   initSupabase,
   testConnection,
@@ -1916,5 +2248,16 @@ module.exports = {
   updateTransfer,
   deleteTransfer,
   // Unified Transactions
-  getAllTransactions
+  getAllTransactions,
+  // Category Budgets
+  saveCategoryBudget,
+  getCategoryBudgets,
+  updateCategoryBudget,
+  deleteCategoryBudget,
+  // Recurring Expenses
+  saveRecurringExpense,
+  getRecurringExpenses,
+  updateRecurringExpense,
+  deleteRecurringExpense,
+  processRecurringExpenses
 };

@@ -448,4 +448,87 @@ export const deleteSavingsGoal = async (id) => {
   }
 };
 
+// Category Budgets
+export const getCategoryBudgets = async () => {
+  try {
+    const response = await api.get('/category-budgets');
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to fetch category budgets'));
+  }
+};
+
+export const saveCategoryBudget = async (budgetData) => {
+  try {
+    const response = await api.post('/category-budgets', budgetData);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to save category budget'));
+  }
+};
+
+export const updateCategoryBudget = async (id, updates) => {
+  try {
+    const response = await api.patch(`/category-budgets/${id}`, updates);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to update category budget'));
+  }
+};
+
+export const deleteCategoryBudget = async (id) => {
+  try {
+    const response = await api.delete(`/category-budgets/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to delete category budget'));
+  }
+};
+
+// Recurring Expenses
+export const getRecurringExpenses = async () => {
+  try {
+    const response = await api.get('/recurring-expenses');
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to fetch recurring expenses'));
+  }
+};
+
+export const createRecurringExpense = async (recurringData) => {
+  try {
+    const response = await api.post('/recurring-expenses', recurringData);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to create recurring expense'));
+  }
+};
+
+export const updateRecurringExpense = async (id, updates) => {
+  try {
+    const response = await api.patch(`/recurring-expenses/${id}`, updates);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to update recurring expense'));
+  }
+};
+
+export const deleteRecurringExpense = async (id) => {
+  try {
+    const response = await api.delete(`/recurring-expenses/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to delete recurring expense'));
+  }
+};
+
+export const processRecurringExpenses = async () => {
+  try {
+    const response = await api.post('/recurring-expenses/process');
+    return response.data;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to process recurring expenses'));
+  }
+};
+
 export default api;

@@ -1,0 +1,352 @@
+.recurring-expenses-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.recurring-expenses-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.recurring-expenses-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+}
+
+.recurring-expenses-description {
+  color: #666;
+  margin-bottom: 24px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.add-recurring-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-recurring-btn:hover {
+  background-color: #45a049;
+}
+
+.recurring-expenses-loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 16px;
+}
+
+.error-message {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  border-left: 4px solid #c62828;
+}
+
+.recurring-form {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.form-group small {
+  margin-top: 4px;
+  color: #666;
+  font-size: 12px;
+}
+
+.input-with-currency {
+  position: relative;
+}
+
+.currency-symbol {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+  font-weight: 500;
+}
+
+.input-with-currency input {
+  padding-left: 28px;
+}
+
+.submit-recurring-btn {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s;
+  margin-top: 8px;
+}
+
+.submit-recurring-btn:hover {
+  background-color: #1976D2;
+}
+
+.recurring-expenses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.no-recurring {
+  text-align: center;
+  padding: 40px 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  border: 2px dashed #ddd;
+}
+
+.no-recurring p {
+  margin: 8px 0;
+  color: #666;
+}
+
+.no-recurring .hint {
+  font-size: 14px;
+  color: #999;
+}
+
+.recurring-item {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #4CAF50;
+  transition: box-shadow 0.2s;
+}
+
+.recurring-item:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.recurring-item.inactive {
+  opacity: 0.6;
+  border-left-color: #999;
+}
+
+.recurring-info {
+  flex: 1;
+}
+
+.recurring-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.merchant-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.category-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.merchant-info h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.product-name {
+  margin: 4px 0 0 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.recurring-amount {
+  font-size: 28px;
+  font-weight: 700;
+  color: #4CAF50;
+}
+
+.recurring-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.detail-item {
+  display: flex;
+  gap: 6px;
+}
+
+.detail-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.recurring-notes {
+  background-color: #f5f5f5;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #666;
+  margin-top: 12px;
+}
+
+.inactive-badge {
+  display: inline-block;
+  background-color: #ff9800;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 12px;
+}
+
+.recurring-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.toggle-btn {
+  flex: 1;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn.pause {
+  background-color: #ff9800;
+  color: white;
+}
+
+.toggle-btn.pause:hover {
+  background-color: #f57c00;
+}
+
+.toggle-btn.resume {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.toggle-btn.resume:hover {
+  background-color: #45a049;
+}
+
+.delete-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.delete-btn:hover {
+  background-color: #d32f2f;
+}
+
+@media (max-width: 768px) {
+  .recurring-expenses-container {
+    padding: 12px;
+  }
+
+  .recurring-expenses-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .recurring-expenses-header h2 {
+    font-size: 20px;
+  }
+
+  .add-recurring-btn {
+    width: 100%;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .recurring-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .recurring-amount {
+    font-size: 24px;
+  }
+
+  .recurring-actions {
+    flex-direction: column;
+  }
+}

@@ -9,6 +9,8 @@ import ExpensesSummary from './components/ExpensesSummary';
 import Overview from './components/Overview';
 import SpendingSummary from './components/SpendingSummary';
 import IncomeSavings from './components/IncomeSavings';
+import CategoryBudgets from './components/CategoryBudgets';
+import RecurringExpenses from './components/RecurringExpenses';
 import GroceryListPage from './components/GroceryListPage';
 import Auth from './components/Auth';
 import NotificationPrompt from './components/NotificationPrompt';
@@ -1067,6 +1069,28 @@ function App() {
               prefillExpense={pendingGroceryExpense}
               onPrefillConsumed={() => setPendingGroceryExpense(null)}
             />
+          </div>
+        )}
+
+        {activeView === 'budgets' && (
+          <div className="view-container no-timeline">
+            {renderOptionsToggleButton('inline')}
+            <div className="view-header">
+              <h1>Category Budgets</h1>
+              <p>Set monthly spending limits for your categories</p>
+            </div>
+            <CategoryBudgets />
+          </div>
+        )}
+
+        {activeView === 'recurring' && (
+          <div className="view-container no-timeline">
+            {renderOptionsToggleButton('inline')}
+            <div className="view-header">
+              <h1>Recurring Expenses</h1>
+              <p>Manage expenses that repeat every month</p>
+            </div>
+            <RecurringExpenses />
           </div>
         )}
 
