@@ -327,7 +327,7 @@ app.post('/api/manual-entry', requireAuth, async (req, res) => {
     const savedExpenses = [];
     for (const expenseData of parsedExpenses) {
       console.log('Saving manual expense to database...');
-      const expenseId = await saveExpense({
+      const savedExpense = await saveExpense({
         ...expenseData,
         originalFilename: null,
         driveFileId: null,
@@ -335,8 +335,9 @@ app.post('/api/manual-entry', requireAuth, async (req, res) => {
       }, req.user.id, userToken);
 
       savedExpenses.push({
-        expenseId,
-        expenseData
+        expenseId: savedExpense.id,
+        expenseData,
+        expense: savedExpense
       });
 
       // Send push notification with budget checking (optional)
@@ -376,10 +377,10 @@ app.post('/api/manual-entry', requireAuth, async (req, res) => {
             body: notificationBody,
             icon: '/icon-192.svg',
             badge: '/icon-192.svg',
-            tag: `expense-${expenseId}`,
+            tag: `expense-${savedExpense.id}`,
             data: {
               url: '/',
-              expenseId: expenseId,
+              expenseId: savedExpense.id,
               budgetAlert: budgetAlert.shouldAlert,
               category: category
             }
@@ -436,7 +437,7 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
     const authHeader = req.headers.authorization;
     const userToken = authHeader ? authHeader.substring(7) : null; // Remove "Bearer " prefix
 
-    const expenseId = await saveExpense({
+    const savedExpense = await saveExpense({
       ...expenseData,
       originalFilename: originalFilename,
       driveFileId: driveFileId,
@@ -480,10 +481,10 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
           body: notificationBody,
           icon: '/icon-192.svg',
           badge: '/icon-192.svg',
-          tag: `expense-${expenseId}`,
+          tag: `expense-${savedExpense.id}`,
           data: {
             url: '/',
-            expenseId: expenseId,
+            expenseId: savedExpense.id,
             budgetAlert: budgetAlert.shouldAlert,
             category: category
           }
@@ -497,7 +498,8 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
 
     res.json({
       success: true,
-      expenseId: expenseId,
+      expenseId: savedExpense.id,
+      expense: savedExpense,
       expenseData: expenseData,
       driveFileId: driveFileId,
       message: 'Receipt processed successfully'

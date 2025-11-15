@@ -179,8 +179,19 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
         // Notify parent component
         if (onExpensesAdded && response.data.expenses) {
           response.data.expenses.forEach(exp => {
-            onExpensesAdded(exp.expenseData);
-            addedExpenses.push(exp.expenseData);
+            const normalizedExpense = exp.expense
+              ? exp.expense
+              : exp.expenseData
+                ? {
+                    ...exp.expenseData,
+                    id: exp.expenseId || exp.expenseData.id || undefined
+                  }
+                : null;
+
+            if (normalizedExpense) {
+              onExpensesAdded(normalizedExpense);
+              addedExpenses.push(normalizedExpense);
+            }
           });
         }
 

@@ -171,14 +171,23 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
         setProgress(progressPercent);
       });
 
+      const normalizedExpense = result.expense
+        ? result.expense
+        : (result.expenseData
+          ? {
+              ...result.expenseData,
+              id: result.expenseId || result.expenseData.id || undefined
+            }
+          : null);
+
       // Show notification if enabled
       const notificationsEnabled = getStoredNotificationsEnabled();
       const preferences = getStoredNotificationPreferences();
       const permissionGranted = getNotificationPermissionState() === 'granted';
 
       if (notificationsEnabled && permissionGranted && preferences?.newReceiptScanned) {
-        const merchantName = result.expense?.merchantName || 'Receipt';
-        const totalAmount = result.expense?.totalAmount || 0;
+        const merchantName = normalizedExpense?.merchantName || 'Receipt';
+        const totalAmount = normalizedExpense?.totalAmount || 0;
         await showLocalNotification('Receipt Processed Successfully!', {
           body: `${merchantName}: $${totalAmount.toFixed(2)} added to your expenses`,
           icon: '/icon-192.svg',
@@ -187,16 +196,16 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
       }
 
       // Use the full expense object from server response
-      if (onExpenseAdded && result.expense) {
-        onExpenseAdded(result.expense);
+      if (onExpenseAdded && normalizedExpense) {
+        onExpenseAdded(normalizedExpense);
 
         // Check budget thresholds immediately with current expenses
-        await checkBudgetThresholds(result.expense);
+        await checkBudgetThresholds(normalizedExpense);
 
         // Show success message with expense details
-        const merchantName = result.expense?.merchantName || 'Receipt';
-        const totalAmount = result.expense?.totalAmount || 0;
-        const itemCount = result.expense?.items?.length || 0;
+        const merchantName = normalizedExpense?.merchantName || 'Receipt';
+        const totalAmount = normalizedExpense?.totalAmount || 0;
+        const itemCount = normalizedExpense?.items?.length || 0;
 
         let successMsg = `${merchantName}: $${totalAmount.toFixed(2)}`;
         if (itemCount > 0) {

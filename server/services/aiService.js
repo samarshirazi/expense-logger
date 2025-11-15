@@ -574,6 +574,10 @@ async function processReceiptWithAI(fileBuffer, originalFilename, providedMimeTy
 
     validateExpenseData(expenseData);
 
+    if (Array.isArray(expenseData.items) && expenseData.items.length > 0) {
+      expenseData.items = inferBarcodesFromItems(expenseData.items);
+    }
+
     if (process.env.AI_DEBUG_LOG === 'true') {
       console.log('[AI][debug] Validated expense data:', expenseData);
     }
@@ -729,6 +733,33 @@ function validateExpenseData(data) {
     data.category = smartCategorize(data.merchantName, data.items);
     console.warn(`Invalid or missing category, using smart categorization: ${data.category}`);
   }
+}
+
+function inferBarcodesFromItems(items = []) {
+  return items.map(item => {
+    if (!item || typeof item !== 'object' || item.barcode) {
+      return item;
+    }
+
+    const description = typeof item.description === 'string' ? item.description : '';
+    if (!description) {
+      return item;
+    }
+
+    const barcodeMatch = description.match(/^\s*(?:#|Item\s*)?(\d{8,14})(?:[\s:-]+)?(.*)$/i);
+    if (!barcodeMatch) {
+      return item;
+    }
+
+    const barcode = barcodeMatch[1];
+    const remainingDescription = barcodeMatch[2]?.trim() || item.description;
+
+    return {
+      ...item,
+      barcode,
+      description: remainingDescription
+    };
+  });
 }
 
 // Categorize individual item based on its description

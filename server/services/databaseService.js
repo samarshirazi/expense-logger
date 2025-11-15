@@ -86,7 +86,21 @@ function saveExpense(expenseData) {
         reject(err);
       } else {
         console.log('Expense saved with ID:', id);
-        resolve(id);
+        resolve({
+          id,
+          merchantName: expenseData.merchantName,
+          date: expenseData.date,
+          totalAmount: expenseData.totalAmount,
+          currency: expenseData.currency || 'USD',
+          category: expenseData.category,
+          items: expenseData.items || [],
+          paymentMethod: expenseData.paymentMethod,
+          taxAmount: expenseData.taxAmount,
+          tipAmount: expenseData.tipAmount,
+          originalFilename: expenseData.originalFilename,
+          driveFileId: expenseData.driveFileId,
+          uploadDate: expenseData.uploadDate
+        });
       }
     });
 

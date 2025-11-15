@@ -217,7 +217,7 @@ app.post('/api/manual-entry', requireAuth, async (req, res) => {
     const savedExpenses = [];
     for (const expenseData of parsedExpenses) {
       console.log('Saving manual expense to database...');
-      const expenseId = await saveExpense({
+      const savedExpense = await saveExpense({
         ...expenseData,
         originalFilename: null,
         driveFileId: null,
@@ -225,8 +225,9 @@ app.post('/api/manual-entry', requireAuth, async (req, res) => {
       }, req.user.id, req.token);
 
       savedExpenses.push({
-        expenseId,
-        expenseData
+        expenseId: savedExpense.id,
+        expenseData,
+        expense: savedExpense
       });
 
       // Send push notification
@@ -236,10 +237,10 @@ app.post('/api/manual-entry', requireAuth, async (req, res) => {
           body: `${expenseData.merchantName} - $${expenseData.totalAmount}`,
           icon: '/icon-192.svg',
           badge: '/icon-192.svg',
-          tag: `expense-${expenseId}`,
+          tag: `expense-${savedExpense.id}`,
           data: {
             url: '/',
-            expenseId: expenseId
+            expenseId: savedExpense.id
           }
         };
         await sendPushToUser(req.user.id, notificationPayload, req.token);
@@ -278,7 +279,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
     }
 
     console.log('Creating manual expense...');
-    const expenseId = await saveExpense({
+    const savedExpense = await saveExpense({
       ...expenseData,
       originalFilename: null,
       driveFileId: null,
@@ -292,10 +293,10 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
         body: `${expenseData.merchantName || expenseData.description} - $${expenseData.totalAmount}`,
         icon: '/icon-192.svg',
         badge: '/icon-192.svg',
-        tag: `expense-${expenseId}`,
+        tag: `expense-${savedExpense.id}`,
         data: {
           url: '/',
-          expenseId: expenseId
+          expenseId: savedExpense.id
         }
       };
       await sendPushToUser(req.user.id, notificationPayload, req.token);
@@ -305,8 +306,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
 
     res.json({
       success: true,
-      expenseId,
-      expense: expenseData,
+      expenseId: savedExpense.id,
+      expense: savedExpense,
       message: 'Expense added successfully'
     });
 
@@ -419,16 +420,12 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
     }
 
     console.log('Saving expense to database...');
-    const expenseId = await saveExpense({
+    const savedExpense = await saveExpense({
       ...expenseData,
       originalFilename: originalFilename,
       driveFileId: driveFileId,
       uploadDate: new Date().toISOString()
     }, req.user.id, req.token);
-
-    // Fetch the saved expense to get the full object in correct format
-    console.log('Fetching saved expense...');
-    const savedExpense = await getExpenseById(expenseId, req.user.id, req.token);
 
     // Send push notification for successful receipt processing
     try {
@@ -437,10 +434,10 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
         body: `${expenseData.merchantName || 'Expense'} - $${expenseData.totalAmount || '0.00'}`,
         icon: '/icon-192.svg',
         badge: '/icon-192.svg',
-        tag: `expense-${expenseId}`,
+        tag: `expense-${savedExpense.id}`,
         data: {
           url: '/',
-          expenseId: expenseId
+          expenseId: savedExpense.id
         }
       };
       await sendPushToUser(req.user.id, notificationPayload, req.token);

@@ -206,6 +206,36 @@ async function createIncomeSavingsTables() {
   }
 }
 
+function transformExpenseRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    merchantName: row.merchant_name,
+    date: row.date,
+    totalAmount: row.total_amount !== undefined && row.total_amount !== null
+      ? parseFloat(row.total_amount)
+      : null,
+    currency: row.currency || 'USD',
+    category: row.category,
+    items: Array.isArray(row.items) ? row.items : [],
+    paymentMethod: row.payment_method,
+    taxAmount: row.tax_amount !== undefined && row.tax_amount !== null
+      ? parseFloat(row.tax_amount)
+      : null,
+    tipAmount: row.tip_amount !== undefined && row.tip_amount !== null
+      ? parseFloat(row.tip_amount)
+      : null,
+    originalFilename: row.original_filename,
+    driveFileId: row.drive_file_id,
+    uploadDate: row.upload_date,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
 async function saveExpense(expenseData, userId, userToken = null) {
   try {
     // Create Supabase client with user's access token for RLS
@@ -251,7 +281,7 @@ async function saveExpense(expenseData, userId, userToken = null) {
     }
 
     console.log('✅ Expense saved to Supabase:', data.id);
-    return data.id;
+    return transformExpenseRow(data);
 
   } catch (error) {
     console.error('❌ Error saving expense to Supabase:', error);
@@ -289,23 +319,7 @@ async function getExpenses(userId, limit = 50, offset = 0, userToken = null) {
     }
 
     // Transform data to match frontend expectations
-    const expenses = data.map(row => ({
-      id: row.id,
-      merchantName: row.merchant_name,
-      date: row.date,
-      totalAmount: parseFloat(row.total_amount),
-      currency: row.currency,
-      category: row.category,
-      items: row.items || [],
-      paymentMethod: row.payment_method,
-      taxAmount: row.tax_amount ? parseFloat(row.tax_amount) : null,
-      tipAmount: row.tip_amount ? parseFloat(row.tip_amount) : null,
-      originalFilename: row.original_filename,
-      driveFileId: row.drive_file_id,
-      uploadDate: row.upload_date,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at
-    }));
+    const expenses = data.map(transformExpenseRow);
 
     return expenses;
 
@@ -717,7 +731,7 @@ async function learnCategoryCorrection(userId, merchantName, description, catego
       .single();
 
     if (error) throw error;
-    return data;
+    return transformExpenseRow(data);
   } catch (error) {
     console.error('Error learning category:', error);
     throw error;
