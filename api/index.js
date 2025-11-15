@@ -8,7 +8,26 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env'), override: t
 
 const { processReceiptWithAI, parseManualEntry, generateCoachInsights } = require('../server/services/aiService');
 const { uploadToGoogleDrive, deleteFromGoogleDrive } = require('../server/services/googleDriveService');
-const { saveExpense, getExpenses, getExpenseById, deleteExpense, testConnection, createExpensesTable, updateExpenseCategory, updateItemCategory, updateExpense } = require('../server/services/supabaseService');
+const {
+  saveExpense,
+  getExpenses,
+  getExpenseById,
+  deleteExpense,
+  testConnection,
+  createExpensesTable,
+  updateExpenseCategory,
+  updateItemCategory,
+  updateExpense,
+  saveCategoryBudget,
+  getCategoryBudgets,
+  updateCategoryBudget,
+  deleteCategoryBudget,
+  saveRecurringExpense,
+  getRecurringExpenses,
+  updateRecurringExpense,
+  deleteRecurringExpense,
+  processRecurringExpenses
+} = require('../server/services/supabaseService');
 const { signUp, signIn, signOut, requireAuth } = require('../server/services/authService');
 
 // Try to load notification service, but make it optional
@@ -971,6 +990,266 @@ app.delete('/api/expenses/:id', requireAuth, async (req, res) => {
       error: 'Failed to delete expense',
       details: error.message
     });
+  }
+});
+
+// ============================================================
+// CATEGORY BUDGETS ENDPOINTS
+// ============================================================
+
+app.get('/api/category-budgets', requireAuth, async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const userToken = authHeader ? authHeader.substring(7) : null;
+    const budgets = await getCategoryBudgets(req.user.id, userToken);
+    res.json(budgets);
+  } catch (error) {
+    console.error('Error fetching category budgets:', error);
+    res.status(500).json({ error: 'Failed to fetch category budgets', details: error.message });
+  }
+});
+
+app.post('/api/category-budgets', requireAuth, async (req, res) => {
+  try {
+    const budgetData = req.body;
+
+    const monthlyLimit = Number(budgetData.monthly_limit);
+    if (!budgetData.category || !Number.isFinite(monthlyLimit) || monthlyLimit <= 0) {
+      return res.status(400).json({ error: 'Category and a positive monthly_limit are required' });
+    }
+
+    const authHeader = req.headers.authorization;
+    const userToken = authHeader ? authHeader.substring(7) : null;
+    const normalizedBudget = {
+      ...budgetData,
+      monthly_limit: monthlyLimit
+    };
+
+    const result = await saveCategoryBudget(normalizedBudget, req.user.id, userToken);
+
+    res.json({
+      success: true,
+      budget: result,
+      message: 'Category budget saved successfully'
+    });
+  } catch (error) {
+    console.error('Error saving category budget:', error);
+    res.status(500).json({ error: 'Failed to save category budget', details: error.message });
+  }
+});
+
+app.patch('/api/category-budgets/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const budgetData = { ...req.body };
+
+    if (!id) {
+      return res.status(400).json({ error: 'Budget ID is required' });
+    }
+
+    if (budgetData.monthly_limit !== undefined && budgetData.monthly_limit !== null) {
+      const parsedLimit = Number(budgetData.monthly_limit);
+      if (!Number.isFinite(parsedLimit) || parsedLimit <= 0) {
+        return res.status(400).json({ error: 'monthly_limit must be a positive number' });
+      }
+      budgetData.monthly_limit = parsedLimit;
+    }
+
+    const authHeader = req.headers.authorization;
+    const userToken = authHeader ? authHeader.substring(7) : null;
+    const result = await updateCategoryBudget(id, budgetData, req.user.id, userToken);
+
+    res.json({
+      success: true,
+      budget: result,
+      message: 'Category budget updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating category budget:', error);
+    res.status(500).json({ error: 'Failed to update category budget', details: error.message });
+  }
+});
+
+app.delete('/api/category-budgets/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Budget ID is required' });
+    }
+
+    const authHeader = req.headers.authorization;
+    const userToken = authHeader ? authHeader.substring(7) : null;
+    await deleteCategoryBudget(id, req.user.id, userToken);
+
+    res.json({
+      success: true,
+      message: 'Category budget deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting category budget:', error);
+    res.status(500).json({ error: 'Failed to delete category budget', details: error.message });
+  }
+});
+
+// ============================================================
+// RECURRING EXPENSES ENDPOINTS
+// ============================================================
+
+app.get('/api/recurring-expenses', requireAuth, async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const userToken = authHeader ? authHeader.substring(7) : null;
+    const recurringExpenses = await getRecurringExpenses(req.user.id, userToken);
+    res.json(recurringExpenses);
+  } catch (error) {
+    console.error('Error fetching recurring expenses:', error);
+    res.status(500).json({ error: 'Failed to fetch recurring expenses', details: error.message });
+  }
+});
+
+app.post('/api/recurring-expenses', requireAuth, async (req, res) => {
+  try {
+    const recurringData = req.body;
+
+    const amount = Number(recurringData.amount);
+    const paymentDay = parseInt(recurringData.payment_day, 10);
+
+    if (
+      !recurringData.merchant_name ||
+      !recurringData.category ||
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      !Number.isFinite(paymentDay) ||
+      paymentDay < 1 ||
+      paymentDay > 31
+    ) {
+      return res.status(400).json({
+        error: 'Merchant name, category, amount (> 0), and payment_day (1-31) are required'
+      });
+    }
+
+    const authHeader = req.headers.authorization;
+    const userToken = authHeader ? authHeader.substring(7) : null;
+
+    const normalizedRecurring = {
+      ...recurringData,
+      amount,
+      payment_day: paymentDay
+    };
+
+    const result = await saveRecurringExpense(normalizedRecurring, req.user.id, userToken);
+
+    res.json({
+      success: true,
+      recurringExpense: result,
+      message: 'Recurring expense created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating recurring expense:', error);
+    res.status(500).json({ error: 'Failed to create recurring expense', details: error.message });
+  }
+});
+
+app.patch('/api/recurring-expenses/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = { ...req.body };
+
+    if (!id) {
+      return res.status(400).json({ error: 'Recurring expense ID is required' });
+    }
+
+    if (updates.amount !== undefined && updates.amount !== null) {
+      const parsedAmount = Number(updates.amount);
+      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+        return res.status(400).json({ error: 'amount must be a positive number' });
+      }
+      updates.amount = parsedAmount;
+    }
+
+    if (updates.payment_day !== undefined && updates.payment_day !== null) {
+      const parsedPaymentDay = parseInt(updates.payment_day, 10);
+      if (!Number.isFinite(parsedPaymentDay) || parsedPaymentDay < 1 || parsedPaymentDay > 31) {
+        return res.status(400).json({ error: 'payment_day must be between 1 and 31' });
+      }
+      updates.payment_day = parsedPaymentDay;
+    }
+
+    const authHeader = req.headers.authorization;
+    const userToken = authHeader ? authHeader.substring(7) : null;
+    const result = await updateRecurringExpense(id, updates, req.user.id, userToken);
+
+    res.json({
+      success: true,
+      recurringExpense: result,
+      message: 'Recurring expense updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating recurring expense:', error);
+    res.status(500).json({ error: 'Failed to update recurring expense', details: error.message });
+  }
+});
+
+app.delete('/api/recurring-expenses/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Recurring expense ID is required' });
+    }
+
+    const authHeader = req.headers.authorization;
+    const userToken = authHeader ? authHeader.substring(7) : null;
+    await deleteRecurringExpense(id, req.user.id, userToken);
+
+    res.json({
+      success: true,
+      message: 'Recurring expense deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting recurring expense:', error);
+    res.status(500).json({ error: 'Failed to delete recurring expense', details: error.message });
+  }
+});
+
+app.post('/api/recurring-expenses/process', requireAuth, async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const userToken = authHeader ? authHeader.substring(7) : null;
+    const processedExpenses = await processRecurringExpenses(userToken);
+
+    if (notificationService) {
+      for (const { recurringExpense, createdExpense } of processedExpenses) {
+        try {
+          await notificationService.sendPushToUser(
+            req.user.id,
+            {
+              title: 'Recurring Expense Added',
+              body: `${recurringExpense.merchant_name} - $${recurringExpense.amount} has been automatically added to your expenses.`,
+              tag: 'recurring-expense',
+              data: {
+                url: '/expenses',
+                expenseId: createdExpense.id
+              }
+            },
+            userToken
+          );
+        } catch (notifError) {
+          console.warn('⚠️  Failed to send recurring expense notification:', notifError.message);
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      processedCount: processedExpenses.length,
+      expenses: processedExpenses,
+      message: `Processed ${processedExpenses.length} recurring expense(s)`
+    });
+  } catch (error) {
+    console.error('Error processing recurring expenses:', error);
+    res.status(500).json({ error: 'Failed to process recurring expenses', details: error.message });
   }
 });
 
