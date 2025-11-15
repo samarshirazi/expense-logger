@@ -9,6 +9,7 @@ function RecurringExpenses() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     merchant_name: '',
     product_name: '',
@@ -53,14 +54,20 @@ function RecurringExpenses() {
 
     try {
       setError(null);
-      await createRecurringExpense({
+      const expenseData = {
         merchant_name: formData.merchant_name,
         product_name: formData.product_name || null,
         amount: parseFloat(formData.amount),
         category: formData.category,
         payment_day: paymentDay,
         notes: formData.notes || null
-      });
+      };
+
+      if (editingId) {
+        await updateRecurringExpense(editingId, expenseData);
+      } else {
+        await createRecurringExpense(expenseData);
+      }
 
       setFormData({
         merchant_name: '',
@@ -71,11 +78,38 @@ function RecurringExpenses() {
         notes: ''
       });
       setShowForm(false);
+      setEditingId(null);
       await fetchRecurringExpenses();
     } catch (err) {
-      console.error('Error creating recurring expense:', err);
+      console.error('Error saving recurring expense:', err);
       setError(err.message);
     }
+  };
+
+  const handleEdit = (expense) => {
+    setEditingId(expense.id);
+    setFormData({
+      merchant_name: expense.merchant_name,
+      product_name: expense.product_name || '',
+      amount: expense.amount.toString(),
+      category: expense.category,
+      payment_day: expense.payment_day.toString(),
+      notes: expense.notes || ''
+    });
+    setShowForm(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setFormData({
+      merchant_name: '',
+      product_name: '',
+      amount: '',
+      category: '',
+      payment_day: '',
+      notes: ''
+    });
+    setShowForm(false);
   };
 
   const handleDelete = async (id) => {
@@ -136,7 +170,13 @@ function RecurringExpenses() {
         <h2>Consistent Expenses</h2>
         <button
           className="add-recurring-btn"
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (showForm) {
+              handleCancelEdit();
+            } else {
+              setShowForm(true);
+            }
+          }}
         >
           {showForm ? 'Cancel' : '+ Add Expense'}
         </button>
@@ -238,7 +278,7 @@ function RecurringExpenses() {
           </div>
 
           <button type="submit" className="submit-recurring-btn">
-            Add Recurring Expense
+            {editingId ? 'Update Recurring Expense' : 'Add Recurring Expense'}
           </button>
         </form>
       )}
@@ -304,11 +344,18 @@ function RecurringExpenses() {
 
               <div className="recurring-actions">
                 <button
-                  className={`toggle-btn ${expense.is_active ? 'pause' : 'resume'}`}
+                  className={`toggle-btn ${expense.is_active ? 'active' : 'paused'}`}
                   onClick={() => handleToggleActive(expense)}
-                  title={expense.is_active ? 'Pause' : 'Resume'}
+                  title={expense.is_active ? 'Active - Click to pause' : 'Paused - Click to resume'}
                 >
-                  {expense.is_active ? 'Pause' : 'Resume'}
+                  {expense.is_active ? '✓ Active' : '⏸ Paused'}
+                </button>
+                <button
+                  className="edit-btn"
+                  onClick={() => handleEdit(expense)}
+                  title="Edit"
+                >
+                  Edit
                 </button>
                 <button
                   className="delete-btn"
