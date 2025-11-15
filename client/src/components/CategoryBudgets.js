@@ -8,7 +8,7 @@ function CategoryBudgets() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showForm, setShowForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
   const [formData, setFormData] = useState({
     category: '',
     monthly_limit: '',
@@ -91,8 +91,6 @@ function CategoryBudgets() {
   const getBudgetForCategory = (categoryName) => {
     return budgets.find(b => b.category === categoryName);
   };
-
-  const [editingCategory, setEditingCategory] = useState(null);
 
   const handleAddClick = (category) => {
     setEditingCategory(category.name);
