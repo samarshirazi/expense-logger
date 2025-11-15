@@ -105,7 +105,8 @@ function ExpensesSummary({
   onFiltersToggle,
   onExport,
   onExpenseUpdated = () => {},
-  onOpenShoppingList = () => {}
+  onOpenShoppingList = () => {},
+  onOpenRecurring = () => {}
 }) {
   const defaultFilters = {
     search: '',
@@ -826,6 +827,36 @@ function ExpensesSummary({
             }}
           >
             🛒 Shopping List
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenRecurring}
+            style={{
+              background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '0.6rem 1.2rem',
+              cursor: 'pointer',
+              fontSize: '0.95rem',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 6px rgba(17, 153, 142, 0.3)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(17, 153, 142, 0.4)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(17, 153, 142, 0.3)';
+            }}
+          >
+            🔄 Recurring
           </button>
 
           <div style={{ position: 'relative' }}>

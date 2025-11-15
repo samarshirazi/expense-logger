@@ -1021,6 +1021,7 @@ function App() {
                 dateRange={dateRange}
                 onExpenseUpdated={handleExpenseUpdated}
                 onOpenShoppingList={() => setExpensesMode('shopping')}
+                onOpenRecurring={() => setActiveView('recurring')}
               />
             )}
           </div>
