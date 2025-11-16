@@ -79,7 +79,6 @@ function CategoryBudgets() {
     setShowModal(false);
     setSelectedCategory(null);
     setBudgetAmount('');
-    setIsEditMode(false);
     setError(null);
   };
 
