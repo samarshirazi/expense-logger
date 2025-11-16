@@ -16,6 +16,8 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
   const [success, setSuccess] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const cameraInputRef = React.useRef(null);
+  const [scannedData, setScannedData] = useState(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   // Detect mobile device
   React.useEffect(() => {
@@ -159,6 +161,60 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
     }
   }, [getMonthKey, expenses]);
 
+  const handleSaveScannedReceipt = useCallback(async () => {
+    if (!scannedData) return;
+
+    try {
+      // Call onExpenseAdded with the reviewed data
+      if (onExpenseAdded) {
+        await onExpenseAdded(scannedData);
+        await checkBudgetThresholds(scannedData);
+
+        const merchantName = scannedData?.merchantName || 'Receipt';
+        const totalAmount = scannedData?.totalAmount || 0;
+        const itemCount = scannedData?.items?.length || 0;
+
+        let successMsg = `${merchantName}: $${totalAmount.toFixed(2)}`;
+        if (itemCount > 0) {
+          successMsg += ` (${itemCount} item${itemCount !== 1 ? 's' : ''})`;
+        }
+        successMsg += ' - Saved successfully!';
+        setSuccess(successMsg);
+      }
+
+      setShowReviewModal(false);
+      setScannedData(null);
+    } catch (err) {
+      setError(err.message || 'Failed to save expense');
+    }
+  }, [scannedData, onExpenseAdded, checkBudgetThresholds]);
+
+  const handleCancelReview = useCallback(() => {
+    setShowReviewModal(false);
+    setScannedData(null);
+  }, []);
+
+  const handleUpdateScannedItem = useCallback((itemIndex, field, value) => {
+    setScannedData(prev => {
+      if (!prev || !prev.items) return prev;
+
+      const updatedItems = [...prev.items];
+      updatedItems[itemIndex] = {
+        ...updatedItems[itemIndex],
+        [field]: value
+      };
+
+      // Recalculate total if prices changed
+      const newTotal = updatedItems.reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
+
+      return {
+        ...prev,
+        items: updatedItems,
+        totalAmount: newTotal
+      };
+    });
+  }, []);
+
   const handleFileUpload = useCallback(async (file) => {
     // Upload directly without cropping
     setUploading(true);
@@ -195,24 +251,10 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
         });
       }
 
-      // Use the full expense object from server response
-      if (onExpenseAdded && normalizedExpense) {
-        onExpenseAdded(normalizedExpense);
-
-        // Check budget thresholds immediately with current expenses
-        await checkBudgetThresholds(normalizedExpense);
-
-        // Show success message with expense details
-        const merchantName = normalizedExpense?.merchantName || 'Receipt';
-        const totalAmount = normalizedExpense?.totalAmount || 0;
-        const itemCount = normalizedExpense?.items?.length || 0;
-
-        let successMsg = `${merchantName}: $${totalAmount.toFixed(2)}`;
-        if (itemCount > 0) {
-          successMsg += ` (${itemCount} item${itemCount !== 1 ? 's' : ''})`;
-        }
-        successMsg += ' - Saved successfully!';
-        setSuccess(successMsg);
+      // Show review modal instead of immediately saving
+      if (normalizedExpense) {
+        setScannedData(normalizedExpense);
+        setShowReviewModal(true);
       } else {
         setSuccess('Receipt processed successfully!');
       }
@@ -368,6 +410,79 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
           >
             ×
           </button>
+        </div>
+      )}
+
+      {/* Review Modal */}
+      {showReviewModal && scannedData && (
+        <div className="receipt-review-modal-overlay" onClick={handleCancelReview}>
+          <div className="receipt-review-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="review-modal-header">
+              <h3>Review Scanned Receipt</h3>
+              <button className="review-close-btn" onClick={handleCancelReview}>×</button>
+            </div>
+
+            <div className="review-modal-body">
+              <div className="review-merchant-info">
+                <p className="review-merchant">{scannedData.merchantName}</p>
+                <p className="review-date">{scannedData.date || 'Date not detected'}</p>
+              </div>
+
+              <div className="review-items-section">
+                <h4>Items ({scannedData.items?.length || 0})</h4>
+                <div className="review-items-list">
+                  {scannedData.items?.map((item, index) => (
+                    <div key={index} className="review-item">
+                      <input
+                        type="text"
+                        className="review-item-description"
+                        value={item.description}
+                        onChange={(e) => handleUpdateScannedItem(index, 'description', e.target.value)}
+                        placeholder="Item description"
+                      />
+                      <div className="review-item-price-group">
+                        <input
+                          type="number"
+                          className="review-item-qty"
+                          value={item.quantity || 1}
+                          onChange={(e) => handleUpdateScannedItem(index, 'quantity', parseFloat(e.target.value) || 1)}
+                          placeholder="Qty"
+                          min="1"
+                          step="1"
+                        />
+                        <span className="review-item-x">×</span>
+                        <div className="review-item-price-input">
+                          <span>$</span>
+                          <input
+                            type="number"
+                            value={item.totalPrice || ''}
+                            onChange={(e) => handleUpdateScannedItem(index, 'totalPrice', e.target.value)}
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="review-total">
+                <span>Total:</span>
+                <span className="review-total-amount">${scannedData.totalAmount?.toFixed(2) || '0.00'}</span>
+              </div>
+            </div>
+
+            <div className="review-modal-footer">
+              <button className="review-cancel-btn" onClick={handleCancelReview}>
+                Cancel
+              </button>
+              <button className="review-save-btn" onClick={handleSaveScannedReceipt}>
+                Save Receipt
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

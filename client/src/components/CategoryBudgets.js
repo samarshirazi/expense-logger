@@ -8,12 +8,10 @@ function CategoryBudgets() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [editingCategory, setEditingCategory] = useState(null);
-  const [formData, setFormData] = useState({
-    category: '',
-    monthly_limit: '',
-    currency: 'USD'
-  });
+  const [showModal, setShowModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [budgetAmount, setBudgetAmount] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
     fetchBudgets();
@@ -64,38 +62,51 @@ function CategoryBudgets() {
     return budgets.find(b => b.category === categoryName);
   };
 
-  const handleAddClick = (category) => {
-    setEditingCategory(category.name);
-    setFormData({ ...formData, category: category.name, monthly_limit: '' });
+  const openAddModal = (category) => {
+    setSelectedCategory(category);
+    setBudgetAmount('');
+    setIsEditMode(false);
+    setShowModal(true);
+    setError(null);
   };
 
-  const handleSave = async (categoryName) => {
-    if (!formData.monthly_limit) {
-      setError('Please enter a monthly limit');
+  const openEditModal = (category, budget) => {
+    setSelectedCategory(category);
+    setBudgetAmount(budget.monthly_limit.toString());
+    setIsEditMode(true);
+    setShowModal(true);
+    setError(null);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedCategory(null);
+    setBudgetAmount('');
+    setIsEditMode(false);
+    setError(null);
+  };
+
+  const handleSaveBudget = async () => {
+    if (!budgetAmount || parseFloat(budgetAmount) <= 0) {
+      setError('Please enter a valid budget amount');
       return;
     }
 
     try {
       setError(null);
       await saveCategoryBudget({
-        category: categoryName,
-        monthly_limit: parseFloat(formData.monthly_limit),
+        category: selectedCategory.name,
+        monthly_limit: parseFloat(budgetAmount),
         currency: 'USD'
       });
 
-      setFormData({ category: '', monthly_limit: '', currency: 'USD' });
-      setEditingCategory(null);
       await fetchBudgets();
       notifyBudgetsUpdated();
+      closeModal();
     } catch (err) {
       console.error('Error saving budget:', err);
       setError(err.message);
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingCategory(null);
-    setFormData({ category: '', monthly_limit: '', currency: 'USD' });
   };
 
   return (
@@ -104,12 +115,9 @@ function CategoryBudgets() {
         <h2>Category Budgets</h2>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
-
       <div className="budgets-list">
         {categories.map(category => {
           const budget = getBudgetForCategory(category.name);
-          const isEditing = editingCategory === category.name;
 
           return (
             <div
@@ -123,60 +131,27 @@ function CategoryBudgets() {
                   <span className="category-name">{category.name}</span>
                 </div>
 
-                {budget && !isEditing ? (
+                {budget && (
                   <div className="budget-amount">
                     <span className="amount-label">Monthly Limit:</span>
                     <span className="amount-value">${parseFloat(budget.monthly_limit).toFixed(2)}</span>
                   </div>
-                ) : isEditing ? (
-                  <div className="budget-edit-form">
-                    <div className="input-with-currency">
-                      <span className="currency-symbol">$</span>
-                      <input
-                        type="number"
-                        value={formData.monthly_limit}
-                        onChange={(e) => setFormData({ ...formData, monthly_limit: e.target.value })}
-                        placeholder="0.00"
-                        step="0.01"
-                        min="0"
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-                ) : null}
+                )}
               </div>
 
               <div className="budget-actions">
-                {!budget && !isEditing ? (
+                {!budget ? (
                   <button
                     className="add-btn"
-                    onClick={() => handleAddClick(category)}
+                    onClick={() => openAddModal(category)}
                   >
                     Add Budget
                   </button>
-                ) : isEditing ? (
-                  <>
-                    <button
-                      className="save-btn"
-                      onClick={() => handleSave(category.name)}
-                    >
-                      Save
-                    </button>
-                    <button
-                      className="cancel-btn"
-                      onClick={handleCancelEdit}
-                    >
-                      Cancel
-                    </button>
-                  </>
                 ) : (
                   <>
                     <button
                       className="edit-btn"
-                      onClick={() => {
-                        setEditingCategory(category.name);
-                        setFormData({ ...formData, category: category.name, monthly_limit: budget.monthly_limit });
-                      }}
+                      onClick={() => openEditModal(category, budget)}
                     >
                       Edit
                     </button>
@@ -193,6 +168,55 @@ function CategoryBudgets() {
           );
         })}
       </div>
+
+      {/* Budget Modal */}
+      {showModal && selectedCategory && (
+        <div className="budget-modal-overlay" onClick={closeModal}>
+          <div className="budget-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="budget-modal-header">
+              <h3>Set Budget</h3>
+              <button className="modal-close-btn" onClick={closeModal}>×</button>
+            </div>
+
+            <div className="budget-modal-body">
+              <div className="modal-category-display">
+                <span className="modal-category-icon" style={{ backgroundColor: selectedCategory.color }}>
+                  {selectedCategory.icon}
+                </span>
+                <span className="modal-category-name">{selectedCategory.name}</span>
+              </div>
+
+              {error && <div className="modal-error-message">{error}</div>}
+
+              <div className="modal-budget-input">
+                <label htmlFor="budget-amount">Budget Monthly Limit</label>
+                <div className="input-with-currency">
+                  <span className="currency-symbol">$</span>
+                  <input
+                    type="number"
+                    id="budget-amount"
+                    value={budgetAmount}
+                    onChange={(e) => setBudgetAmount(e.target.value)}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    autoFocus
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="budget-modal-footer">
+              <button className="modal-cancel-btn" onClick={closeModal}>
+                Cancel
+              </button>
+              <button className="modal-done-btn" onClick={handleSaveBudget}>
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

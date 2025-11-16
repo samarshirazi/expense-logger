@@ -153,7 +153,8 @@ async function prepareImageFromBuffer(imageBuffer, mimeType) {
 }
 
 function buildExtractionInstruction() {
-  return `Extract this receipt and respond with a single JSON object ONLY (no markdown, no prose).
+  return `You are an expert receipt OCR system. Extract this receipt with EXTREME accuracy and respond with a single JSON object ONLY (no markdown, no prose).
+
 Required keys and value types:
 {
   "merchantName": string,
@@ -175,30 +176,66 @@ Required keys and value types:
   "taxAmount": number|null,
   "tipAmount": number|null
 }
-Rules:
-- Use null when a value is missing or unreadable.
-- All monetary fields must be numbers (not strings).
-- CRITICAL - PRICE ACCURACY:
-  * Double-check that item prices match EXACTLY what's printed on the receipt
-  * Verify that the sum of all item totalPrice values matches or is close to the final total
-  * For multi-line items, make sure you're capturing the FINAL price on the right side, not SKU numbers or codes
-  * If an item shows quantity × unit price, calculate: totalPrice = quantity × unitPrice
-  * Common mistakes to avoid: Don't confuse product codes/SKU numbers with prices, don't miss decimal points
-- BARCODE EXTRACTION:
-  * Look for barcodes or UPC codes near product names (usually 12-13 digit numbers)
-  * Common formats: UPC-A (12 digits), EAN-13 (13 digits), or shortened UPC codes
-  * These often appear BEFORE the product name on receipts (especially Walmart, Target, grocery stores)
-  * Extract ONLY the numeric barcode, no letters or special characters
-  * If you see a pattern like "012345678901 PROD NAME", the first number is likely the barcode
-- IMPORTANT: Each item MUST have its own category based on what the product is:
-  * Food: Food items, beverages, groceries (e.g., "Coffee" = Food, "Sandwich" = Food)
-  * Transport: Gas, fuel, parking fees, tolls, transit passes (e.g., "Gasoline" = Transport)
-  * Shopping: Retail products, clothing, electronics, household items (e.g., "T-Shirt" = Shopping, "Phone Charger" = Shopping)
-  * Bills: Utilities, phone bills, subscriptions (e.g., "Phone Bill" = Bills)
-  * Other: Anything that doesn't fit the above categories
-- The receipt-level category should represent the overall purchase.
-- Categorize each item independently based on the product itself, not the merchant.
-- Return ONLY the JSON object.`;
+
+CRITICAL RULES - READ CAREFULLY:
+
+1. DATE EXTRACTION (HIGHEST PRIORITY):
+   * Look for dates in these formats: MM/DD/YYYY, DD/MM/YYYY, YYYY-MM-DD, Month DD YYYY
+   * Check near: top of receipt, after merchant name, near time stamp, transaction info
+   * Common patterns: "Date: 12/25/2024", "12-25-24", "Dec 25, 2024", "25/12/2024"
+   * If day is ambiguous (e.g., 03/05/24), assume MM/DD/YYYY format (American style)
+   * Extract the FULL year (20XX), not just last 2 digits
+   * Return in YYYY-MM-DD format (e.g., "2024-12-25")
+   * NEVER return null for date unless absolutely no date-like text exists
+
+2. PRICE EXTRACTION (CRITICAL):
+   * Prices are ALWAYS on the RIGHT side of each line
+   * Format: Usually X.XX (e.g., 4.99, 12.50, 100.00)
+   * Look for decimal point - prices without decimals are rare
+   * Each product line has format: [BARCODE] PRODUCT NAME [QUANTITY INFO] PRICE
+   * The rightmost number with a decimal is almost always the price
+   * DO NOT confuse: Product codes, SKU numbers, or barcodes with prices
+   * Example line: "012345 MILK 1 GAL @ 3.99" → totalPrice: 3.99
+   * Example line: "BREAD    2.49" → totalPrice: 2.49
+   * If you see "2 @ $3.00", that means quantity=2, unitPrice=3.00, totalPrice=6.00
+
+3. PRODUCT-PRICE MATCHING (CRITICAL):
+   * Each line item has ONE price associated with it
+   * Read the receipt LEFT to RIGHT: [optional barcode] [product name] [optional qty] [PRICE on far right]
+   * The product name is usually between the barcode (if any) and the price
+   * DO NOT mix up prices between different products
+   * Verify: Sum of all item totalPrice should equal or be close to the receipt total (before tax/tip)
+   * If totals don't match, recheck each price extraction
+
+4. BARCODE EXTRACTION:
+   * Barcodes are typically 12-13 digit numbers at the START of each line
+   * Common on grocery/retail receipts (Walmart, Target, Kroger, etc.)
+   * Format: UPC-A (12 digits), EAN-13 (13 digits)
+   * Pattern: "012345678901 PRODUCT NAME 4.99"
+   * Extract ONLY numeric digits, no letters or special characters
+   * If barcode appears after product name (rare), still extract it
+
+5. QUANTITY AND UNIT PRICE:
+   * Look for patterns: "2 @ $5.00", "QTY 3", "3x", "EA $2.99"
+   * quantity: Extract the number of items (1, 2, 3, etc.)
+   * unitPrice: Price per single unit
+   * totalPrice: unitPrice × quantity OR the final price shown on right
+   * If only totalPrice is shown (no qty info), set quantity=1, unitPrice=totalPrice
+
+6. ITEM CATEGORIES:
+   * Food: Food, drinks, groceries, snacks, meals, coffee, produce
+   * Transport: Gas, fuel, parking, tolls, transit, uber, lyft
+   * Shopping: Clothing, electronics, household items, toys, books, hardware
+   * Bills: Utilities, phone bill, internet, streaming services
+   * Other: Anything else that doesn't clearly fit above
+
+7. VALIDATION:
+   * Before responding, verify: sum of item prices ≈ totalAmount (within tax/tip difference)
+   * Ensure each item has a description and totalPrice
+   * Date must be valid and in YYYY-MM-DD format
+   * All prices must have decimal points (e.g., 5.00 not 5)
+
+Return ONLY the JSON object with NO additional text.`;
 }
 
 async function callOpenAI(base64Image, mimeType) {
