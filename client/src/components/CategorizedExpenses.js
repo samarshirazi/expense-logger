@@ -28,9 +28,8 @@ const DEFAULT_BUDGET = {
   Other: 100
 };
 
-function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRefresh, dateRange, onSwitchToLog }) {
+function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRefresh, dateRange, onSwitchToLog, categoryBudgets = {} }) {
   const [categorizedExpenses, setCategorizedExpenses] = useState({});
-  const [monthlyBudgets, setMonthlyBudgets] = useState({});
   const [error, setError] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -73,46 +72,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
   const longPressTimeoutRef = useRef(null);
   const columnRefs = useRef({});
   const boardWrapperRef = useRef(null);
-
-  // Load budgets from localStorage
-  useEffect(() => {
-    const loadBudgets = () => {
-      const saved = localStorage.getItem('monthlyBudgets');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setMonthlyBudgets(parsed);
-      } else {
-        // Initialize with default budget for current month
-        const currentMonth = new Date().toISOString().substring(0, 7);
-        const initialBudgets = { [currentMonth]: { ...DEFAULT_BUDGET } };
-        setMonthlyBudgets(initialBudgets);
-        localStorage.setItem('monthlyBudgets', JSON.stringify(initialBudgets));
-      }
-    };
-
-    loadBudgets();
-
-    // Listen for storage changes (in case budgets are updated in another tab/component)
-    const handleStorageChange = (e) => {
-      if (e.key === 'monthlyBudgets' && e.newValue) {
-        setMonthlyBudgets(JSON.parse(e.newValue));
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-
-    // Use custom event for same-tab updates instead of polling
-    const handleBudgetUpdate = () => {
-      loadBudgets();
-    };
-
-    window.addEventListener('budgetUpdated', handleBudgetUpdate);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('budgetUpdated', handleBudgetUpdate);
-    };
-  }, []);
 
   // Load custom categories and listen for changes
   useEffect(() => {
@@ -272,18 +231,11 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }, []);
 
-  // Helper function to get budget for a category
-  // Memoize the current month to avoid recalculations
-  const currentMonth = useMemo(() => {
-    return dateRange?.startDate
-      ? dateRange.startDate.substring(0, 7)
-      : new Date().toISOString().substring(0, 7);
-  }, [dateRange]);
-
-  // Get current budget for the month
+  // Get current budget - using categoryBudgets from props
   const currentBudget = useMemo(() => {
-    return monthlyBudgets[currentMonth] || DEFAULT_BUDGET;
-  }, [monthlyBudgets, currentMonth]);
+    // categoryBudgets is passed from parent, already normalized by category name
+    return Object.keys(categoryBudgets).length > 0 ? categoryBudgets : DEFAULT_BUDGET;
+  }, [categoryBudgets]);
 
   const getCategoryBudget = useCallback((categoryId) => {
     if (currentBudget && currentBudget[categoryId] !== undefined) {

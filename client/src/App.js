@@ -1100,6 +1100,7 @@ function App() {
               onRefresh={loadExpenses}
               dateRange={dateRange}
               onSwitchToLog={() => setActiveView('log')}
+              categoryBudgets={normalizedCategoryBudgets}
             />
           </div>
         )}

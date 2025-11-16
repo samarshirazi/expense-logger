@@ -167,7 +167,12 @@ function RecurringExpenses() {
   return (
     <div className="recurring-expenses-container">
       <div className="recurring-expenses-header">
-        <h2>Consistent Expenses</h2>
+        <div>
+          <h2>Consistent Expenses</h2>
+          <p className="recurring-expenses-description">
+            Set up expenses that occur every month, and they'll be automatically added on the specified day.
+          </p>
+        </div>
         <button
           className="add-recurring-btn"
           onClick={() => {
@@ -181,10 +186,6 @@ function RecurringExpenses() {
           {showForm ? 'Cancel' : '+ Add Expense'}
         </button>
       </div>
-
-      <p className="recurring-expenses-description">
-        Set up expenses that occur every month, and they'll be automatically added on the specified day.
-      </p>
 
       {error && <div className="error-message">{error}</div>}
 
