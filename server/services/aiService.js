@@ -179,6 +179,27 @@ Required keys and value types:
 
 CRITICAL RULES - READ CAREFULLY:
 
+0. EXTRACTION INTEGRITY (MOST IMPORTANT - READ FIRST):
+   ⚠️ NEVER ADJUST OR FABRICATE DATA TO MAKE TOTALS MATCH ⚠️
+   * Extract ONLY what you can actually see and read on the receipt
+   * Each line item must be read INDEPENDENTLY - do not let one item's price influence another
+   * If you cannot read a price clearly:
+     - Set totalPrice to null (preferred) or your best guess with low confidence
+     - DO NOT adjust other prices to compensate
+     - DO NOT make up prices to force the total to match
+   * If the sum of items doesn't equal the total:
+     - That's OK! The user can fix it in the review screen
+     - DO NOT modify any prices you already extracted to fix the math
+     - The review modal exists specifically to catch and fix OCR errors
+   * HONESTY OVER ACCURACY: It's better to return null or an uncertain value than to fabricate data
+   * Read the receipt line-by-line from top to bottom, treating each line independently
+   * Example of CORRECT behavior:
+     - If you see prices: 3.99, [blurry], 5.99, and total is 15.00
+     - Return: 3.99, null, 5.99 (DO NOT calculate the middle price as 5.02)
+   * Example of INCORRECT behavior:
+     - Adjusting "3.99" to "4.99" because the total seems off
+     - Calculating missing prices based on subtotal/total
+
 1. DATE EXTRACTION (HIGHEST PRIORITY):
    * Look for dates in these formats: MM/DD/YYYY, DD/MM/YYYY, YYYY-MM-DD, Month DD YYYY
    * Check near: top of receipt, after merchant name, near time stamp, transaction info
@@ -201,16 +222,19 @@ CRITICAL RULES - READ CAREFULLY:
    * Each product line has format: [BARCODE] PRODUCT NAME [QUANTITY INFO] PRICE
    * The rightmost number with a decimal is almost always the price
    * DO NOT confuse: Product codes, SKU numbers, or barcodes with prices
+   * Read each line INDEPENDENTLY - don't let previous lines influence current line
    * OCR DIGIT VERIFICATION (VERY IMPORTANT):
      - Carefully distinguish between similar-looking digits:
        * 3 vs 5 vs 8: Look at curves and openings carefully
        * 6 vs 8: 6 has opening at top, 8 is closed
        * 0 vs 8: 0 is more oval, 8 has two loops
        * 1 vs 7: 7 has horizontal top bar
-     - If a price seems unusual (e.g., too high/low), RECHECK the digits
-     - Cross-verify: sum of all prices should match subtotal on receipt
+     - If a price is blurry, smudged, or unclear: return null instead of guessing
+     - If a price seems unusual (e.g., too high/low), RECHECK the digits but DON'T adjust it
+     - Extract the ACTUAL digits you see, not what would make the math work
    * Example line: "012345 MILK 1 GAL @ 3.99" → totalPrice: 3.99
    * Example line: "BREAD    2.49" → totalPrice: 2.49
+   * Example line: "CHEESE   [smudged]" → totalPrice: null
    * If you see "2 @ $3.00", that means quantity=2, unitPrice=3.00, totalPrice=6.00
 
 3. PRODUCT-PRICE MATCHING (CRITICAL):
@@ -218,8 +242,9 @@ CRITICAL RULES - READ CAREFULLY:
    * Read the receipt LEFT to RIGHT: [optional barcode] [product name] [optional qty] [PRICE on far right]
    * The product name is usually between the barcode (if any) and the price
    * DO NOT mix up prices between different products
-   * Verify: Sum of all item totalPrice should equal or be close to the receipt total (before tax/tip)
-   * If totals don't match, recheck each price extraction
+   * Process each line from top to bottom independently - treat each line as a separate extraction task
+   * After extracting all items, you may verify the sum approximately matches the total
+   * If totals don't match: DO NOT modify any prices - the user will fix errors in the review screen
 
 4. BARCODE EXTRACTION:
    * Barcodes are typically 12-13 digit numbers at the START of each line
@@ -263,11 +288,13 @@ CRITICAL RULES - READ CAREFULLY:
    * Other: Tax, fees, tips, and anything else that doesn't clearly fit above
 
 8. VALIDATION:
-   * Before responding, verify: sum of ALL item prices (including tax/fees) = totalAmount exactly
-   * If tax/fees are included as items, the math MUST add up perfectly
-   * Ensure each item has a description and totalPrice
-   * Date must be valid and in YYYY-MM-DD format
-   * All prices must have decimal points (e.g., 5.00 not 5)
+   * Verify that you extracted what you ACTUALLY saw, not what you think should be there
+   * Check: sum of ALL item prices (including tax/fees) should approximately equal totalAmount
+   * If the math doesn't add up perfectly, that's OK - do NOT adjust prices to fix it
+   * Ensure each item has a description (totalPrice can be null if unreadable)
+   * Date must be in YYYY-MM-DD format (or null if truly unreadable)
+   * Readable prices must have decimal points (e.g., 5.00 not 5)
+   * Remember: The user will review and can correct any errors - prioritize honesty over perfection
 
 Return ONLY the JSON object with NO additional text.`;
 }

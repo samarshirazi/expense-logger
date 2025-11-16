@@ -487,9 +487,10 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
                             type="number"
                             value={item.totalPrice || ''}
                             onChange={(e) => handleUpdateScannedItem(index, 'totalPrice', e.target.value)}
-                            placeholder="0.00"
+                            placeholder={item.totalPrice === null ? "Enter price" : "0.00"}
                             step="0.01"
                             min="0"
+                            className={item.totalPrice === null ? "price-missing" : ""}
                           />
                         </div>
                       </div>
