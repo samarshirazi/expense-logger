@@ -267,7 +267,7 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
       setUploading(false);
       setProgress(0);
     }
-  }, [onExpenseAdded, checkBudgetThresholds]);
+  }, []);
 
   const onDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];
