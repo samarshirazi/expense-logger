@@ -216,6 +216,16 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
     });
   }, []);
 
+  const handleUpdateReceiptInfo = useCallback((field, value) => {
+    setScannedData(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [field]: value
+      };
+    });
+  }, []);
+
   const handleFileUpload = useCallback(async (file) => {
     // Upload directly without cropping
     setUploading(true);
@@ -425,8 +435,27 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
 
             <div className="review-modal-body">
               <div className="review-merchant-info">
-                <p className="review-merchant">{scannedData.merchantName}</p>
-                <p className="review-date">{scannedData.date || 'Date not detected'}</p>
+                <div className="review-field-group">
+                  <label htmlFor="merchant-name">Merchant</label>
+                  <input
+                    type="text"
+                    id="merchant-name"
+                    className="review-merchant-input"
+                    value={scannedData.merchantName || ''}
+                    onChange={(e) => handleUpdateReceiptInfo('merchantName', e.target.value)}
+                    placeholder="Merchant name"
+                  />
+                </div>
+                <div className="review-field-group">
+                  <label htmlFor="receipt-date">Date</label>
+                  <input
+                    type="date"
+                    id="receipt-date"
+                    className="review-date-input"
+                    value={scannedData.date || ''}
+                    onChange={(e) => handleUpdateReceiptInfo('date', e.target.value)}
+                  />
+                </div>
               </div>
 
               <div className="review-items-section">

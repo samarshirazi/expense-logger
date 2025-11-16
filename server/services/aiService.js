@@ -184,17 +184,31 @@ CRITICAL RULES - READ CAREFULLY:
    * Check near: top of receipt, after merchant name, near time stamp, transaction info
    * Common patterns: "Date: 12/25/2024", "12-25-24", "Dec 25, 2024", "25/12/2024"
    * If day is ambiguous (e.g., 03/05/24), assume MM/DD/YYYY format (American style)
-   * Extract the FULL year (20XX), not just last 2 digits
+   * YEAR CONVERSION (CRITICAL): If you see 2-digit year (e.g., "24", "23", "25"):
+     - Years 00-50 → assume 2000-2050 (e.g., "24" → 2024, "25" → 2025)
+     - Years 51-99 → assume 1951-1999 (e.g., "95" → 1995)
+     - Always output 4-digit year in format YYYY-MM-DD
+     - Example: "12/25/24" → "2024-12-25", "01/15/25" → "2025-01-15"
+   * VERIFY the year makes sense (receipts are usually recent, between 2020-2025)
+   * If year seems wrong (e.g., 2004 when should be 2024), correct it
    * Return in YYYY-MM-DD format (e.g., "2024-12-25")
    * NEVER return null for date unless absolutely no date-like text exists
 
-2. PRICE EXTRACTION (CRITICAL):
+2. PRICE EXTRACTION (CRITICAL - OCR ACCURACY):
    * Prices are ALWAYS on the RIGHT side of each line
    * Format: Usually X.XX (e.g., 4.99, 12.50, 100.00)
    * Look for decimal point - prices without decimals are rare
    * Each product line has format: [BARCODE] PRODUCT NAME [QUANTITY INFO] PRICE
    * The rightmost number with a decimal is almost always the price
    * DO NOT confuse: Product codes, SKU numbers, or barcodes with prices
+   * OCR DIGIT VERIFICATION (VERY IMPORTANT):
+     - Carefully distinguish between similar-looking digits:
+       * 3 vs 5 vs 8: Look at curves and openings carefully
+       * 6 vs 8: 6 has opening at top, 8 is closed
+       * 0 vs 8: 0 is more oval, 8 has two loops
+       * 1 vs 7: 7 has horizontal top bar
+     - If a price seems unusual (e.g., too high/low), RECHECK the digits
+     - Cross-verify: sum of all prices should match subtotal on receipt
    * Example line: "012345 MILK 1 GAL @ 3.99" → totalPrice: 3.99
    * Example line: "BREAD    2.49" → totalPrice: 2.49
    * If you see "2 @ $3.00", that means quantity=2, unitPrice=3.00, totalPrice=6.00
@@ -222,15 +236,35 @@ CRITICAL RULES - READ CAREFULLY:
    * totalPrice: unitPrice × quantity OR the final price shown on right
    * If only totalPrice is shown (no qty info), set quantity=1, unitPrice=totalPrice
 
-6. ITEM CATEGORIES:
+6. TAX, FEES, AND CHARGES (IMPORTANT):
+   * ALWAYS include tax and fees as separate items in the items array
+   * Common patterns to look for at the bottom of receipt:
+     - "TAX", "SALES TAX", "GST", "VAT", "HST" → Add as item with description "Tax"
+     - "SERVICE FEE", "SERVICE CHARGE", "FEE" → Add as item with description "Service Fee"
+     - "DELIVERY FEE", "DELIVERY CHARGE" → Add as item with description "Delivery Fee"
+     - "TIP", "GRATUITY" → Add as item with description "Tip"
+   * These should be added to items array like regular products:
+     {
+       "description": "Tax",
+       "quantity": 1,
+       "unitPrice": [tax amount],
+       "totalPrice": [tax amount],
+       "category": "Other",
+       "barcode": null
+     }
+   * The totalAmount should be the FINAL total (including tax/fees)
+   * Subtotal (before tax) + Tax + Fees = Total Amount
+
+7. ITEM CATEGORIES:
    * Food: Food, drinks, groceries, snacks, meals, coffee, produce
    * Transport: Gas, fuel, parking, tolls, transit, uber, lyft
    * Shopping: Clothing, electronics, household items, toys, books, hardware
    * Bills: Utilities, phone bill, internet, streaming services
-   * Other: Anything else that doesn't clearly fit above
+   * Other: Tax, fees, tips, and anything else that doesn't clearly fit above
 
-7. VALIDATION:
-   * Before responding, verify: sum of item prices ≈ totalAmount (within tax/tip difference)
+8. VALIDATION:
+   * Before responding, verify: sum of ALL item prices (including tax/fees) = totalAmount exactly
+   * If tax/fees are included as items, the math MUST add up perfectly
    * Ensure each item has a description and totalPrice
    * Date must be valid and in YYYY-MM-DD format
    * All prices must have decimal points (e.g., 5.00 not 5)
