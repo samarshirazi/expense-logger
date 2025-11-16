@@ -163,8 +163,8 @@ function App() {
   }, [user, loadCategoryBudgets]);
 
   const normalizedCategoryBudgets = useMemo(
-    () => normalizeBudgets(categoryBudgets),
-    [categoryBudgets]
+    () => normalizeBudgets(categoryBudgets, allCategories),
+    [categoryBudgets, allCategories]
   );
 
   const categoryBudgetLookup = useMemo(

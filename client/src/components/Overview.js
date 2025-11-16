@@ -309,8 +309,8 @@ function Overview({ expenses = [], dateRange, categoryBudgets = {} }) {
   }, [currentMonthTotal, previousMonthTotal]);
 
   const mergedBudgets = useMemo(
-    () => normalizeBudgets(categoryBudgets),
-    [categoryBudgets]
+    () => normalizeBudgets(categoryBudgets, categories),
+    [categoryBudgets, categories]
   );
 
   const totalBudget = useMemo(() => {
