@@ -11,7 +11,6 @@ function CategoryBudgets() {
   const [showModal, setShowModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [budgetAmount, setBudgetAmount] = useState('');
-  const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
     fetchBudgets();
@@ -65,7 +64,6 @@ function CategoryBudgets() {
   const openAddModal = (category) => {
     setSelectedCategory(category);
     setBudgetAmount('');
-    setIsEditMode(false);
     setShowModal(true);
     setError(null);
   };
@@ -73,7 +71,6 @@ function CategoryBudgets() {
   const openEditModal = (category, budget) => {
     setSelectedCategory(category);
     setBudgetAmount(budget.monthly_limit.toString());
-    setIsEditMode(true);
     setShowModal(true);
     setError(null);
   };

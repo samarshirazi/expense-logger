@@ -187,7 +187,8 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
     } catch (err) {
       setError(err.message || 'Failed to save expense');
     }
-  }, [scannedData, onExpenseAdded, checkBudgetThresholds]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scannedData]);
 
   const handleCancelReview = useCallback(() => {
     setShowReviewModal(false);
