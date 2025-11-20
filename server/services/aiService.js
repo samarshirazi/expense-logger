@@ -957,6 +957,8 @@ async function processReceiptWithAI(fileBuffer, originalFilename, providedMimeTy
 
     const expenseData = extractExpenseData(extractedText);
 
+    console.log('📊 Raw expense data from AI before validation:', JSON.stringify(expenseData, null, 2));
+
     validateExpenseData(expenseData);
 
     if (Array.isArray(expenseData.items) && expenseData.items.length > 0) {
@@ -1042,8 +1044,14 @@ function validateExpenseData(data) {
     }
   });
 
+  console.log(`🔍 Validating totalAmount: value=${data.totalAmount}, type=${typeof data.totalAmount}, isFinite=${Number.isFinite(data.totalAmount)}`);
+
   if (typeof data.totalAmount !== 'number' || !Number.isFinite(data.totalAmount) || data.totalAmount <= 0) {
+    console.warn(`⚠️  Invalid totalAmount detected: ${data.totalAmount} (type: ${typeof data.totalAmount})`);
+
     if (Array.isArray(data.items) && data.items.length > 0) {
+      console.log(`🔧 Attempting to calculate totalAmount from ${data.items.length} items...`);
+
       const fallbackTotal = data.items.reduce((sum, item) => {
         if (!item || typeof item !== 'object') {
           return sum;
@@ -1051,25 +1059,33 @@ function validateExpenseData(data) {
 
         const totalPrice = normalizeNumber(item.totalPrice);
         if (totalPrice !== null && totalPrice > 0) {
+          console.log(`  - Item: "${item.description}" = ${totalPrice}`);
           return sum + totalPrice;
         }
 
         const unitPrice = normalizeNumber(item.unitPrice);
         const quantity = normalizeNumber(item.quantity);
         if (unitPrice !== null && quantity !== null && unitPrice > 0 && quantity > 0) {
-          return sum + unitPrice * quantity;
+          const itemTotal = unitPrice * quantity;
+          console.log(`  - Item: "${item.description}" = ${quantity} × ${unitPrice} = ${itemTotal}`);
+          return sum + itemTotal;
         }
 
+        console.log(`  - Item: "${item.description}" = no valid price found`);
         return sum;
       }, 0);
 
+      console.log(`📈 Calculated fallback total: ${fallbackTotal}`);
+
       if (fallbackTotal > 0) {
-        console.warn('AI response had invalid totalAmount; using computed sum of items instead.');
+        console.warn('✅ Using computed sum of items as totalAmount.');
         data.totalAmount = parseFloat(fallbackTotal.toFixed(2));
       }
     }
 
     if (typeof data.totalAmount !== 'number' || !Number.isFinite(data.totalAmount) || data.totalAmount <= 0) {
+      console.error(`❌ Final totalAmount validation failed: ${data.totalAmount} (type: ${typeof data.totalAmount})`);
+      console.error('Full data object:', JSON.stringify(data, null, 2));
       throw new Error('Total amount must be a positive number');
     }
   }
