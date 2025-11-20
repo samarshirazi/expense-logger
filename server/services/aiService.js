@@ -439,35 +439,57 @@ async function callOpenAI(base64Image, mimeType) {
 
   const model = process.env.OPENAI_VISION_MODEL || 'gpt-4o';
 
-  const response = await openaiClient.chat.completions.create({
-    model: model,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: buildExtractionInstruction(),
-          },
-          {
-            type: 'image_url',
-            image_url: {
-              url: `data:${mimeType};base64,${base64Image}`,
+  console.log(`🤖 Calling OpenAI API with model: ${model}`);
+
+  try {
+    const response = await openaiClient.chat.completions.create({
+      model: model,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: buildExtractionInstruction(),
             },
-          },
-        ],
-      },
-    ],
-    max_tokens: 1000,
-  });
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${mimeType};base64,${base64Image}`,
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 1000,
+    });
 
-  const extractedText = response.choices?.[0]?.message?.content;
+    const extractedText = response.choices?.[0]?.message?.content;
 
-  if (!extractedText) {
-    throw new Error('OpenAI response did not contain any content');
+    if (!extractedText) {
+      console.error('❌ OpenAI response did not contain any content');
+      console.error('Full response:', JSON.stringify(response, null, 2));
+      throw new Error('OpenAI response did not contain any content');
+    }
+
+    console.log('✅ OpenAI API call successful');
+    return extractedText;
+  } catch (error) {
+    console.error('❌ OpenAI API call failed:', error.message);
+
+    // Check for specific OpenAI error types
+    if (error.status === 401) {
+      throw new Error('OpenAI API authentication failed. Please check your API key.');
+    } else if (error.status === 429) {
+      throw new Error('OpenAI API rate limit exceeded. Please try again later.');
+    } else if (error.status === 400) {
+      throw new Error(`OpenAI API bad request: ${error.message}`);
+    } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      throw new Error('Cannot connect to OpenAI API. Please check your internet connection.');
+    }
+
+    throw error;
   }
-
-  return extractedText;
 }
 
 function callDeepSeek(base64Image, mimeType) {
@@ -559,19 +581,153 @@ function callDeepSeek(base64Image, mimeType) {
   });
 }
 
-function extractExpenseData(extractedText) {
-  try {
-    const jsonMatch = extractedText.match(/\{[\s\S]*\}/);
+function normalizeJsonCandidate(candidate) {
+  if (!candidate || typeof candidate !== 'string') {
+    return null;
+  }
 
-    if (!jsonMatch) {
-      throw new Error('No JSON found in AI response');
+  return candidate
+    .trim()
+    .replace(/^[\uFEFF]+/, '')
+    .replace(/[\u2018\u2019]/g, '\'')
+    .replace(/[\u201C\u201D]/g, '"');
+}
+
+function tryParseExpenseJson(candidate) {
+  const normalized = normalizeJsonCandidate(candidate);
+  if (!normalized) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(normalized);
+
+    if (Array.isArray(parsed)) {
+      if (parsed.length === 0) {
+        return null;
+      }
+
+      const firstObject = parsed.find((entry) => entry && typeof entry === 'object' && !Array.isArray(entry));
+      if (firstObject) {
+        console.warn('AI response returned an array; using the first object entry.');
+        return firstObject;
+      }
+
+      return null;
     }
 
-    return JSON.parse(jsonMatch[0]);
+    if (parsed && typeof parsed === 'object') {
+      return parsed;
+    }
+
+    return null;
+  } catch (parseError) {
+    return null;
+  }
+}
+
+function extractBalancedJsonSegment(text, openingChar, closingChar) {
+  if (!text || typeof text !== 'string') {
+    return null;
+  }
+
+  for (let start = 0; start < text.length; start += 1) {
+    if (text[start] !== openingChar) {
+      continue;
+    }
+
+    let depth = 0;
+    let inString = false;
+    let isEscaped = false;
+
+    for (let i = start; i < text.length; i += 1) {
+      const char = text[i];
+
+      if (inString) {
+        if (isEscaped) {
+          isEscaped = false;
+        } else if (char === '\\') {
+          isEscaped = true;
+        } else if (char === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (char === '"') {
+        inString = true;
+        continue;
+      }
+
+      if (char === openingChar) {
+        depth += 1;
+      } else if (char === closingChar) {
+        depth -= 1;
+        if (depth === 0) {
+          return text.slice(start, i + 1);
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function extractExpenseData(extractedText) {
+  try {
+    if (!extractedText || typeof extractedText !== 'string') {
+      console.error('❌ AI response is empty or not a string');
+      throw new Error('Empty AI response - the AI service did not return any text');
+    }
+
+    const candidates = [];
+    const seen = new Set();
+    const addCandidate = (candidate) => {
+      const normalized = normalizeJsonCandidate(candidate);
+      if (!normalized || seen.has(normalized)) {
+        return;
+      }
+      seen.add(normalized);
+      candidates.push(normalized);
+    };
+
+    addCandidate(extractedText);
+
+    const fenceRegex = /```(?:json)?\s*([\s\S]*?)```/gi;
+    let fenceMatch;
+    while ((fenceMatch = fenceRegex.exec(extractedText)) !== null) {
+      addCandidate(fenceMatch[1]);
+    }
+
+    const objectBlock = extractBalancedJsonSegment(extractedText, '{', '}');
+    if (objectBlock) {
+      addCandidate(objectBlock);
+    }
+
+    const arrayBlock = extractBalancedJsonSegment(extractedText, '[', ']');
+    if (arrayBlock) {
+      addCandidate(arrayBlock);
+    }
+
+    console.log(`🔍 Found ${candidates.length} JSON candidates to try parsing`);
+
+    for (const candidate of candidates) {
+      const parsed = tryParseExpenseJson(candidate);
+      if (parsed) {
+        console.log('✅ Successfully parsed expense data from AI response');
+        return parsed;
+      }
+    }
+
+    console.error('❌ No valid JSON found in AI response');
+    console.error('Raw AI response (first 500 chars):', extractedText.substring(0, 500));
+    throw new Error('No JSON found in AI response - the AI may have returned an error message or unexpected format');
   } catch (error) {
-    console.error('Failed to parse AI response:', error);
-    console.log('Raw AI response:', extractedText);
-    throw new Error('Failed to parse expense data from receipt');
+    console.error('❌ Failed to parse AI response:', error.message);
+    if (extractedText) {
+      console.error('Raw AI response (first 500 chars):', extractedText.substring(0, 500));
+    }
+    throw new Error(`Failed to parse expense data from receipt: ${error.message}`);
   }
 }
 
