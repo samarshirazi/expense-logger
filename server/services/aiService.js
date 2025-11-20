@@ -1005,13 +1005,38 @@ function validateExpenseData(data) {
     }
 
     if (typeof value === 'string') {
-      const cleaned = value
-        .replace(/[^0-9,.-]/g, '')
-        .replace(/,(?=\d{3}(?:\D|$))/g, '')
-        .replace(/,/g, '.');
+      // Remove currency symbols, whitespace, and other non-numeric characters
+      let cleaned = value
+        .trim()
+        .replace(/[$€£¥₹]/g, '') // Remove common currency symbols
+        .replace(/\s/g, ''); // Remove whitespace
+
+      // Handle European decimal format (1.234,56 -> 1234.56)
+      // Check if comma appears after dots (European style)
+      if (cleaned.includes(',') && cleaned.includes('.')) {
+        if (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
+          // European format: 1.234,56
+          cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+        } else {
+          // US format: 1,234.56
+          cleaned = cleaned.replace(/,/g, '');
+        }
+      } else if (cleaned.includes(',')) {
+        // Only comma - could be decimal separator (European) or thousands (US)
+        // If there are 2 digits after comma, assume decimal
+        if (/,\d{2}$/.test(cleaned)) {
+          cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+        } else {
+          // Otherwise assume thousands separator
+          cleaned = cleaned.replace(/,/g, '');
+        }
+      }
+
+      // Remove any remaining non-numeric characters except dot and minus
+      cleaned = cleaned.replace(/[^0-9.-]/g, '');
 
       const parsed = parseFloat(cleaned);
-      return Number.isFinite(parsed) ? parsed : null;
+      return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
     }
 
     return null;
@@ -1046,47 +1071,61 @@ function validateExpenseData(data) {
 
   console.log(`🔍 Validating totalAmount: value=${data.totalAmount}, type=${typeof data.totalAmount}, isFinite=${Number.isFinite(data.totalAmount)}`);
 
-  if (typeof data.totalAmount !== 'number' || !Number.isFinite(data.totalAmount) || data.totalAmount <= 0) {
-    console.warn(`⚠️  Invalid totalAmount detected: ${data.totalAmount} (type: ${typeof data.totalAmount})`);
-
-    if (Array.isArray(data.items) && data.items.length > 0) {
-      console.log(`🔧 Attempting to calculate totalAmount from ${data.items.length} items...`);
-
-      const fallbackTotal = data.items.reduce((sum, item) => {
-        if (!item || typeof item !== 'object') {
-          return sum;
-        }
-
-        const totalPrice = normalizeNumber(item.totalPrice);
-        if (totalPrice !== null && totalPrice > 0) {
-          console.log(`  - Item: "${item.description}" = ${totalPrice}`);
-          return sum + totalPrice;
-        }
-
-        const unitPrice = normalizeNumber(item.unitPrice);
-        const quantity = normalizeNumber(item.quantity);
-        if (unitPrice !== null && quantity !== null && unitPrice > 0 && quantity > 0) {
-          const itemTotal = unitPrice * quantity;
-          console.log(`  - Item: "${item.description}" = ${quantity} × ${unitPrice} = ${itemTotal}`);
-          return sum + itemTotal;
-        }
-
-        console.log(`  - Item: "${item.description}" = no valid price found`);
-        return sum;
-      }, 0);
-
-      console.log(`📈 Calculated fallback total: ${fallbackTotal}`);
-
-      if (fallbackTotal > 0) {
-        console.warn('✅ Using computed sum of items as totalAmount.');
-        data.totalAmount = parseFloat(fallbackTotal.toFixed(2));
-      }
+  // Helper function to calculate total from items
+  const calculateTotalFromItems = (items) => {
+    if (!Array.isArray(items) || items.length === 0) {
+      return 0;
     }
 
-    if (typeof data.totalAmount !== 'number' || !Number.isFinite(data.totalAmount) || data.totalAmount <= 0) {
-      console.error(`❌ Final totalAmount validation failed: ${data.totalAmount} (type: ${typeof data.totalAmount})`);
+    console.log(`🔧 Calculating totalAmount from ${items.length} items...`);
+
+    const total = items.reduce((sum, item) => {
+      if (!item || typeof item !== 'object') {
+        return sum;
+      }
+
+      const totalPrice = normalizeNumber(item.totalPrice);
+      if (totalPrice !== null && totalPrice > 0) {
+        console.log(`  - Item: "${item.description}" = ${totalPrice}`);
+        return sum + totalPrice;
+      }
+
+      const unitPrice = normalizeNumber(item.unitPrice);
+      const quantity = normalizeNumber(item.quantity);
+      if (unitPrice !== null && quantity !== null && unitPrice > 0 && quantity > 0) {
+        const itemTotal = unitPrice * quantity;
+        console.log(`  - Item: "${item.description}" = ${quantity} × ${unitPrice} = ${itemTotal}`);
+        return sum + itemTotal;
+      }
+
+      console.log(`  - Item: "${item.description}" = no valid price found`);
+      return sum;
+    }, 0);
+
+    console.log(`📈 Calculated total from items: ${total}`);
+    return total;
+  };
+
+  // Try to normalize totalAmount if it exists but isn't valid
+  const normalizedTotal = normalizeNumber(data.totalAmount);
+
+  if (normalizedTotal !== null && normalizedTotal > 0) {
+    console.log(`✅ totalAmount is valid: ${normalizedTotal}`);
+    data.totalAmount = normalizedTotal;
+  } else {
+    console.warn(`⚠️  Invalid or missing totalAmount: ${data.totalAmount} (type: ${typeof data.totalAmount})`);
+
+    // Try to calculate from items
+    const calculatedTotal = calculateTotalFromItems(data.items);
+
+    if (calculatedTotal > 0) {
+      console.warn(`✅ Using computed sum of items (${calculatedTotal}) as totalAmount.`);
+      data.totalAmount = parseFloat(calculatedTotal.toFixed(2));
+    } else {
+      // Last resort: if we have taxAmount and tipAmount, maybe totalAmount got set to one of those by mistake
+      console.error(`❌ Cannot determine totalAmount from items either.`);
       console.error('Full data object:', JSON.stringify(data, null, 2));
-      throw new Error('Total amount must be a positive number');
+      throw new Error('Total amount must be a positive number. The AI could not extract a valid total from the receipt, and no items with prices were found.');
     }
   }
 
