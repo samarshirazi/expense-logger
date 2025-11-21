@@ -153,282 +153,60 @@ async function prepareImageFromBuffer(imageBuffer, mimeType) {
 }
 
 function buildExtractionInstruction() {
-  return `You are an expert receipt OCR system. Extract this receipt with EXTREME accuracy and respond with a single JSON object ONLY (no markdown, no prose).
+  return `Extract receipt data and return JSON only (no markdown code fences, no explanations).
 
-Required keys and value types:
+Format:
 {
-  "merchantName": string,
-  "date": "YYYY-MM-DD" or null,
-  "totalAmount": number,
-  "currency": currency code (default "USD"),
-  "category": string (MUST be one of: "Food", "Transport", "Shopping", "Bills", "Other"),
+  "merchantName": "store name",
+  "date": "YYYY-MM-DD",
+  "totalAmount": 12.34,
+  "currency": "USD",
+  "category": "Food",
   "items": [
-    {
-      "description": string,
-      "quantity": number|null,
-      "unitPrice": number|null,
-      "totalPrice": number|null,
-      "category": string (MUST be one of: "Food", "Transport", "Shopping", "Bills", "Other"),
-      "barcode": string|null
-    }
-  ],
-  "paymentMethod": string|null,
-  "taxAmount": number|null,
-  "tipAmount": number|null
+    {"description": "item name", "totalPrice": 5.99, "category": "Food"}
+  ]
 }
 
-CRITICAL RULES - READ CAREFULLY:
+Rules:
+1. merchantName = store/restaurant name at top
+2. date = receipt date in YYYY-MM-DD format
+3. totalAmount = FINAL TOTAL (the number after "TOTAL" at bottom)
+4. items = list of products purchased (NOT subtotal/total lines)
+5. For each item: extract product name and price
+6. category = one of: Food, Transport, Shopping, Bills, Other
+7. Extract ONLY what you see - don't make up data
 
-0. EXTRACTION INTEGRITY (MOST IMPORTANT - READ FIRST):
-   ⚠️ NEVER ADJUST OR FABRICATE DATA TO MAKE TOTALS MATCH ⚠️
-   * Extract ONLY what you can actually see and read on the receipt
-   * Each line item must be read INDEPENDENTLY - do not let one item's price influence another
-   * If you cannot read a price clearly:
-     - Set totalPrice to null (preferred) or your best guess with low confidence
-     - DO NOT adjust other prices to compensate
-     - DO NOT make up prices to force the total to match
-   * If the sum of items doesn't equal the total:
-     - That's OK! The user can fix it in the review screen
-     - DO NOT modify any prices you already extracted to fix the math
-     - The review modal exists specifically to catch and fix OCR errors
-   * HONESTY OVER ACCURACY: It's better to return null or an uncertain value than to fabricate data
-   * Read the receipt line-by-line from top to bottom, treating each line independently
-   * Example of CORRECT behavior:
-     - If you see prices: 3.99, [blurry], 5.99, and total is 15.00
-     - Return: 3.99, null, 5.99 (DO NOT calculate the middle price as 5.02)
-   * Example of INCORRECT behavior:
-     - Adjusting "3.99" to "4.99" because the total seems off
-     - Calculating missing prices based on subtotal/total
+Example receipt:
+---
+WALMART
+Date: 11/20/24
 
-0.5. RECEIPT STRUCTURE UNDERSTANDING (CRITICAL):
-   ⚠️ UNDERSTAND THE DIFFERENCE BETWEEN LINE ITEMS AND SUMMARY TOTALS ⚠️
+MILK           3.99
+BREAD          2.49
+EGGS           4.59
 
-   A receipt has TWO distinct sections:
+SUBTOTAL      11.07
+TAX            0.88
+TOTAL         11.95
+---
 
-   SECTION 1 - ITEMIZED PRODUCTS (usually top/middle of receipt):
-   * Individual products purchased (e.g., "MILK", "BREAD", "EGGS")
-   * Each line has: [barcode?] PRODUCT NAME [quantity?] PRICE
-   * These prices are typically small numbers (1.99, 5.49, 12.99, etc.)
-   * Extract these into the "items" array
-
-   SECTION 2 - SUMMARY TOTALS (usually bottom of receipt):
-   * Bold or larger text showing: SUBTOTAL, TAX, FEES, TOTAL
-   * These are SUMS, not individual products
-   * DO NOT add these to the "items" array unless it's an actual fee/tax charge
-
-   RULES FOR READING LINE ITEMS:
-   * Process the receipt from top to bottom
-   * When you encounter the itemized section (products list):
-     - Add each product line to the "items" array
-     - The price is the RIGHTMOST number on that line (usually 2 decimal places)
-   * When you encounter summary section (subtotal/total):
-     - STOP adding to "items" array
-     - Extract only TAX, SERVICE FEE, TIP, DELIVERY FEE as special items
-     - Use the TOTAL value for "totalAmount"
-     - Ignore SUBTOTAL (it's just a sum, not a separate item)
-
-   EXAMPLE - CORRECT EXTRACTION:
-   Receipt shows:
-   ---
-   BREAD               2.49
-   MILK                3.99
-   EGGS                4.59
-
-   SUBTOTAL           11.07
-   TAX                 0.88
-   TOTAL              11.95
-   ---
-
-   Correct JSON:
-   {
-     "totalAmount": 11.95,
-     "items": [
-       {"description": "Bread", "totalPrice": 2.49, ...},
-       {"description": "Milk", "totalPrice": 3.99, ...},
-       {"description": "Eggs", "totalPrice": 4.59, ...},
-       {"description": "Tax", "totalPrice": 0.88, "category": "Other", ...}
-     ]
-   }
-
-   WRONG - DO NOT DO THIS:
-   {
-     "totalAmount": 11.95,
-     "items": [
-       {"description": "Bread", "totalPrice": 2.49, ...},
-       {"description": "Milk", "totalPrice": 3.99, ...},
-       {"description": "Eggs", "totalPrice": 4.59, ...},
-       {"description": "Subtotal", "totalPrice": 11.07, ...},  ❌ WRONG - Subtotal is not an item
-       {"description": "Tax", "totalPrice": 0.88, ...},
-       {"description": "Total", "totalPrice": 11.95, ...}      ❌ WRONG - Total is not an item
-     ]
-   }
-
-   VISUAL CLUES TO IDENTIFY SECTIONS:
-   * Itemized section: smaller text, aligned left, many lines, product names
-   * Summary section: larger/bold text, words like "SUBTOTAL", "TAX", "TOTAL", fewer lines
-   * The TOTAL line usually has the largest/boldest font
-
-1. DATE EXTRACTION (HIGHEST PRIORITY):
-   * Look for dates in these formats: MM/DD/YYYY, DD/MM/YYYY, YYYY-MM-DD, Month DD YYYY
-   * Check near: top of receipt, after merchant name, near time stamp, transaction info
-   * Common patterns: "Date: 12/25/2024", "12-25-24", "Dec 25, 2024", "25/12/2024"
-   * If day is ambiguous (e.g., 03/05/24), assume MM/DD/YYYY format (American style)
-   * YEAR CONVERSION (CRITICAL): If you see 2-digit year (e.g., "24", "23", "25"):
-     - Years 00-50 → assume 2000-2050 (e.g., "24" → 2024, "25" → 2025)
-     - Years 51-99 → assume 1951-1999 (e.g., "95" → 1995)
-     - Always output 4-digit year in format YYYY-MM-DD
-     - Example: "12/25/24" → "2024-12-25", "01/15/25" → "2025-01-15"
-   * VERIFY the year makes sense (receipts are usually recent, between 2020-2025)
-   * If year seems wrong (e.g., 2004 when should be 2024), correct it
-   * Return in YYYY-MM-DD format (e.g., "2024-12-25")
-   * NEVER return null for date unless absolutely no date-like text exists
-
-2. PRICE EXTRACTION (CRITICAL - OCR ACCURACY):
-   ⚠️ ONLY EXTRACT PRICES FROM THE ITEMIZED PRODUCTS SECTION ⚠️
-
-   * Prices are ALWAYS on the RIGHT side of each product line
-   * Format: Usually X.XX (e.g., 4.99, 12.50, 100.00)
-   * Look for decimal point - prices without decimals are rare
-   * Each product line has format: [BARCODE] PRODUCT NAME [QUANTITY INFO] PRICE
-   * The rightmost number with a decimal is almost always the price
-
-   HOW TO IDENTIFY PRODUCT PRICES VS SUMMARY TOTALS:
-   * Product prices: Appear in the ITEMIZED section, one per line, aligned right
-   * Summary totals: Appear at BOTTOM of receipt, words like "SUBTOTAL", "TAX", "TOTAL"
-   * If you see a line with "TOTAL" or "SUBTOTAL" → this is NOT a product, it's a summary
-   * If you see "TAX", "SERVICE FEE", "TIP" → these ARE special items, add them to items array
-
-   DO NOT CONFUSE:
-   * ❌ Product codes, SKU numbers, or barcodes (left side) with prices (right side)
-   * ❌ SUBTOTAL/TOTAL numbers (bottom summary) with individual item prices
-   * ❌ The word "TOTAL" appearing before a price (e.g., "TOTAL 45.99") - this is the final total, NOT a product
-
-   * Read each line INDEPENDENTLY - don't let previous lines influence current line
-   * OCR DIGIT VERIFICATION (VERY IMPORTANT):
-     - Carefully distinguish between similar-looking digits:
-       * 3 vs 5 vs 8: Look at curves and openings carefully
-       * 6 vs 8: 6 has opening at top, 8 is closed
-       * 0 vs 8: 0 is more oval, 8 has two loops
-       * 1 vs 7: 7 has horizontal top bar
-     - If a price is blurry, smudged, or unclear: return null instead of guessing
-     - If a price seems unusual (e.g., too high/low), RECHECK the digits but DON'T adjust it
-     - Extract the ACTUAL digits you see, not what would make the math work
-
-   EXAMPLES:
-   * "012345 MILK 1 GAL @ 3.99" → totalPrice: 3.99 (product item)
-   * "BREAD    2.49" → totalPrice: 2.49 (product item)
-   * "CHEESE   [smudged]" → totalPrice: null (unreadable)
-   * "SUBTOTAL  15.47" → DO NOT add to items (it's a summary, not a product)
-   * "TAX       1.24" → ADD to items as {"description": "Tax", "totalPrice": 1.24, "category": "Other"}
-   * "TOTAL     16.71" → Use for "totalAmount", DO NOT add to items
-   * If you see "2 @ $3.00", that means quantity=2, unitPrice=3.00, totalPrice=6.00
-
-3. PRODUCT-PRICE MATCHING (CRITICAL):
-   ⚠️ ENSURE PRODUCT NAMES ARE ACCURATE AND COMPLETE ⚠️
-
-   * Each product line has ONE price associated with it
-   * Read the receipt LEFT to RIGHT: [optional barcode] [product name] [optional qty] [PRICE on far right]
-   * The product name is usually between the barcode (if any) and the price
-
-   PRODUCT NAME EXTRACTION:
-   * Extract the FULL product name as written on the receipt
-   * Common patterns:
-     - "COCA COLA 2L" → description: "Coca Cola 2L"
-     - "ORGANIC MILK" → description: "Organic Milk"
-     - "012345 BREAD WHOLE WHEAT" → description: "Bread Whole Wheat" (barcode: "012345")
-   * Preserve brand names, sizes, and descriptors (e.g., "ORGANIC", "2L", "LARGE")
-   * DO NOT abbreviate or shorten product names
-   * DO NOT include the price in the product name
-
-   DO NOT MIX UP:
-   * ❌ Prices between different products (each line is independent)
-   * ❌ Product names with summary labels ("SUBTOTAL" is not a product)
-   * ❌ Barcodes with product names (barcode goes in "barcode" field)
-
-   * Process each line from top to bottom independently - treat each line as a separate extraction task
-   * After extracting all items, you may verify the sum approximately matches the total
-   * If totals don't match: DO NOT modify any prices - the user will fix errors in the review screen
-
-   EXAMPLE LINE-BY-LINE PROCESSING:
-   Line 1: "123456 MILK ORGANIC 1GAL    5.99"
-     → barcode: "123456", description: "Milk Organic 1Gal", totalPrice: 5.99
-
-   Line 2: "BREAD SOURDOUGH             3.49"
-     → barcode: null, description: "Bread Sourdough", totalPrice: 3.49
-
-   Line 3: "789012 EGGS LARGE DZ        4.29"
-     → barcode: "789012", description: "Eggs Large Dz", totalPrice: 4.29
-
-4. BARCODE EXTRACTION:
-   * Barcodes are typically 12-13 digit numbers at the START of each line
-   * Common on grocery/retail receipts (Walmart, Target, Kroger, etc.)
-   * Format: UPC-A (12 digits), EAN-13 (13 digits)
-   * Pattern: "012345678901 PRODUCT NAME 4.99"
-   * Extract ONLY numeric digits, no letters or special characters
-   * If barcode appears after product name (rare), still extract it
-
-5. QUANTITY AND UNIT PRICE:
-   * Look for patterns: "2 @ $5.00", "QTY 3", "3x", "EA $2.99"
-   * quantity: Extract the number of items (1, 2, 3, etc.)
-   * unitPrice: Price per single unit
-   * totalPrice: unitPrice × quantity OR the final price shown on right
-   * If only totalPrice is shown (no qty info), set quantity=1, unitPrice=totalPrice
-
-6. TAX, FEES, AND CHARGES (IMPORTANT):
-   ⚠️ ADD TAX/FEES TO ITEMS ARRAY, BUT NOT SUBTOTAL OR TOTAL ⚠️
-
-   * ALWAYS include tax and fees as separate items in the items array
-   * DO NOT include SUBTOTAL or TOTAL as items (they are summaries, not charges)
-
-   WHAT TO INCLUDE IN ITEMS:
-   ✅ "TAX", "SALES TAX", "GST", "VAT", "HST" → Add as item with description "Tax"
-   ✅ "SERVICE FEE", "SERVICE CHARGE", "FEE" → Add as item with description "Service Fee"
-   ✅ "DELIVERY FEE", "DELIVERY CHARGE" → Add as item with description "Delivery Fee"
-   ✅ "TIP", "GRATUITY" → Add as item with description "Tip"
-
-   WHAT NOT TO INCLUDE:
-   ❌ "SUBTOTAL" → This is a sum of products, NOT an item
-   ❌ "TOTAL", "GRAND TOTAL", "AMOUNT DUE" → Use for totalAmount field, NOT as an item
-
-   * Tax/fees should be added to items array like this:
-     {
-       "description": "Tax",
-       "quantity": 1,
-       "unitPrice": [tax amount],
-       "totalPrice": [tax amount],
-       "category": "Other",
-       "barcode": null
-     }
-   * The totalAmount should be the FINAL total (including tax/fees)
-   * Verification: (Sum of product prices) + Tax + Fees ≈ Total Amount
-   * Remember: SUBTOTAL is NOT an item, it's just a calculation checkpoint
-
-7. ITEM CATEGORIES:
-   * Food: Food, drinks, groceries, snacks, meals, coffee, produce
-   * Transport: Gas, fuel, parking, tolls, transit, uber, lyft
-   * Shopping: Clothing, electronics, household items, toys, books, hardware
-   * Bills: Utilities, phone bill, internet, streaming services
-   * Other: Tax, fees, tips, and anything else that doesn't clearly fit above
-
-8. VALIDATION:
-   * Verify that you extracted what you ACTUALLY saw, not what you think should be there
-   * Check: sum of ALL item prices (products + tax + fees) should approximately equal totalAmount
-   * If the math doesn't add up perfectly, that's OK - do NOT adjust prices to fix it
-   * Ensure each item has a description (totalPrice can be null if unreadable)
-   * Date must be in YYYY-MM-DD format (or null if truly unreadable)
-   * Readable prices must have decimal points (e.g., 5.00 not 5)
-   * Remember: The user will review and can correct any errors - prioritize honesty over perfection
-
-FINAL CHECKLIST BEFORE RETURNING JSON:
-✅ Items array contains ONLY products + tax/fees (NO subtotal, NO total line)
-✅ Each product has the correct price from the RIGHT side of its line
-✅ Product names are complete and accurate (not mixed with other lines)
-✅ totalAmount = the final TOTAL at bottom of receipt
-✅ Tax/fees are included as items if they appear on receipt
-✅ No prices were adjusted to force totals to match
-
-Return ONLY the JSON object with NO additional text.`;
+Correct JSON:
+{
+  "merchantName": "Walmart",
+  "date": "2024-11-20",
+  "totalAmount": 11.95,
+  "currency": "USD",
+  "category": "Food",
+  "items": [
+    {"description": "Milk", "totalPrice": 3.99, "category": "Food"},
+    {"description": "Bread", "totalPrice": 2.49, "category": "Food"},
+    {"description": "Eggs", "totalPrice": 4.59, "category": "Food"}
+  ]
 }
+
+Now extract the receipt data and return ONLY the JSON object.`;
+}
+
 
 async function callOpenAI(base64Image, mimeType) {
   const openaiClient = initOpenAI();
