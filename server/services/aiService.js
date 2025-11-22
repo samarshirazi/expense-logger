@@ -153,65 +153,89 @@ async function prepareImageFromBuffer(imageBuffer, mimeType) {
 }
 
 function buildExtractionInstruction() {
-  return `Extract receipt data and return JSON only (no markdown code fences, no explanations).
+  return `You are a receipt parser. Extract data and return ONLY valid JSON (no markdown, no explanation).
 
-Format:
+OUTPUT FORMAT:
 {
-  "merchantName": "store name",
+  "merchantName": "Store Name",
   "date": "YYYY-MM-DD",
-  "totalAmount": 12.34,
+  "totalAmount": 0.00,
   "currency": "USD",
   "category": "Food",
   "items": [
-    {"description": "item name", "totalPrice": 5.99, "category": "Food"}
+    {"description": "Item Name", "totalPrice": 0.00, "category": "Food"}
   ]
 }
 
-Rules:
-1. merchantName = store/restaurant name at top
-2. date = receipt date in YYYY-MM-DD format
-3. totalAmount = FINAL TOTAL (the number after "TOTAL" at bottom)
-4. items = list of products purchased (NOT subtotal/total lines)
-5. For each item: extract the EXACT product name and EXACT price shown on the receipt
-6. category = one of: Food, Transport, Shopping, Bills, Other
-7. Extract ONLY what you see - don't make up data
+CRITICAL PRICE EXTRACTION RULES:
+1. Each item line has the item name on the LEFT and the price on the RIGHT
+2. The PRICE is ALWAYS the rightmost number on the item line (before any tax code letter)
+3. IGNORE any numbers that are:
+   - Quantity indicators (like "2 @" or "x2")
+   - Unit prices (like "2.99/lb" or "$1.25 each")
+   - UPC/SKU codes (long numbers with 8+ digits)
+4. ONLY extract the FINAL LINE TOTAL for each item (rightmost dollar amount)
 
-CRITICAL: Do NOT modify item prices! Extract the EXACT prices printed on the receipt.
-- Item prices will NOT always add up to the total (due to tax, discounts, fees, etc.)
-- NEVER adjust or change item prices to make them equal the total
-- If an item shows $3.99, report $3.99 - even if items don't sum to total
+WALMART RECEIPT FORMAT:
+- Items show: ITEM NAME followed by PRICE on the right
+- Tax codes appear AFTER the price (O=organic, N=non-taxable, T=taxable, X=tax exempt, F=food stamp eligible)
+- Weight items show: weight, then "@ $X.XX/lb", then TOTAL PRICE - use the TOTAL PRICE only
+- Multi-buy shows unit count, but the rightmost number is still the line total
 
-Example receipt:
+EXAMPLE WALMART RECEIPT:
 ---
-WALMART
-Date: 11/20/24
+Walmart
+11/22/24  3:45 PM
 
-MILK           3.99
-BREAD          2.49
-EGGS           4.59
+GV WHOLE MILK GAL          3.36 O
+GV WHITE BREAD             1.18 O
+BANANAS 2.47 lb @ 0.56/lb  1.38 O
+GROUND BEEF 1.5 @ 5.97     8.96 T
+BOUNTY PAPER 2@4.97        9.94 T
 
-SUBTOTAL      11.07
-TAX            0.88
-TOTAL         11.95
+SUBTOTAL                  24.82
+TAX                        1.51
+TOTAL                     26.33
 ---
 
-Correct JSON:
+CORRECT EXTRACTION:
 {
   "merchantName": "Walmart",
-  "date": "2024-11-20",
-  "totalAmount": 11.95,
+  "date": "2024-11-22",
+  "totalAmount": 26.33,
   "currency": "USD",
   "category": "Food",
   "items": [
-    {"description": "Milk", "totalPrice": 3.99, "category": "Food"},
-    {"description": "Bread", "totalPrice": 2.49, "category": "Food"},
-    {"description": "Eggs", "totalPrice": 4.59, "category": "Food"}
+    {"description": "GV Whole Milk Gal", "totalPrice": 3.36, "category": "Food"},
+    {"description": "GV White Bread", "totalPrice": 1.18, "category": "Food"},
+    {"description": "Bananas", "totalPrice": 1.38, "category": "Food"},
+    {"description": "Ground Beef", "totalPrice": 8.96, "category": "Food"},
+    {"description": "Bounty Paper", "totalPrice": 9.94, "category": "Shopping"}
   ]
 }
 
-Note: Items sum to 11.07 but total is 11.95 (includes tax). This is correct - we keep exact item prices.
+KEY POINTS:
+- Bananas: "2.47 lb @ 0.56/lb" is weight info, "1.38" is the actual price
+- Ground Beef: "1.5 @ 5.97" is quantity × unit price, "8.96" is the line total
+- Bounty Paper: "2@4.97" is 2 items at $4.97 each, "9.94" is the line total
+- Tax codes (O, T) are ignored - they're not part of the price
 
-Now extract the receipt data and return ONLY the JSON object.`;
+SKIP THESE LINES (not items):
+- SUBTOTAL, TAX, TOTAL, CHANGE, CASH, CARD
+- Payment method lines
+- Store address/phone
+- Barcode numbers
+- Loyalty card numbers
+- "YOU SAVED" or discount summary lines
+
+CATEGORIES:
+- Food: groceries, snacks, drinks, produce, meat, dairy
+- Shopping: household items, paper goods, cleaning supplies, personal care
+- Transport: gas, parking
+- Bills: utilities, services
+- Other: anything else
+
+Return ONLY the JSON. No other text.`;
 }
 
 
