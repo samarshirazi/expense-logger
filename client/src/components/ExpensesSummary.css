@@ -43,8 +43,22 @@
 
 .expenses-header-actions {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 4px;
+}
+
+.expenses-header-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.expenses-header-actions > button,
+.expenses-header-actions > div {
+  flex-shrink: 0;
 }
 
 .expenses-budget-summary {
@@ -1009,31 +1023,17 @@
   }
 
   .expenses-header-actions {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 0.75rem !important;
-    width: 100%;
-  }
-
-  .expenses-header-actions > * {
-    width: 100%;
+    gap: 8px;
+    padding-bottom: 8px;
+    margin: 0 -18px;
+    padding-left: 18px;
+    padding-right: 18px;
   }
 
   .expenses-header-actions button {
-    font-size: 0.95rem !important;
-    padding: 0.75rem 1rem !important;
-    width: 100%;
-    justify-content: center !important;
-  }
-
-  .expenses-btn-icon {
-    width: 100% !important;
-    height: auto !important;
-    padding: 0.75rem !important;
-  }
-
-  .expenses-btn {
-    justify-content: center;
+    font-size: 0.85rem !important;
+    padding: 0.6rem 0.9rem !important;
+    white-space: nowrap;
   }
 
   .expenses-footer {
