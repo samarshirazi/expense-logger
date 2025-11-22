@@ -660,19 +660,19 @@ function Overview({ expenses = [], dateRange, categoryBudgets = {} }) {
         detail: `${formatPercent(topShare)} of this period`
       },
       {
-        id: 'savings',
-        icon: '🏦',
-        label: 'Savings',
-        value: formatCurrency(savings),
-        subValue: savings >= 0 ? 'Positive cushion' : 'Needs attention',
-        trendDirection: savings >= 0 ? 'down' : 'up',
-        trend: savings >= 0 ? 'On track' : 'Over spending',
-        detail: savings >= 0
-          ? 'Keep going—momentum looks great.'
-          : 'Revisit recurring bills to course-correct.'
+        id: 'totalBudget',
+        icon: '💰',
+        label: 'Total Budget',
+        value: formatCurrency(totalBudget),
+        subValue: remainingBudget >= 0 ? `${formatCurrency(remainingBudget)} remaining` : `${formatCurrency(Math.abs(remainingBudget))} over`,
+        trendDirection: remainingBudget >= 0 ? 'down' : 'up',
+        trend: remainingBudget >= 0 ? 'Under budget' : 'Over budget',
+        detail: remainingBudget >= 0
+          ? 'You\'re staying within your limits.'
+          : 'Consider adjusting your spending.'
       }
     ];
-  }, [currentMonthTotal, remainingBudget, spendingTrend, savings, budgetUsedPercent, topCategory, totalBudget]);
+  }, [currentMonthTotal, remainingBudget, spendingTrend, budgetUsedPercent, topCategory, totalBudget]);
 
   const activeSummaryCard = summaryCards.find(card => card.id === expandedCard);
 
