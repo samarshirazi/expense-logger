@@ -11,50 +11,10 @@ import {
   emitNotificationPreferencesChanged
 } from '../services/notificationService';
 
-const THEME_OPTIONS = [
-  {
-    id: 'system',
-    label: 'System',
-    icon: '🔄',
-    description: 'Matches your device settings',
-    preview: { bg: 'linear-gradient(135deg, #f8f9fa 50%, #1f2937 50%)', accent: '#667eea' }
-  },
-  {
-    id: 'light',
-    label: 'Light',
-    icon: '☀️',
-    description: 'Bright and clean appearance',
-    preview: { bg: '#ffffff', accent: '#667eea', text: '#1f2937' }
-  },
-  {
-    id: 'dark',
-    label: 'Dark',
-    icon: '🌙',
-    description: 'Easy on the eyes at night',
-    preview: { bg: '#1f2937', accent: '#818cf8', text: '#f9fafb' }
-  }
-];
-
-const MOOD_OPTIONS = [
-  {
-    id: 'motivator_roast',
-    title: 'Motivator + Roast',
-    description: 'Upbeat coaching with playful jabs to keep you accountable.'
-  },
-  {
-    id: 'motivator_serious',
-    title: 'Motivator + Serious',
-    description: 'Encouraging tone paired with straight-laced financial guidance.'
-  }
-];
 
 const Settings = ({
   onShowNotificationPrompt,
   onOpenCoach,
-  themePreference,
-  onThemeChange,
-  coachMood,
-  onCoachMoodChange,
   coachAutoOpen,
   onCoachAutoOpenChange
 }) => {
@@ -142,18 +102,6 @@ const Settings = ({
   const handleCoachAutoOpenToggle = () => {
     if (onCoachAutoOpenChange) {
       onCoachAutoOpenChange(!coachAutoOpen);
-    }
-  };
-
-  const handleMoodChange = (value) => {
-    if (onCoachMoodChange) {
-      onCoachMoodChange(value);
-    }
-  };
-
-  const handleThemeSelection = (value) => {
-    if (onThemeChange) {
-      onThemeChange(value);
     }
   };
 
@@ -388,71 +336,7 @@ const Settings = ({
           </button>
         </div>
         <div className="settings-hint">
-          When enabled, Finch will pop in right after fresh data arrives.
-        </div>
-        <div className="settings-mood-options">
-          {MOOD_OPTIONS.map(option => (
-            <label
-              key={option.id}
-              className={`settings-mood-card ${coachMood === option.id ? 'active' : ''}`}
-            >
-              <input
-                type="radio"
-                name="coach-mood"
-                value={option.id}
-                checked={coachMood === option.id}
-                onChange={() => handleMoodChange(option.id)}
-              />
-              <span className="settings-mood-title">{option.title}</span>
-              <span className="settings-mood-description">{option.description}</span>
-            </label>
-          ))}
-        </div>
-      </section>
-
-      <section className="settings-section">
-        <header className="settings-section-header">
-          <div>
-            <h2>Themes</h2>
-            <p>Personalize your app appearance</p>
-          </div>
-        </header>
-        <div className="settings-theme-grid">
-          {THEME_OPTIONS.map(option => (
-            <label
-              key={option.id}
-              className={`settings-theme-card-new ${themePreference === option.id ? 'active' : ''}`}
-            >
-              <input
-                type="radio"
-                name="theme"
-                value={option.id}
-                checked={themePreference === option.id}
-                onChange={() => handleThemeSelection(option.id)}
-              />
-              <div
-                className="settings-theme-preview"
-                style={{ background: option.preview.bg }}
-              >
-                <div
-                  className="settings-theme-preview-accent"
-                  style={{ backgroundColor: option.preview.accent }}
-                />
-                <div className="settings-theme-preview-lines">
-                  <div style={{ backgroundColor: option.preview.text || (option.id === 'dark' ? '#f9fafb' : '#374151') }} />
-                  <div style={{ backgroundColor: option.preview.text || (option.id === 'dark' ? '#f9fafb' : '#374151'), opacity: 0.6 }} />
-                </div>
-              </div>
-              <div className="settings-theme-info">
-                <span className="settings-theme-icon">{option.icon}</span>
-                <span className="settings-theme-label">{option.label}</span>
-              </div>
-              <span className="settings-theme-desc">{option.description}</span>
-              {themePreference === option.id && (
-                <span className="settings-theme-check">✓</span>
-              )}
-            </label>
-          ))}
+          When enabled, the AI coach will pop in right after fresh data arrives.
         </div>
       </section>
     </div>

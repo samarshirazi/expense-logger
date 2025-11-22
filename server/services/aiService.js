@@ -1386,16 +1386,11 @@ Core principles:
 - If the data cannot answer the question, say so briefly and point them to the closest metric or a practical next step.
 - Skip greetings or sign-offs unless the user uses them—jump straight into helpful guidance.
 - Keep responses under 120 words. Vary sentence structure so the reply feels conversational, not templated.
-- Match the requested coach mood in your tone while staying constructive.
+- Be motivating and encouraging - help users feel good about their progress while providing honest, actionable guidance.
 - Ask for clarification when the question is ambiguous, and never speculate beyond the provided data.`;
 
   const analysisPayload = truncateMessageContent(JSON.stringify(analysis));
-  const moodPreference = analysis?.preferences?.mood || 'motivator_serious';
-  const moodInstructions = {
-    motivator_roast: 'Tone: playful and candid—deliver the answer with a witty nudge while staying helpful and specific.',
-    motivator_serious: 'Tone: steady, encouraging, and professional—focus on clarity and actionable guidance.'
-  };
-  const personaInstruction = moodInstructions[moodPreference] || moodInstructions.motivator_serious;
+  const personaInstruction = 'Tone: motivating and encouraging—help users feel positive about their financial journey while providing clear, actionable guidance.';
 
   if (provider === AI_PROVIDERS.STUB) {
     const areaLabel = viewDetails?.area || 'your finances';

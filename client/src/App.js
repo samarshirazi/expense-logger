@@ -8,7 +8,6 @@ import CategorizedExpenses from './components/CategorizedExpenses';
 import ExpensesSummary from './components/ExpensesSummary';
 import Overview from './components/Overview';
 import SpendingSummary from './components/SpendingSummary';
-import IncomeSavings from './components/IncomeSavings';
 import CategoryBudgets from './components/CategoryBudgets';
 import RecurringExpenses from './components/RecurringExpenses';
 import GroceryListPage from './components/GroceryListPage';
@@ -74,24 +73,6 @@ function App() {
     } catch (error) {
       console.warn('Failed to load categories for coach analysis:', error);
       return [];
-    }
-  });
-  const [themePreference, setThemePreference] = useState(() => {
-    if (typeof window === 'undefined') return 'system';
-    try {
-      return window.localStorage.getItem('theme:preference') || 'system';
-    } catch (error) {
-      console.warn('Failed to read theme preference:', error);
-      return 'system';
-    }
-  });
-  const [coachMood, setCoachMood] = useState(() => {
-    if (typeof window === 'undefined') return 'motivator_serious';
-    try {
-      return window.localStorage.getItem('coach:mood') || 'motivator_serious';
-    } catch (error) {
-      console.warn('Failed to read coach mood preference:', error);
-      return 'motivator_serious';
     }
   });
   const [coachAutoOpen, setCoachAutoOpen] = useState(() => {
@@ -317,25 +298,6 @@ function App() {
     setActiveView('log');
   }, []);
 
-  const applyTheme = useCallback((value) => {
-    if (typeof document === 'undefined') return;
-    const root = document.documentElement;
-    if (value === 'light') {
-      root.dataset.theme = 'light';
-      root.style.colorScheme = 'light';
-    } else if (value === 'dark') {
-      root.dataset.theme = 'dark';
-      root.style.colorScheme = 'dark';
-    } else {
-      root.removeAttribute('data-theme');
-      root.style.colorScheme = '';
-    }
-  }, []);
-
-  useEffect(() => {
-    applyTheme(themePreference);
-  }, [themePreference, applyTheme]);
-
   useEffect(() => {
     if (activeView !== 'expenses') {
       setExpensesMode('summary');
@@ -347,28 +309,6 @@ function App() {
       setExpensesMode('summary');
     }
   }, [activeView]);
-
-  const handleThemeChange = useCallback((value) => {
-    setThemePreference(value);
-    if (typeof window !== 'undefined') {
-      try {
-        window.localStorage.setItem('theme:preference', value);
-      } catch (error) {
-        console.warn('Failed to store theme preference:', error);
-      }
-    }
-  }, []);
-
-  const handleCoachMoodChange = useCallback((value) => {
-    setCoachMood(value);
-    if (typeof window !== 'undefined') {
-      try {
-        window.localStorage.setItem('coach:mood', value);
-      } catch (error) {
-        console.warn('Failed to store coach mood:', error);
-      }
-    }
-  }, []);
 
   const handleCoachAutoOpenChange = useCallback((value) => {
     setCoachAutoOpen(value);
@@ -706,9 +646,6 @@ function App() {
         remainingVsBudget: totalBudget - projectedTotal,
         trailingAverageMonthlySpend: trailingAverage
       },
-      preferences: {
-        mood: coachMood
-      }
     };
 
     const categoryKey = allCategories
@@ -722,7 +659,7 @@ function App() {
       .join('|');
     const analysisKey = `${dateRange.startDate}_${dateRange.endDate}_${expenses.length}_${Math.round(totalSpending)}_${categoryKey}_${budgetKey}`;
     setCoachAnalysis({ data: analysisData, key: analysisKey });
-  }, [expenses, dateRange, coachContext, coachMood, allCategories, normalizedCategoryBudgets, categoryBudgetLookup]);
+  }, [expenses, dateRange, coachContext, allCategories, normalizedCategoryBudgets, categoryBudgetLookup]);
 
   const handleCoachAssistantMessage = useCallback(() => {
     if (!isCoachOpen) {
@@ -1052,7 +989,7 @@ function App() {
 
         {/* Shared TimeNavigator for selected views */}
         {(
-          ['categories', 'overview', 'income-savings'].includes(activeView) ||
+          ['categories', 'overview'].includes(activeView) ||
           (activeView === 'expenses' && (expensesMode === 'summary' || expensesMode === 'shopping'))
         ) && (
           <div className={`shared-timeline-container ${showOptionsButton ? 'with-button' : 'without-button'}`}>
@@ -1113,16 +1050,6 @@ function App() {
           />
         </div>
 
-        {activeView === 'income-savings' && (
-          <div className="view-container">
-            {renderOptionsToggleButton('inline')}
-            <IncomeSavings
-              dateRange={dateRange}
-              timelineState={sharedTimelineState}
-            />
-          </div>
-        )}
-
         {activeView === 'budgets' && (
           <div className="view-container no-timeline">
             {renderOptionsToggleButton('inline')}
@@ -1166,15 +1093,11 @@ function App() {
             {renderOptionsToggleButton('inline')}
             <div className="view-header">
               <h1>Settings</h1>
-              <p>Control notifications, the AI Coach, and theme preferences</p>
+              <p>Control notifications and the AI Coach</p>
             </div>
             <Settings
               onShowNotificationPrompt={() => setShowNotificationPrompt(true)}
               onOpenCoach={() => handleCoachToggle(true, 'settings')}
-              themePreference={themePreference}
-              onThemeChange={handleThemeChange}
-              coachMood={coachMood}
-              onCoachMoodChange={handleCoachMoodChange}
               coachAutoOpen={coachAutoOpen}
               onCoachAutoOpenChange={handleCoachAutoOpenChange}
             />
