@@ -60,20 +60,21 @@
   transform: translateY(0);
 }
 
-/* Panel overlay */
+/* Panel overlay - z-index 9999 to cover nav bars */
 .chat-panel-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 9999;
   padding: 20px;
   animation: fadeIn 0.2s ease;
+  -webkit-overflow-scrolling: touch;
 }
 
 @keyframes fadeIn {
@@ -170,14 +171,17 @@
   }
 
   .chat-panel-overlay {
-    padding: 10px;
+    padding: 0;
     align-items: flex-end;
   }
 
   .chat-panel {
     border-radius: 16px 16px 0 0;
-    max-height: 85vh;
+    max-height: 95vh;
     padding: 20px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    width: 100%;
+    max-width: 100%;
   }
 }
 

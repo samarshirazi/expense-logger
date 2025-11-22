@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReceiptUpload from './ReceiptUpload';
 import ManualEntry from './ManualEntry';
 import ManualExpenseForm from './ManualExpenseForm';
@@ -6,6 +6,20 @@ import './LogExpense.css';
 
 function LogExpense({ onExpenseAdded, expenses, prefillExpense = null, onPrefillConsumed = () => {} }) {
   const [activePanel, setActivePanel] = useState(null); // 'manual', 'upload', or 'camera'
+
+  // Lock body scroll when panel is open
+  useEffect(() => {
+    if (activePanel) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [activePanel]);
 
   const handleClosePanel = () => {
     setActivePanel(null);
