@@ -153,6 +153,9 @@ async function prepareImageFromBuffer(imageBuffer, mimeType) {
 }
 
 function buildExtractionInstruction() {
+  // Get today's date in YYYY-MM-DD format for fallback
+  const today = new Date().toISOString().split('T')[0];
+
   return `You are a receipt parser. Extract data and return ONLY valid JSON (no markdown, no explanation).
 
 OUTPUT FORMAT:
@@ -163,35 +166,39 @@ OUTPUT FORMAT:
   "currency": "USD",
   "category": "Food",
   "items": [
-    {"description": "Item Name", "totalPrice": 0.00, "category": "Food"}
+    {"description": "Item Name", "quantity": 1, "unitPrice": 0.00, "totalPrice": 0.00, "category": "Food"}
   ]
 }
 
 CRITICAL RULES:
+
+**DATE:**
+- Extract the date from the receipt if visible
+- If NO date is visible on the receipt, use today's date: ${today}
+- If the image only shows products (partial receipt), use: ${today}
+
+**PRICES:**
 1. Each item line has the item name on the LEFT and the price on the RIGHT
 2. The PRICE is ALWAYS the rightmost number on the item line (before any tax code letter)
-3. IGNORE any numbers that are:
-   - Quantity indicators (like "2 @" or "x2")
-   - Unit prices (like "2.99/lb" or "$1.25 each")
-   - UPC/SKU codes (long numbers with 8+ digits)
-4. ONLY extract the FINAL LINE TOTAL for each item (rightmost dollar amount)
+3. IGNORE: quantity indicators (2@, x2), unit prices (/lb, each), UPC codes (8+ digits)
+4. Extract the FINAL LINE TOTAL for each item (rightmost dollar amount)
 
-**DUPLICATE ITEMS - VERY IMPORTANT:**
-5. If the SAME product appears on MULTIPLE LINES, include it MULTIPLE TIMES in the items array
-6. NEVER merge or combine duplicate items - each receipt line = one item in the array
-7. If you see "COCA COLA" 5 times on the receipt, output 5 separate items
-8. Count EVERY line - do not skip items even if they look like duplicates
+**DUPLICATE ITEMS - CONSOLIDATE WITH QUANTITY:**
+5. If the SAME product appears MULTIPLE TIMES with the SAME PRICE, combine into ONE item with quantity > 1
+6. Example: 3 lines of "MILK $3.36" = ONE item with quantity: 3, unitPrice: 3.36, totalPrice: 10.08
+7. unitPrice = price per single item
+8. totalPrice = unitPrice × quantity
+9. Count ALL occurrences - don't miss any!
 
 WALMART RECEIPT FORMAT:
 - Items show: ITEM NAME followed by PRICE on the right
-- Tax codes appear AFTER the price (O=organic, N=non-taxable, T=taxable, X=tax exempt, F=food stamp eligible)
-- Weight items show: weight, then "@ $X.XX/lb", then TOTAL PRICE - use the TOTAL PRICE only
-- Multi-buy shows unit count, but the rightmost number is still the line total
+- Tax codes appear AFTER the price (O, N, T, X, F) - ignore these
+- Weight items: use the final price only (not the /lb price)
 
-EXAMPLE WALMART RECEIPT:
+EXAMPLE RECEIPT:
 ---
 Walmart
-11/22/24  3:45 PM
+11/22/24
 
 GV WHOLE MILK GAL          3.36 O
 GV WHOLE MILK GAL          3.36 O
@@ -206,7 +213,7 @@ TAX                        0.00
 TOTAL                     17.64
 ---
 
-CORRECT EXTRACTION (notice 3 milks and 2 cokes - each on separate line):
+CORRECT EXTRACTION (duplicates consolidated with quantity):
 {
   "merchantName": "Walmart",
   "date": "2024-11-22",
@@ -214,34 +221,25 @@ CORRECT EXTRACTION (notice 3 milks and 2 cokes - each on separate line):
   "currency": "USD",
   "category": "Food",
   "items": [
-    {"description": "GV Whole Milk Gal", "totalPrice": 3.36, "category": "Food"},
-    {"description": "GV Whole Milk Gal", "totalPrice": 3.36, "category": "Food"},
-    {"description": "GV Whole Milk Gal", "totalPrice": 3.36, "category": "Food"},
-    {"description": "GV White Bread", "totalPrice": 1.18, "category": "Food"},
-    {"description": "Bananas", "totalPrice": 1.38, "category": "Food"},
-    {"description": "Coca Cola 2L", "totalPrice": 2.50, "category": "Food"},
-    {"description": "Coca Cola 2L", "totalPrice": 2.50, "category": "Food"}
+    {"description": "GV Whole Milk Gal", "quantity": 3, "unitPrice": 3.36, "totalPrice": 10.08, "category": "Food"},
+    {"description": "GV White Bread", "quantity": 1, "unitPrice": 1.18, "totalPrice": 1.18, "category": "Food"},
+    {"description": "Bananas", "quantity": 1, "unitPrice": 1.38, "totalPrice": 1.38, "category": "Food"},
+    {"description": "Coca Cola 2L", "quantity": 2, "unitPrice": 2.50, "totalPrice": 5.00, "category": "Food"}
   ]
 }
 
 KEY POINTS:
-- GV Whole Milk appears 3 TIMES = 3 separate items in the array (NOT merged into 1)
-- Coca Cola appears 2 TIMES = 2 separate items in the array (NOT merged into 1)
-- Bananas: "2.47 lb @ 0.56/lb" is weight info, "1.38" is the actual price
-- Tax codes (O, T) are ignored - they're not part of the price
-- TOTAL ITEMS IN ARRAY = 7 (count each line separately!)
+- 3x Milk at $3.36 each = quantity: 3, unitPrice: 3.36, totalPrice: 10.08
+- 2x Coca Cola at $2.50 each = quantity: 2, unitPrice: 2.50, totalPrice: 5.00
+- Single items have quantity: 1
 
-SKIP THESE LINES (not items):
-- SUBTOTAL, TAX, TOTAL, CHANGE, CASH, CARD
-- Payment method lines
-- Store address/phone
-- Barcode numbers
-- Loyalty card numbers
-- "YOU SAVED" or discount summary lines
+SKIP THESE LINES:
+- SUBTOTAL, TAX, TOTAL, CHANGE, CASH, CARD, payment lines
+- Store address/phone, barcodes, loyalty cards, "YOU SAVED"
 
 CATEGORIES:
-- Food: groceries, snacks, drinks, produce, meat, dairy
-- Shopping: household items, paper goods, cleaning supplies, personal care
+- Food: groceries, produce, meat, dairy, drinks
+- Shopping: household, cleaning, personal care
 - Transport: gas, parking
 - Bills: utilities, services
 - Other: anything else
@@ -977,8 +975,14 @@ function validateExpenseData(data) {
   }
 
   if (data.date && !isValidDate(data.date)) {
-    console.warn('Invalid date format, setting to null');
-    data.date = null;
+    console.warn('Invalid date format, setting to today');
+    data.date = new Date().toISOString().split('T')[0];
+  }
+
+  // Default to today's date if no date provided
+  if (!data.date) {
+    console.log('No date found on receipt, using today\'s date');
+    data.date = new Date().toISOString().split('T')[0];
   }
 
   if (!data.currency) {
