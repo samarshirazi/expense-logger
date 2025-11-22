@@ -638,28 +638,6 @@ function Overview({ expenses = [], dateRange, categoryBudgets = {} }) {
           : 'Not enough data to compare yet.'
       },
       {
-        id: 'remaining',
-        icon: '💰',
-        label: 'Remaining Budget',
-        value: formatCurrency(remainingBudget),
-        subValue: `Goal ${formatCurrency(totalBudget)}`,
-        trendDirection: remainingBudget >= 0 ? 'down' : 'up',
-        trend: remainingBudget >= 0 ? 'Under budget' : 'Over budget',
-        detail: remainingBudget >= 0
-          ? `${formatPercent(100 - budgetUsedPercent)} budget remaining`
-          : 'Tighten spending to avoid overruns.'
-      },
-      {
-        id: 'category',
-        icon: CATEGORY_ICONS[topCategory.name] || '📊',
-        label: 'Top Category',
-        value: topCategory.name,
-        valueVariant: 'small',
-        amount: formatCurrency(topCategory.amount),
-        trendDirection: 'up',
-        detail: `${formatPercent(topShare)} of this period`
-      },
-      {
         id: 'totalBudget',
         icon: '💰',
         label: 'Total Budget',
@@ -670,6 +648,16 @@ function Overview({ expenses = [], dateRange, categoryBudgets = {} }) {
         detail: remainingBudget >= 0
           ? 'You\'re staying within your limits.'
           : 'Consider adjusting your spending.'
+      },
+      {
+        id: 'category',
+        icon: CATEGORY_ICONS[topCategory.name] || '📊',
+        label: 'Top Category',
+        value: topCategory.name,
+        valueVariant: 'small',
+        amount: formatCurrency(topCategory.amount),
+        trendDirection: 'up',
+        detail: `${formatPercent(topShare)} of this period`
       }
     ];
   }, [currentMonthTotal, remainingBudget, spendingTrend, budgetUsedPercent, topCategory, totalBudget]);
