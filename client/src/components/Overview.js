@@ -532,45 +532,6 @@ function Overview({ expenses = [], dateRange, categoryBudgets = {} }) {
   }, [categoryMetaMap, categorySpending, previousCategorySpending]);
 
 
-  // AI Insights
-  const aiInsights = useMemo(() => {
-    const insights = [];
-
-    // Top category insight
-    if (topCategory.amount > 0) {
-      const percentage = ((topCategory.amount / currentMonthTotal) * 100).toFixed(0);
-      insights.push(`You're spending ${percentage}% of your budget on ${topCategory.name}. ${
-        percentage > 40 ? 'Consider reducing this category.' : 'This seems balanced.'
-      }`);
-    }
-
-    // Spending trend insight
-    if (Math.abs(spendingTrend) > 10) {
-      insights.push(`Your spending is ${spendingTrend > 0 ? 'up' : 'down'} ${Math.abs(spendingTrend).toFixed(0)}% compared to last month.`);
-    }
-
-    // Category-specific insights
-    Object.entries(categorySpending).forEach(([categoryId, amount]) => {
-      const previousAmount = previousCategorySpending[categoryId] || 0;
-      if (previousAmount > 0) {
-        const change = ((amount - previousAmount) / previousAmount) * 100;
-        if (Math.abs(change) > 20) {
-          const label = categoryMetaMap[categoryId]?.name || categoryId;
-          insights.push(`${label} spending ${change > 0 ? 'increased' : 'decreased'} by ${Math.abs(change).toFixed(0)}%.`);
-        }
-      }
-    });
-
-    // Budget insight
-    if (remainingBudget < 0) {
-      insights.push(`You're over budget by ${formatCurrency(Math.abs(remainingBudget))}. Try to reduce spending in high categories.`);
-    } else if (remainingBudget < totalBudget * 0.2) {
-      insights.push(`You have ${formatCurrency(remainingBudget)} left this month. Be mindful of your spending.`);
-    }
-
-    return insights.slice(0, 3);
-  }, [topCategory, spendingTrend, categorySpending, previousCategorySpending, remainingBudget, currentMonthTotal, totalBudget, categoryMetaMap]);
-
   // Projected period-end spending
   const projectedSpending = useMemo(() => {
     const DAY_IN_MS = 1000 * 60 * 60 * 24;
@@ -874,28 +835,6 @@ function Overview({ expenses = [], dateRange, categoryBudgets = {} }) {
                 <div className="chart-empty-state">Log a few expenses to unlock this view.</div>
               )}
 
-              {/* AI Insights integrated with pie chart */}
-              <div className="ai-insights-panel compact integrated" id="overview-ai-panel">
-                <div className="ai-panel-header">
-                  <span className="ai-icon-large">✨</span>
-                  <div>
-                    <h2 className="ai-insights-title">AI Highlights</h2>
-                    <p className="ai-insights-subtitle">Smart nudges for this period</p>
-                  </div>
-                </div>
-                <div className="ai-insights-content compact">
-                  {aiInsights.length ? (
-                    aiInsights.map((insight, index) => (
-                      <div key={index} className="insight-item compact">
-                        <span className="insight-bullet">•</span>
-                        <p>{insight}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="insight-empty">Keep logging expenses to unlock personalized guidance.</p>
-                  )}
-                </div>
-              </div>
             </>
           )}
 
@@ -1013,9 +952,6 @@ function Overview({ expenses = [], dateRange, categoryBudgets = {} }) {
           </div>
           <div className="forecast-footer">
             <span>{projectedSpending <= totalBudget ? 'Forecast: under budget 🎉' : 'Forecast: over budget ⚠️'}</span>
-            <button className="smart-plan-btn" type="button">
-              ✨ Get Plan
-            </button>
           </div>
         </div>
       </div>
@@ -1161,29 +1097,8 @@ function Overview({ expenses = [], dateRange, categoryBudgets = {} }) {
         </div>
       </div>
 
-      <div className="ai-insights-panel">
-        <div className="ai-insights-header">
-          <div className="ai-icon-large">🤖</div>
-          <div>
-            <h2 className="ai-insights-title">💡 AI Coach Insights</h2>
-            <p className="ai-insights-subtitle">Smart recommendations based on your spending</p>
-          </div>
-        </div>
-        <div className="ai-insights-content">
-          {aiInsights.map((insight, index) => (
-            <div key={index} className="insight-item">
-              <span className="insight-bullet">•</span>
-              <p>{insight}</p>
-            </div>
-          ))}
-        </div>
-        <button className="ask-ai-btn">
-          💬 Ask AI Coach
-        </button>
-      </div>
-
       <div className="forecast-section">
-        <h2 className="section-title">🔮 Forecast & Suggestions</h2>
+        <h2 className="section-title">🔮 Spending Forecast</h2>
 
         <div className="forecast-card">
           <h3 className="forecast-title">Projected Month-End Spending</h3>
@@ -1207,10 +1122,6 @@ function Overview({ expenses = [], dateRange, categoryBudgets = {} }) {
             )}
           </div>
         </div>
-
-        <button className="smart-plan-btn">
-          💡 Get Smart Plan
-        </button>
       </div>
     </div>
   );
