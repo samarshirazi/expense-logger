@@ -172,9 +172,14 @@ Rules:
 2. date = receipt date in YYYY-MM-DD format
 3. totalAmount = FINAL TOTAL (the number after "TOTAL" at bottom)
 4. items = list of products purchased (NOT subtotal/total lines)
-5. For each item: extract product name and price
+5. For each item: extract the EXACT product name and EXACT price shown on the receipt
 6. category = one of: Food, Transport, Shopping, Bills, Other
 7. Extract ONLY what you see - don't make up data
+
+CRITICAL: Do NOT modify item prices! Extract the EXACT prices printed on the receipt.
+- Item prices will NOT always add up to the total (due to tax, discounts, fees, etc.)
+- NEVER adjust or change item prices to make them equal the total
+- If an item shows $3.99, report $3.99 - even if items don't sum to total
 
 Example receipt:
 ---
@@ -203,6 +208,8 @@ Correct JSON:
     {"description": "Eggs", "totalPrice": 4.59, "category": "Food"}
   ]
 }
+
+Note: Items sum to 11.07 but total is 11.95 (includes tax). This is correct - we keep exact item prices.
 
 Now extract the receipt data and return ONLY the JSON object.`;
 }
