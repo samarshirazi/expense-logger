@@ -12,9 +12,27 @@ import {
 } from '../services/notificationService';
 
 const THEME_OPTIONS = [
-  { id: 'system', label: 'System default' },
-  { id: 'light', label: 'Light' },
-  { id: 'dark', label: 'Dark' }
+  {
+    id: 'system',
+    label: 'System',
+    icon: '🔄',
+    description: 'Matches your device settings',
+    preview: { bg: 'linear-gradient(135deg, #f8f9fa 50%, #1f2937 50%)', accent: '#667eea' }
+  },
+  {
+    id: 'light',
+    label: 'Light',
+    icon: '☀️',
+    description: 'Bright and clean appearance',
+    preview: { bg: '#ffffff', accent: '#667eea', text: '#1f2937' }
+  },
+  {
+    id: 'dark',
+    label: 'Dark',
+    icon: '🌙',
+    description: 'Easy on the eyes at night',
+    preview: { bg: '#1f2937', accent: '#818cf8', text: '#f9fafb' }
+  }
 ];
 
 const MOOD_OPTIONS = [
@@ -67,17 +85,6 @@ const Settings = ({
       preferences: notificationPrefs
     });
   }, [notificationsEnabled, notificationPrefs]);
-
-  const themeDescription = useMemo(() => {
-    switch (themePreference) {
-      case 'light':
-        return 'Bright layout with light background and dark text.';
-      case 'dark':
-        return 'Dimmed layout to reduce glare in low-light environments.';
-      default:
-        return 'Tracks your operating system setting automatically.';
-    }
-  }, [themePreference]);
 
   const handleNotificationToggle = async () => {
     if (notificationsEnabled) {
@@ -407,14 +414,14 @@ const Settings = ({
         <header className="settings-section-header">
           <div>
             <h2>Themes</h2>
-            <p>Match the app to your mood or follow your system.</p>
+            <p>Personalize your app appearance</p>
           </div>
         </header>
-        <div className="settings-theme-options">
+        <div className="settings-theme-grid">
           {THEME_OPTIONS.map(option => (
             <label
               key={option.id}
-              className={`settings-theme-card ${themePreference === option.id ? 'active' : ''}`}
+              className={`settings-theme-card-new ${themePreference === option.id ? 'active' : ''}`}
             >
               <input
                 type="radio"
@@ -423,10 +430,27 @@ const Settings = ({
                 checked={themePreference === option.id}
                 onChange={() => handleThemeSelection(option.id)}
               />
-              <span className="settings-theme-title">{option.label}</span>
-              <span className="settings-theme-description">
-                {option.id === themePreference ? themeDescription : ''}
-              </span>
+              <div
+                className="settings-theme-preview"
+                style={{ background: option.preview.bg }}
+              >
+                <div
+                  className="settings-theme-preview-accent"
+                  style={{ backgroundColor: option.preview.accent }}
+                />
+                <div className="settings-theme-preview-lines">
+                  <div style={{ backgroundColor: option.preview.text || (option.id === 'dark' ? '#f9fafb' : '#374151') }} />
+                  <div style={{ backgroundColor: option.preview.text || (option.id === 'dark' ? '#f9fafb' : '#374151'), opacity: 0.6 }} />
+                </div>
+              </div>
+              <div className="settings-theme-info">
+                <span className="settings-theme-icon">{option.icon}</span>
+                <span className="settings-theme-label">{option.label}</span>
+              </div>
+              <span className="settings-theme-desc">{option.description}</span>
+              {themePreference === option.id && (
+                <span className="settings-theme-check">✓</span>
+              )}
             </label>
           ))}
         </div>

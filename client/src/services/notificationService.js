@@ -3,10 +3,14 @@
 const VAPID_PUBLIC_KEY = process.env.REACT_APP_VAPID_PUBLIC_KEY || '';
 const NOTIFICATION_PREFS_KEY = 'notificationPreferences';
 const NOTIFICATION_ENABLED_KEY = 'notificationsEnabled';
+const NOTIFICATION_QUEUE_KEY = 'notificationQueue';
 const REMINDER_TAG = 'daily-expense-reminder';
 
 // Track last notification times to prevent spam
 const lastNotificationTimes = new Map();
+
+// Notification queue for batched delivery
+let batchedNotificationTimeoutId = null;
 
 export const DEFAULT_NOTIFICATION_PREFS = Object.freeze({
   dailySummary: true,
@@ -93,6 +97,139 @@ export function emitNotificationPreferencesChanged({
       }
     })
   );
+}
+
+// ===== Notification Queue Functions =====
+
+function getNotificationQueue() {
+  try {
+    const stored = localStorage.getItem(NOTIFICATION_QUEUE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveNotificationQueue(queue) {
+  try {
+    localStorage.setItem(NOTIFICATION_QUEUE_KEY, JSON.stringify(queue));
+  } catch (e) {
+    console.warn('Failed to save notification queue:', e);
+  }
+}
+
+function addToNotificationQueue(title, options) {
+  const queue = getNotificationQueue();
+  queue.push({
+    title,
+    body: options.body || '',
+    tag: options.tag || 'queued',
+    timestamp: Date.now()
+  });
+  saveNotificationQueue(queue);
+}
+
+function clearNotificationQueue() {
+  localStorage.removeItem(NOTIFICATION_QUEUE_KEY);
+}
+
+function getNextBatchTime(frequency) {
+  const now = new Date();
+  const target = new Date(now);
+
+  if (frequency === 'daily') {
+    // Send at 9 PM today, or tomorrow if past 9 PM
+    target.setHours(21, 0, 0, 0);
+    if (target <= now) {
+      target.setDate(target.getDate() + 1);
+    }
+  } else if (frequency === 'weekly') {
+    // Send on Sunday at 9 AM
+    const daysUntilSunday = (7 - now.getDay()) % 7 || 7;
+    target.setDate(now.getDate() + daysUntilSunday);
+    target.setHours(9, 0, 0, 0);
+    if (target <= now) {
+      target.setDate(target.getDate() + 7);
+    }
+  }
+
+  return target.getTime() - now.getTime();
+}
+
+function scheduleBatchedNotificationDelivery() {
+  if (batchedNotificationTimeoutId) {
+    clearTimeout(batchedNotificationTimeoutId);
+  }
+
+  const prefs = getStoredNotificationPreferences();
+  if (prefs.frequency === 'instant') return;
+
+  const delay = getNextBatchTime(prefs.frequency);
+
+  batchedNotificationTimeoutId = setTimeout(() => {
+    deliverBatchedNotifications();
+  }, Math.min(delay, 2147483647)); // Max timeout value
+}
+
+async function deliverBatchedNotifications() {
+  const queue = getNotificationQueue();
+  if (queue.length === 0) return;
+
+  const prefs = getStoredNotificationPreferences();
+  const frequencyLabel = prefs.frequency === 'daily' ? 'Daily' : 'Weekly';
+
+  // Group by type/tag
+  const grouped = {};
+  queue.forEach(n => {
+    const key = n.tag || 'general';
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(n);
+  });
+
+  // Create summary notification
+  const totalCount = queue.length;
+  let summaryBody = '';
+
+  Object.entries(grouped).forEach(([tag, items]) => {
+    if (tag === 'expense-added' || tag === 'manual-entry-processed') {
+      summaryBody += `${items.length} expense(s) added\n`;
+    } else if (tag.includes('budget')) {
+      summaryBody += `${items.length} budget alert(s)\n`;
+    } else {
+      summaryBody += `${items.length} notification(s)\n`;
+    }
+  });
+
+  await showNotificationDirect(`${frequencyLabel} Summary`, {
+    body: summaryBody.trim() || `${totalCount} notification(s) this ${prefs.frequency === 'daily' ? 'day' : 'week'}`,
+    tag: `${prefs.frequency}-summary`,
+    icon: '/icon-192.svg'
+  });
+
+  clearNotificationQueue();
+  scheduleBatchedNotificationDelivery();
+}
+
+// Direct notification without queue (internal use)
+async function showNotificationDirect(title, options = {}) {
+  if (!isPushNotificationSupported()) return;
+  if (Notification.permission !== 'granted') return;
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    await registration.showNotification(title, {
+      body: options.body || '',
+      icon: options.icon || '/icon-192.svg',
+      badge: options.badge || '/icon-192.svg',
+      vibrate: options.vibrate || [200, 100, 200],
+      data: options.data || {},
+      tag: options.tag || 'notification',
+      renotify: false,
+      ...options
+    });
+  } catch (error) {
+    console.error('[Notification] Failed to show:', error);
+  }
 }
 
 let expenseReminderTimeoutId = null;
@@ -418,6 +555,7 @@ export async function initializePushNotifications(token) {
 /**
  * Show a local notification (doesn't require push)
  * Includes throttling to prevent notification spam
+ * Respects frequency setting (instant/daily/weekly)
  */
 export async function showLocalNotification(title, options = {}) {
   if (!isPushNotificationSupported()) {
@@ -444,6 +582,18 @@ export async function showLocalNotification(title, options = {}) {
   // Update last notification time
   lastNotificationTimes.set(tag, now);
 
+  // Check frequency preference
+  const prefs = getStoredNotificationPreferences();
+
+  // For daily/weekly, queue the notification instead of showing immediately
+  if (prefs.frequency === 'daily' || prefs.frequency === 'weekly') {
+    addToNotificationQueue(title, { ...options, tag });
+    scheduleBatchedNotificationDelivery();
+    console.log(`[Notification] Queued for ${prefs.frequency} delivery: "${title}"`);
+    return;
+  }
+
+  // Instant: show notification immediately
   try {
     const registration = await navigator.serviceWorker.ready;
     await registration.showNotification(title, {
