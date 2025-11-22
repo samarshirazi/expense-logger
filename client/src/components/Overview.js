@@ -650,6 +650,18 @@ function Overview({ expenses = [], dateRange, categoryBudgets = {} }) {
           : 'Consider adjusting your spending.'
       },
       {
+        id: 'remaining',
+        icon: '🎯',
+        label: 'Remaining',
+        value: formatCurrency(Math.abs(remainingBudget)),
+        subValue: remainingBudget >= 0 ? 'left to spend' : 'over budget',
+        trendDirection: remainingBudget >= 0 ? 'down' : 'up',
+        trend: remainingBudget >= 0 ? 'On track' : 'Over budget',
+        detail: remainingBudget >= 0
+          ? `${formatPercent(100 - budgetUsedPercent)} budget remaining`
+          : 'Tighten spending to avoid overruns.'
+      },
+      {
         id: 'category',
         icon: CATEGORY_ICONS[topCategory.name] || '📊',
         label: 'Top Category',
