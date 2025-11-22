@@ -1,45 +1,193 @@
-.log-expense {
-  display: grid;
-  gap: 24px;
+.log-expense-chat {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 200px);
+  position: relative;
 }
 
-.log-expense-panel {
+/* Chat input container - positioned at top */
+.chat-input-container {
   background: white;
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.log-expense-panel.full-width {
-  grid-column: 1 / -1;
+.chat-input-area {
+  margin-bottom: 16px;
 }
 
-@media (min-width: 992px) {
-  .log-expense {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: flex-start;
-  }
-}
-
-@media (max-width: 768px) {
-  .log-expense-panel {
-    padding: 18px;
-  }
-
-  .log-expense {
-    gap: 18px;
-    padding-bottom: 20px;
-  }
-
-  /* Ensure the last panel (manual expense form) has extra bottom padding */
-  .log-expense-panel.full-width {
-    margin-bottom: 20px;
-  }
-}
-
-.log-expense-panel .manual-entry {
+/* Remove manual-entry default styling when in chat mode */
+.chat-input-area .manual-entry {
   background: transparent;
   box-shadow: none;
   padding: 0;
   margin-bottom: 0;
+  border-radius: 0;
+}
+
+/* Action buttons row */
+.chat-action-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.chat-action-btn {
+  padding: 12px 20px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-action-btn:hover {
+  background: #e9ecef;
+  border-color: #667eea;
+  color: #667eea;
+  transform: translateY(-1px);
+}
+
+.chat-action-btn:active {
+  transform: translateY(0);
+}
+
+/* Panel overlay */
+.chat-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.chat-panel {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-panel-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f8f9fa;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  transition: all 0.2s;
+}
+
+.chat-panel-close:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+/* Panel content styling */
+.chat-panel .manual-expense-form {
+  box-shadow: none;
+  padding: 0;
+}
+
+.chat-panel .manual-expense-form h2 {
+  padding-right: 40px;
+}
+
+.chat-panel .upload-section {
+  box-shadow: none;
+  padding: 0;
+}
+
+.chat-panel .upload-section h2 {
+  padding-right: 40px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .log-expense-chat {
+    min-height: calc(100vh - 180px);
+  }
+
+  .chat-input-container {
+    padding: 18px;
+    border-radius: 12px;
+  }
+
+  .chat-action-buttons {
+    gap: 8px;
+  }
+
+  .chat-action-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .chat-panel-overlay {
+    padding: 10px;
+    align-items: flex-end;
+  }
+
+  .chat-panel {
+    border-radius: 16px 16px 0 0;
+    max-height: 85vh;
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-action-buttons {
+    flex-direction: column;
+  }
+
+  .chat-action-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }

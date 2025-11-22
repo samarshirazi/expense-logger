@@ -170,7 +170,7 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
       );
 
       if (response.data.success) {
-        setSuccess(`✅ ${response.data.message}`);
+        setSuccess(`${response.data.message}`);
         setTextEntry('');
 
         // Collect added expenses for budget checking
@@ -235,20 +235,18 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
   return (
     <div className="manual-entry">
       <div className="manual-entry-header">
-        <span className="manual-entry-icon">✍️</span>
         <h3>Quick Add</h3>
-        <span className="manual-entry-hint">Type naturally, AI will categorize</span>
       </div>
 
       <form onSubmit={handleSubmit} className="manual-entry-form">
         <div className="manual-entry-input-wrapper">
-          <textarea
+          <input
+            type="text"
             className="manual-entry-input"
             value={textEntry}
             onChange={(e) => setTextEntry(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder='Try: "I spent $10 on food and $20 on shopping" or "Gas $40, coffee $5, groceries $50"'
-            rows="2"
+            placeholder='Type expense, e.g. "Coffee $5" or "Gas $40, groceries $50"'
             disabled={processing}
           />
           <button
@@ -257,22 +255,16 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
             disabled={processing || !textEntry.trim()}
           >
             {processing ? (
-              <>
-                <span className="button-spinner"></span>
-                Processing...
-              </>
+              <span className="button-spinner"></span>
             ) : (
-              <>
-                <span>💬</span>
-                Add
-              </>
+              <span className="send-icon">&#10148;</span>
             )}
           </button>
         </div>
 
         {error && (
           <div className="manual-entry-error">
-            ❌ {error}
+            {error}
           </div>
         )}
 
@@ -282,26 +274,6 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
           </div>
         )}
       </form>
-
-      <div className="manual-entry-examples">
-        <span className="examples-title">Examples:</span>
-        <button
-          type="button"
-          className="example-button"
-          onClick={() => setTextEntry('I spent $15 on lunch at subway and $30 on gas')}
-          disabled={processing}
-        >
-          "I spent $15 on lunch at subway and $30 on gas"
-        </button>
-        <button
-          type="button"
-          className="example-button"
-          onClick={() => setTextEntry('Coffee $5, parking $10, groceries $45')}
-          disabled={processing}
-        >
-          "Coffee $5, parking $10, groceries $45"
-        </button>
-      </div>
     </div>
   );
 }
