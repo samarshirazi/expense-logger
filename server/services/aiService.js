@@ -167,7 +167,7 @@ OUTPUT FORMAT:
   ]
 }
 
-CRITICAL PRICE EXTRACTION RULES:
+CRITICAL RULES:
 1. Each item line has the item name on the LEFT and the price on the RIGHT
 2. The PRICE is ALWAYS the rightmost number on the item line (before any tax code letter)
 3. IGNORE any numbers that are:
@@ -175,6 +175,12 @@ CRITICAL PRICE EXTRACTION RULES:
    - Unit prices (like "2.99/lb" or "$1.25 each")
    - UPC/SKU codes (long numbers with 8+ digits)
 4. ONLY extract the FINAL LINE TOTAL for each item (rightmost dollar amount)
+
+**DUPLICATE ITEMS - VERY IMPORTANT:**
+5. If the SAME product appears on MULTIPLE LINES, include it MULTIPLE TIMES in the items array
+6. NEVER merge or combine duplicate items - each receipt line = one item in the array
+7. If you see "COCA COLA" 5 times on the receipt, output 5 separate items
+8. Count EVERY line - do not skip items even if they look like duplicates
 
 WALMART RECEIPT FORMAT:
 - Items show: ITEM NAME followed by PRICE on the right
@@ -188,37 +194,42 @@ Walmart
 11/22/24  3:45 PM
 
 GV WHOLE MILK GAL          3.36 O
+GV WHOLE MILK GAL          3.36 O
+GV WHOLE MILK GAL          3.36 O
 GV WHITE BREAD             1.18 O
 BANANAS 2.47 lb @ 0.56/lb  1.38 O
-GROUND BEEF 1.5 @ 5.97     8.96 T
-BOUNTY PAPER 2@4.97        9.94 T
+COCA COLA 2L               2.50 O
+COCA COLA 2L               2.50 O
 
-SUBTOTAL                  24.82
-TAX                        1.51
-TOTAL                     26.33
+SUBTOTAL                  17.64
+TAX                        0.00
+TOTAL                     17.64
 ---
 
-CORRECT EXTRACTION:
+CORRECT EXTRACTION (notice 3 milks and 2 cokes - each on separate line):
 {
   "merchantName": "Walmart",
   "date": "2024-11-22",
-  "totalAmount": 26.33,
+  "totalAmount": 17.64,
   "currency": "USD",
   "category": "Food",
   "items": [
     {"description": "GV Whole Milk Gal", "totalPrice": 3.36, "category": "Food"},
+    {"description": "GV Whole Milk Gal", "totalPrice": 3.36, "category": "Food"},
+    {"description": "GV Whole Milk Gal", "totalPrice": 3.36, "category": "Food"},
     {"description": "GV White Bread", "totalPrice": 1.18, "category": "Food"},
     {"description": "Bananas", "totalPrice": 1.38, "category": "Food"},
-    {"description": "Ground Beef", "totalPrice": 8.96, "category": "Food"},
-    {"description": "Bounty Paper", "totalPrice": 9.94, "category": "Shopping"}
+    {"description": "Coca Cola 2L", "totalPrice": 2.50, "category": "Food"},
+    {"description": "Coca Cola 2L", "totalPrice": 2.50, "category": "Food"}
   ]
 }
 
 KEY POINTS:
+- GV Whole Milk appears 3 TIMES = 3 separate items in the array (NOT merged into 1)
+- Coca Cola appears 2 TIMES = 2 separate items in the array (NOT merged into 1)
 - Bananas: "2.47 lb @ 0.56/lb" is weight info, "1.38" is the actual price
-- Ground Beef: "1.5 @ 5.97" is quantity × unit price, "8.96" is the line total
-- Bounty Paper: "2@4.97" is 2 items at $4.97 each, "9.94" is the line total
 - Tax codes (O, T) are ignored - they're not part of the price
+- TOTAL ITEMS IN ARRAY = 7 (count each line separately!)
 
 SKIP THESE LINES (not items):
 - SUBTOTAL, TAX, TOTAL, CHANGE, CASH, CARD
