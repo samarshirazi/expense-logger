@@ -111,12 +111,12 @@
   --font-weight-bold: 700;
   --font-weight-black: 900;
 
-  /* Transitions */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-spring: 500ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  --transition-bounce: 600ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  /* Transitions - optimized for performance */
+  --transition-fast: 100ms ease-out;
+  --transition-base: 150ms ease-out;
+  --transition-slow: 200ms ease-out;
+  --transition-spring: 200ms ease-out;
+  --transition-bounce: 250ms ease-out;
 }
 
 /* Light Theme Override */
@@ -292,7 +292,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Animated Background */
+/* Static Background - removed animation for performance */
 body::before {
   content: '';
   position: fixed;
@@ -300,10 +300,7 @@ body::before {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--gradient-animated);
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
-  opacity: 0.03;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.03) 0%, rgba(118, 75, 162, 0.02) 50%, rgba(245, 87, 108, 0.03) 100%);
   pointer-events: none;
   z-index: -1;
 }
@@ -380,9 +377,8 @@ h4 { font-size: var(--font-size-lg); }
 }
 
 .glass-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg), var(--glow-primary);
   border-color: rgba(102, 126, 234, 0.3);
+  box-shadow: var(--shadow-lg);
 }
 
 .card {
@@ -395,8 +391,8 @@ h4 { font-size: var(--font-size-lg); }
 }
 
 .card:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: var(--shadow-xl), var(--glow-primary);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(102, 126, 234, 0.2);
 }
 
 .card-animated {
@@ -451,8 +447,8 @@ h4 { font-size: var(--font-size-lg); }
 }
 
 .btn-primary:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: var(--glow-primary);
+  filter: brightness(1.1);
+  box-shadow: var(--shadow-colored);
 }
 
 .btn-secondary {
@@ -461,8 +457,7 @@ h4 { font-size: var(--font-size-lg); }
 }
 
 .btn-secondary:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: var(--glow-secondary);
+  filter: brightness(1.1);
 }
 
 .btn-glass {
