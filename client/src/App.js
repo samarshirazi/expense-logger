@@ -216,6 +216,14 @@ function App() {
     }
   }, [authLoading, user]);
 
+  // Ensure bottom nav is visible when tour is running
+  useEffect(() => {
+    if (runTour) {
+      setShowOptionsButton(true);
+      scrollStateRef.current.buttonVisible = true;
+    }
+  }, [runTour]);
+
   // Handle tour completion
   const handleTourComplete = useCallback((status) => {
     setRunTour(false);
@@ -223,6 +231,8 @@ function App() {
 
   // Start tour manually (from help button or settings)
   const startTour = useCallback(() => {
+    setShowOptionsButton(true);
+    scrollStateRef.current.buttonVisible = true;
     setRunTour(true);
   }, []);
 
@@ -792,6 +802,15 @@ function App() {
   const updateButtonVisibility = useCallback((scrollPosition, source) => {
     const state = scrollStateRef.current;
 
+    // Keep buttons visible during tour
+    if (runTour) {
+      if (!state.buttonVisible) {
+        state.buttonVisible = true;
+        setShowOptionsButton(true);
+      }
+      return;
+    }
+
     if (source && state.lastSource !== source) {
       console.log('🔄 Switching scroll source to:', source);
       state.lastSource = source;
@@ -835,7 +854,7 @@ function App() {
     }
 
     state.previousScrollPosition = scrollPosition;
-  }, []);
+  }, [runTour]);
 
   const getWindowScrollPosition = useCallback(() => {
     if (typeof window === 'undefined') {
@@ -1158,6 +1177,7 @@ function App() {
         run={runTour}
         onComplete={handleTourComplete}
         activeView={activeView}
+        setMobileMenuOpen={setIsMobileMenuOpen}
       />
 
       {/* Help Button to replay tour */}

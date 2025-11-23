@@ -207,8 +207,11 @@ const joyrideStyles = {
   }
 };
 
-function AppTour({ run, onComplete, activeView }) {
+function AppTour({ run, onComplete, activeView, setMobileMenuOpen }) {
   const steps = getTourSteps(activeView);
+
+  // Check if we're on mobile
+  const isMobile = () => window.innerWidth <= 768;
 
   const handleJoyrideCallback = (data) => {
     const { status, type, step } = data;
@@ -218,12 +221,28 @@ function AppTour({ run, onComplete, activeView }) {
       markAreaViewed(step.areaKey);
     }
 
+    // On mobile, open sidebar before steps that target sidebar-only items
+    if (type === EVENTS.STEP_BEFORE && isMobile() && setMobileMenuOpen) {
+      const sidebarOnlyAreas = [TOUR_AREAS.CATEGORIES, TOUR_AREAS.BUDGETS, TOUR_AREAS.SETTINGS];
+      if (step?.areaKey && sidebarOnlyAreas.includes(step.areaKey)) {
+        // Open mobile menu so the target element is visible
+        setMobileMenuOpen(true);
+      } else if (step?.areaKey && !sidebarOnlyAreas.includes(step.areaKey)) {
+        // Close mobile menu for other steps
+        setMobileMenuOpen(false);
+      }
+    }
+
     // Handle tour completion or skip
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
       if (status === STATUS.FINISHED) {
         markTourCompleted();
       } else {
         markTourSeen();
+      }
+      // Close mobile menu when tour ends
+      if (setMobileMenuOpen) {
+        setMobileMenuOpen(false);
       }
       if (onComplete) {
         onComplete(status);
