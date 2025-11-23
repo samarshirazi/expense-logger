@@ -43,6 +43,15 @@ const CustomTooltip = ({
   </div>
 );
 
+// Check if we're on mobile
+const isMobileView = () => window.innerWidth <= 768;
+
+// Items that appear in bottom nav on mobile
+const BOTTOM_NAV_ITEMS = ['overview', 'log-expense', 'expenses'];
+
+// Items that appear only in sidebar (need to open mobile menu)
+const SIDEBAR_ONLY_ITEMS = ['categories', 'budgets', 'settings'];
+
 // Tour steps configuration
 const getTourSteps = (activeView) => [
   {
@@ -62,6 +71,7 @@ const getTourSteps = (activeView) => [
   },
   {
     target: '[data-tour="overview"]',
+    tourId: 'overview',
     title: 'Overview 📊',
     content: (
       <div>
@@ -80,6 +90,7 @@ const getTourSteps = (activeView) => [
   },
   {
     target: '[data-tour="log-expense"]',
+    tourId: 'log-expense',
     title: 'Log Expense 📝',
     content: (
       <div>
@@ -98,6 +109,7 @@ const getTourSteps = (activeView) => [
   },
   {
     target: '[data-tour="expenses"]',
+    tourId: 'expenses',
     title: 'Expenses List 📋',
     content: (
       <div>
@@ -116,6 +128,7 @@ const getTourSteps = (activeView) => [
   },
   {
     target: '[data-tour="categories"]',
+    tourId: 'categories',
     title: 'Categories 🏷️',
     content: (
       <div>
@@ -135,6 +148,7 @@ const getTourSteps = (activeView) => [
   },
   {
     target: '[data-tour="budgets"]',
+    tourId: 'budgets',
     title: 'Budgets 💰',
     content: (
       <div>
@@ -153,6 +167,7 @@ const getTourSteps = (activeView) => [
   },
   {
     target: '[data-tour="settings"]',
+    tourId: 'settings',
     title: 'Settings ⚙️',
     content: (
       <div>
@@ -208,10 +223,34 @@ const joyrideStyles = {
 };
 
 function AppTour({ run, onComplete, activeView, setMobileMenuOpen }) {
-  const steps = getTourSteps(activeView);
+  const baseSteps = getTourSteps(activeView);
 
   // Check if we're on mobile
   const isMobile = () => window.innerWidth <= 768;
+
+  // Process steps to adjust placement and target for mobile
+  const steps = baseSteps.map(step => {
+    if (!isMobile()) {
+      return step; // Desktop: use original steps
+    }
+
+    // Mobile adjustments
+    const newStep = { ...step };
+
+    // For bottom nav items on mobile, target the bottom-nav version and place tooltip on top
+    if (step.tourId && BOTTOM_NAV_ITEMS.includes(step.tourId)) {
+      newStep.target = `.bottom-nav [data-tour="${step.tourId}"]`;
+      newStep.placement = 'top';
+    }
+
+    // For sidebar-only items on mobile, place tooltip on top (sidebar slides from bottom/side)
+    if (step.tourId && SIDEBAR_ONLY_ITEMS.includes(step.tourId)) {
+      newStep.target = `.sidebar [data-tour="${step.tourId}"]`;
+      newStep.placement = 'top';
+    }
+
+    return newStep;
+  });
 
   const handleJoyrideCallback = (data) => {
     const { status, type, step } = data;
