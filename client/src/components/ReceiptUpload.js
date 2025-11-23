@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { uploadReceipt } from '../services/apiService';
+import { getAllCategories } from '../services/categoryService';
 import {
   showLocalNotification,
   getNotificationPermissionState,
@@ -18,6 +19,7 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
   const cameraInputRef = React.useRef(null);
   const [scannedData, setScannedData] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [categories] = useState(getAllCategories());
 
   // Detect mobile device
   React.useEffect(() => {
@@ -205,13 +207,51 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
         [field]: value
       };
 
+      // Recalculate unitPrice if quantity or totalPrice changed
+      if (field === 'quantity' || field === 'totalPrice') {
+        const item = updatedItems[itemIndex];
+        const qty = field === 'quantity' ? parseFloat(value) || 1 : parseFloat(item.quantity) || 1;
+        const total = field === 'totalPrice' ? parseFloat(value) || 0 : parseFloat(item.totalPrice) || 0;
+        updatedItems[itemIndex].unitPrice = qty > 0 ? parseFloat((total / qty).toFixed(2)) : total;
+      }
+
       // Recalculate total if prices changed
       const newTotal = updatedItems.reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
 
       return {
         ...prev,
         items: updatedItems,
-        totalAmount: newTotal
+        totalAmount: parseFloat(newTotal.toFixed(2))
+      };
+    });
+  }, []);
+
+  const handleAddItem = useCallback(() => {
+    setScannedData(prev => {
+      if (!prev) return prev;
+      const newItem = {
+        description: '',
+        quantity: 1,
+        unitPrice: 0,
+        totalPrice: 0,
+        category: 'Other'
+      };
+      return {
+        ...prev,
+        items: [...(prev.items || []), newItem]
+      };
+    });
+  }, []);
+
+  const handleRemoveItem = useCallback((itemIndex) => {
+    setScannedData(prev => {
+      if (!prev || !prev.items) return prev;
+      const updatedItems = prev.items.filter((_, idx) => idx !== itemIndex);
+      const newTotal = updatedItems.reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
+      return {
+        ...prev,
+        items: updatedItems,
+        totalAmount: parseFloat(newTotal.toFixed(2))
       };
     });
   }, []);
@@ -458,18 +498,56 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
                 </div>
               </div>
 
+              <div className="review-merchant-info">
+                <div className="review-field-group">
+                  <label htmlFor="receipt-payment-method">Payment Method</label>
+                  <input
+                    type="text"
+                    id="receipt-payment-method"
+                    className="review-merchant-input"
+                    value={scannedData.paymentMethod || ''}
+                    onChange={(e) => handleUpdateReceiptInfo('paymentMethod', e.target.value)}
+                    placeholder="e.g., Cash, Credit Card, Debit"
+                  />
+                </div>
+              </div>
+
               <div className="review-items-section">
-                <h4>Items ({scannedData.items?.length || 0})</h4>
+                <div className="review-items-header">
+                  <h4>Items ({scannedData.items?.length || 0})</h4>
+                  <button
+                    type="button"
+                    className="review-add-item-btn"
+                    onClick={handleAddItem}
+                  >
+                    + Add Item
+                  </button>
+                </div>
                 <div className="review-items-list">
                   {scannedData.items?.map((item, index) => (
                     <div key={index} className="review-item">
-                      <input
-                        type="text"
-                        className="review-item-description"
-                        value={item.description}
-                        onChange={(e) => handleUpdateScannedItem(index, 'description', e.target.value)}
-                        placeholder="Item description"
-                      />
+                      <div className="review-item-main">
+                        <input
+                          type="text"
+                          className="review-item-description"
+                          value={item.description}
+                          onChange={(e) => handleUpdateScannedItem(index, 'description', e.target.value)}
+                          placeholder="Item description"
+                        />
+                        <button
+                          type="button"
+                          className="review-item-remove-btn"
+                          onClick={() => handleRemoveItem(index)}
+                          title="Remove item"
+                        >
+                          x
+                        </button>
+                      </div>
+                      {item.quantity > 1 && (
+                        <div className="review-item-unit-price">
+                          ${item.unitPrice?.toFixed(2) || '0.00'} each
+                        </div>
+                      )}
                       <div className="review-item-price-group">
                         <input
                           type="number"
@@ -480,7 +558,7 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
                           min="1"
                           step="1"
                         />
-                        <span className="review-item-x">×</span>
+                        <span className="review-item-x">x</span>
                         <div className="review-item-price-input">
                           <span>$</span>
                           <input
@@ -493,6 +571,17 @@ const ReceiptUpload = ({ onExpenseAdded, expenses = [] }) => {
                             className={item.totalPrice === null ? "price-missing" : ""}
                           />
                         </div>
+                        <select
+                          className="review-item-category"
+                          value={item.category || 'Other'}
+                          onChange={(e) => handleUpdateScannedItem(index, 'category', e.target.value)}
+                        >
+                          {categories.map(cat => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.icon} {cat.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   ))}

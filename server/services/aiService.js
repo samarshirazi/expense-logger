@@ -1214,7 +1214,8 @@ Return format (JSON array):
 [
   {
     "description": "brief description of what was purchased",
-    "amount": number,
+    "amount": number (TOTAL price for all units),
+    "quantity": number (default 1 if not specified),
     "category": "Food" | "Transport" | "Shopping" | "Bills" | "Other",
     "merchantName": "merchant/store name if mentioned, or 'Manual Entry'",
     "date": "YYYY-MM-DD or null if not mentioned"
@@ -1224,6 +1225,12 @@ Return format (JSON array):
 Rules:
 - Extract all expenses mentioned in the text
 - Each expense should be a separate object in the array
+- IMPORTANT: Quantity can appear BEFORE the item name! Examples:
+  - "2 apples for 5" = quantity: 2, description: "apples", amount: 5 (total)
+  - "3 coffees $12" = quantity: 3, description: "coffees", amount: 12 (total)
+  - "bought 4 bananas $8" = quantity: 4, description: "bananas", amount: 8 (total)
+  - "apples x3 $6" = quantity: 3, description: "apples", amount: 6 (total)
+- The amount is always the TOTAL price, not per-unit price
 - Categorize based on: Food (food/dining), Transport (gas/parking/transit), Shopping (retail/clothing/electronics), Bills (utilities/subscriptions), Other (miscellaneous)
 - If a date like "Oct 10" or "few days ago" is mentioned, calculate based on today's date (${todayDateStr}) and use ${currentYear}
 - If no specific date mentioned, use null
@@ -1323,11 +1330,14 @@ Rules:
     // Combine all parsed expenses into items of a single expense
     const items = parsedExpenses.map(exp => {
       const category = exp.category || 'Other';
+      const quantity = parseInt(exp.quantity) || 1;
+      const totalPrice = parseFloat(exp.amount) || 0;
+      const unitPrice = quantity > 0 ? totalPrice / quantity : totalPrice;
       return {
         description: exp.description || 'Manual entry',
-        quantity: 1,
-        unitPrice: parseFloat(exp.amount) || 0,
-        totalPrice: parseFloat(exp.amount) || 0,
+        quantity: quantity,
+        unitPrice: parseFloat(unitPrice.toFixed(2)),
+        totalPrice: totalPrice,
         category: validCategories.includes(category) ? category : categorizeItem(exp.description)
       };
     });

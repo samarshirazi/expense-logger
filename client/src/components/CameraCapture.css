@@ -590,6 +590,95 @@
   box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 
+/* Items header with Add button */
+.review-items-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.review-items-header h4 {
+  margin: 0;
+}
+
+.review-add-item-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.review-add-item-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Item main row with remove button */
+.review-item-main {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.review-item-main .review-item-description {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.review-item-remove-btn {
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.review-item-remove-btn:hover {
+  background: #fecaca;
+}
+
+/* Unit price display for multi-quantity items */
+.review-item-unit-price {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  padding-left: 4px;
+  font-style: italic;
+}
+
+/* Category select in item */
+.review-item-category {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+  background: white;
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.review-item-category:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
 @media (max-width: 768px) {
   .receipt-review-modal {
     width: 95%;
@@ -617,5 +706,14 @@
   .review-cancel-btn,
   .review-save-btn {
     width: 100%;
+  }
+
+  .review-item-price-group {
+    flex-wrap: wrap;
+  }
+
+  .review-item-category {
+    width: 100%;
+    margin-top: 8px;
   }
 }

@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import axios from 'axios';
 import authService from '../services/authService';
+import { createExpense } from '../services/apiService';
+import { getAllCategories } from '../services/categoryService';
 import {
   showLocalNotification,
   getNotificationPermissionState,
@@ -8,20 +10,24 @@ import {
   getStoredNotificationPreferences
 } from '../services/notificationService';
 import './ManualEntry.css';
+import './CameraCapture.css';
 
 function ManualEntry({ onExpensesAdded, expenses = [] }) {
   const [textEntry, setTextEntry] = useState('');
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [parsedData, setParsedData] = useState(null);
+  const [categories] = useState(getAllCategories());
 
   // Helper function to get current month key
-  const getMonthKey = (dateString) => {
+  const getMonthKey = useCallback((dateString) => {
     return dateString.substring(0, 7); // "2024-01-15" -> "2024-01"
-  };
+  }, []);
 
   // Helper function to check budget thresholds
-  const checkBudgetThresholds = async (addedExpenses) => {
+  const checkBudgetThresholds = useCallback(async (addedExpenses) => {
     try {
       // Prevent multiple calls in quick succession
       if (checkBudgetThresholds.isRunning) {
@@ -138,7 +144,8 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
         checkBudgetThresholds.isRunning = false;
       }, 1000);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expenses, getMonthKey]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -169,52 +176,27 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
         }
       );
 
-      if (response.data.success) {
-        setSuccess(`${response.data.message}`);
-        setTextEntry('');
+      if (response.data.success && response.data.expenses) {
+        // Extract the parsed expense data for review
+        const firstExpense = response.data.expenses[0];
+        const normalizedExpense = firstExpense.expense
+          ? firstExpense.expense
+          : firstExpense.expenseData
+            ? {
+                ...firstExpense.expenseData,
+                id: firstExpense.expenseId || firstExpense.expenseData.id || undefined
+              }
+            : null;
 
-        // Collect added expenses for budget checking
-        const addedExpenses = [];
-
-        // Notify parent component
-        if (onExpensesAdded && response.data.expenses) {
-          response.data.expenses.forEach(exp => {
-            const normalizedExpense = exp.expense
-              ? exp.expense
-              : exp.expenseData
-                ? {
-                    ...exp.expenseData,
-                    id: exp.expenseId || exp.expenseData.id || undefined
-                  }
-                : null;
-
-            if (normalizedExpense) {
-              onExpensesAdded(normalizedExpense);
-              addedExpenses.push(normalizedExpense);
-            }
+        if (normalizedExpense) {
+          // Show the review modal instead of saving immediately
+          setParsedData({
+            ...normalizedExpense,
+            paymentMethod: normalizedExpense.paymentMethod || ''
           });
+          setShowReviewModal(true);
+          setTextEntry('');
         }
-
-        // Show notification if enabled
-        const notificationsEnabled = getStoredNotificationsEnabled();
-        const preferences = getStoredNotificationPreferences();
-        const permissionGranted = getNotificationPermissionState() === 'granted';
-
-        if (notificationsEnabled && permissionGranted && preferences?.newReceiptScanned) {
-          const count = addedExpenses.length;
-          const totalAmount = addedExpenses.reduce((sum, exp) => sum + (exp.totalAmount || 0), 0);
-          await showLocalNotification('Expenses Added Successfully!', {
-            body: `${count} expense${count > 1 ? 's' : ''} added: $${totalAmount.toFixed(2)} total`,
-            icon: '/icon-192.svg',
-            tag: 'manual-entry-processed'
-          });
-        }
-
-        // Check budget thresholds immediately with current expenses
-        await checkBudgetThresholds(addedExpenses);
-
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccess(null), 3000);
       }
     } catch (err) {
       console.error('Manual entry error:', err);
@@ -231,6 +213,140 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
       handleSubmit(e);
     }
   };
+
+  // Review modal handlers
+  const handleUpdateItem = useCallback((itemIndex, field, value) => {
+    setParsedData(prev => {
+      if (!prev || !prev.items) return prev;
+
+      const updatedItems = [...prev.items];
+      updatedItems[itemIndex] = {
+        ...updatedItems[itemIndex],
+        [field]: value
+      };
+
+      // Recalculate unitPrice if quantity or totalPrice changed
+      if (field === 'quantity' || field === 'totalPrice') {
+        const item = updatedItems[itemIndex];
+        const qty = field === 'quantity' ? parseFloat(value) || 1 : parseFloat(item.quantity) || 1;
+        const total = field === 'totalPrice' ? parseFloat(value) || 0 : parseFloat(item.totalPrice) || 0;
+        updatedItems[itemIndex].unitPrice = qty > 0 ? parseFloat((total / qty).toFixed(2)) : total;
+      }
+
+      // Recalculate total
+      const newTotal = updatedItems.reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
+
+      return {
+        ...prev,
+        items: updatedItems,
+        totalAmount: parseFloat(newTotal.toFixed(2))
+      };
+    });
+  }, []);
+
+  const handleUpdateInfo = useCallback((field, value) => {
+    setParsedData(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [field]: value
+      };
+    });
+  }, []);
+
+  const handleAddItem = useCallback(() => {
+    setParsedData(prev => {
+      if (!prev) return prev;
+      const newItem = {
+        description: '',
+        quantity: 1,
+        unitPrice: 0,
+        totalPrice: 0,
+        category: 'Other'
+      };
+      return {
+        ...prev,
+        items: [...(prev.items || []), newItem]
+      };
+    });
+  }, []);
+
+  const handleRemoveItem = useCallback((itemIndex) => {
+    setParsedData(prev => {
+      if (!prev || !prev.items) return prev;
+      const updatedItems = prev.items.filter((_, idx) => idx !== itemIndex);
+      const newTotal = updatedItems.reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
+      return {
+        ...prev,
+        items: updatedItems,
+        totalAmount: parseFloat(newTotal.toFixed(2))
+      };
+    });
+  }, []);
+
+  const handleCancelReview = useCallback(() => {
+    setShowReviewModal(false);
+    setParsedData(null);
+  }, []);
+
+  const handleSaveReviewed = useCallback(async () => {
+    if (!parsedData) return;
+
+    try {
+      // Create the expense via API
+      const expenseData = {
+        merchantName: parsedData.merchantName || 'Manual Entry',
+        date: parsedData.date,
+        totalAmount: parsedData.totalAmount,
+        currency: parsedData.currency || 'USD',
+        category: parsedData.category,
+        paymentMethod: parsedData.paymentMethod || null,
+        items: parsedData.items
+      };
+
+      const response = await createExpense(expenseData);
+
+      if (response.expense) {
+        // Notify parent component
+        if (onExpensesAdded) {
+          onExpensesAdded(response.expense);
+        }
+
+        // Check budget thresholds
+        await checkBudgetThresholds([response.expense]);
+
+        // Show notification if enabled
+        const notificationsEnabled = getStoredNotificationsEnabled();
+        const preferences = getStoredNotificationPreferences();
+        const permissionGranted = getNotificationPermissionState() === 'granted';
+
+        if (notificationsEnabled && permissionGranted && preferences?.newReceiptScanned) {
+          await showLocalNotification('Expense Added Successfully!', {
+            body: `$${parsedData.totalAmount.toFixed(2)} - ${parsedData.merchantName || 'Manual Entry'}`,
+            icon: '/icon-192.svg',
+            tag: 'manual-entry-processed'
+          });
+        }
+
+        const itemCount = parsedData.items?.length || 0;
+        let successMsg = `$${parsedData.totalAmount.toFixed(2)}`;
+        if (itemCount > 0) {
+          successMsg += ` (${itemCount} item${itemCount !== 1 ? 's' : ''})`;
+        }
+        successMsg += ' - Saved successfully!';
+        setSuccess(successMsg);
+
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccess(null), 3000);
+      }
+
+      setShowReviewModal(false);
+      setParsedData(null);
+    } catch (err) {
+      console.error('Failed to save expense:', err);
+      setError(err.message || 'Failed to save expense');
+    }
+  }, [parsedData, onExpensesAdded, checkBudgetThresholds]);
 
   return (
     <div className="manual-entry">
@@ -274,6 +390,147 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
           </div>
         )}
       </form>
+
+      {/* Review Modal */}
+      {showReviewModal && parsedData && (
+        <div className="receipt-review-modal-overlay" onClick={handleCancelReview}>
+          <div className="receipt-review-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="review-modal-header">
+              <h3>Review Expense</h3>
+              <button className="review-close-btn" onClick={handleCancelReview}>x</button>
+            </div>
+
+            <div className="review-modal-body">
+              <div className="review-merchant-info">
+                <div className="review-field-group">
+                  <label htmlFor="manual-merchant-name">Merchant</label>
+                  <input
+                    type="text"
+                    id="manual-merchant-name"
+                    className="review-merchant-input"
+                    value={parsedData.merchantName || ''}
+                    onChange={(e) => handleUpdateInfo('merchantName', e.target.value)}
+                    placeholder="Merchant name"
+                  />
+                </div>
+                <div className="review-field-group">
+                  <label htmlFor="manual-receipt-date">Date</label>
+                  <input
+                    type="date"
+                    id="manual-receipt-date"
+                    className="review-date-input"
+                    value={parsedData.date || ''}
+                    onChange={(e) => handleUpdateInfo('date', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="review-merchant-info">
+                <div className="review-field-group">
+                  <label htmlFor="manual-payment-method">Payment Method</label>
+                  <input
+                    type="text"
+                    id="manual-payment-method"
+                    className="review-merchant-input"
+                    value={parsedData.paymentMethod || ''}
+                    onChange={(e) => handleUpdateInfo('paymentMethod', e.target.value)}
+                    placeholder="e.g., Cash, Credit Card, Debit"
+                  />
+                </div>
+              </div>
+
+              <div className="review-items-section">
+                <div className="review-items-header">
+                  <h4>Items ({parsedData.items?.length || 0})</h4>
+                  <button
+                    type="button"
+                    className="review-add-item-btn"
+                    onClick={handleAddItem}
+                  >
+                    + Add Item
+                  </button>
+                </div>
+                <div className="review-items-list">
+                  {parsedData.items?.map((item, index) => (
+                    <div key={index} className="review-item">
+                      <div className="review-item-main">
+                        <input
+                          type="text"
+                          className="review-item-description"
+                          value={item.description}
+                          onChange={(e) => handleUpdateItem(index, 'description', e.target.value)}
+                          placeholder="Item description"
+                        />
+                        <button
+                          type="button"
+                          className="review-item-remove-btn"
+                          onClick={() => handleRemoveItem(index)}
+                          title="Remove item"
+                        >
+                          x
+                        </button>
+                      </div>
+                      {item.quantity > 1 && (
+                        <div className="review-item-unit-price">
+                          ${item.unitPrice?.toFixed(2) || '0.00'} each
+                        </div>
+                      )}
+                      <div className="review-item-price-group">
+                        <input
+                          type="number"
+                          className="review-item-qty"
+                          value={item.quantity || 1}
+                          onChange={(e) => handleUpdateItem(index, 'quantity', parseFloat(e.target.value) || 1)}
+                          placeholder="Qty"
+                          min="1"
+                          step="1"
+                        />
+                        <span className="review-item-x">x</span>
+                        <div className="review-item-price-input">
+                          <span>$</span>
+                          <input
+                            type="number"
+                            value={item.totalPrice || ''}
+                            onChange={(e) => handleUpdateItem(index, 'totalPrice', e.target.value)}
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
+                        <select
+                          className="review-item-category"
+                          value={item.category || 'Other'}
+                          onChange={(e) => handleUpdateItem(index, 'category', e.target.value)}
+                        >
+                          {categories.map(cat => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.icon} {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="review-total">
+                <span>Total:</span>
+                <span className="review-total-amount">${parsedData.totalAmount?.toFixed(2) || '0.00'}</span>
+              </div>
+            </div>
+
+            <div className="review-modal-footer">
+              <button className="review-cancel-btn" onClick={handleCancelReview}>
+                Cancel
+              </button>
+              <button className="review-save-btn" onClick={handleSaveReviewed}>
+                Save Expense
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
