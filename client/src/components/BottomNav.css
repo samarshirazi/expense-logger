@@ -1,3 +1,7 @@
+/* ============================================
+   BOTTOM NAV - Apple-Style Tab Bar
+   ============================================ */
+
 .bottom-nav {
   display: none;
   position: fixed;
@@ -5,10 +9,24 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  background: white;
-  border-top: 1px solid #e5e7eb;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease, opacity 0.2s ease;
+  background: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-separator);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  transition: transform var(--transition-base), opacity var(--transition-fast);
+}
+
+/* Glassmorphism effect on scroll */
+.bottom-nav::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-bg-secondary);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: -1;
 }
 
 .bottom-nav.visible {
@@ -27,7 +45,7 @@
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 8px 0;
+  padding: var(--space-2) 0 var(--space-3);
   max-width: 100%;
 }
 
@@ -36,23 +54,29 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 8px 12px;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
-  color: #6b7280;
+  transition: all var(--transition-fast);
+  color: var(--color-text-tertiary);
   flex: 1;
-  max-width: 120px;
+  max-width: 100px;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .bottom-nav-item:active {
-  transform: scale(0.95);
+  transform: scale(0.92);
 }
 
 .bottom-nav-item.active {
-  color: #667eea;
+  color: var(--color-primary);
+}
+
+.bottom-nav-item.active .bottom-nav-icon {
+  transform: scale(1.1);
 }
 
 .bottom-nav-icon {
@@ -60,43 +84,51 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 28px;
+  transition: transform var(--transition-spring);
 }
 
 .bottom-nav-label {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
   white-space: nowrap;
+  transition: color var(--transition-fast);
 }
 
-.bottom-nav-item {
-  position: relative;
-}
-
+/* Notification indicator */
 .bottom-nav-indicator {
   position: absolute;
-  top: 6px;
-  right: 12px;
+  top: var(--space-1);
+  right: 50%;
+  transform: translateX(14px);
   width: 8px;
   height: 8px;
-  background: #fbbf24;
-  border-radius: 50%;
-  border: 2px solid white;
-  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.25);
+  background: var(--color-warning);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-bg-secondary);
+  box-shadow: 0 0 0 2px rgba(255, 149, 0, 0.2);
 }
 
 /* Dark theme support */
 :root[data-theme='dark'] .bottom-nav {
-  background: #1e293b;
-  border-top-color: rgba(148, 163, 184, 0.25);
-  box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.35);
+  background: rgba(28, 28, 30, 0.9);
+  border-top-color: var(--color-separator);
+}
+
+:root[data-theme='dark'] .bottom-nav::before {
+  background: rgba(28, 28, 30, 0.8);
 }
 
 :root[data-theme='dark'] .bottom-nav-item {
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
 }
 
 :root[data-theme='dark'] .bottom-nav-item.active {
-  color: #818cf8;
+  color: var(--color-primary);
+}
+
+:root[data-theme='dark'] .bottom-nav-indicator {
+  border-color: var(--color-bg-secondary);
 }
 
 /* Show only on mobile */
@@ -105,14 +137,14 @@
     display: block;
   }
 
-  /* Add padding to bottom of main content to prevent overlap */
+  /* Add padding to main content to prevent overlap */
   .main-content {
-    padding-bottom: 90px !important;
+    padding-bottom: 100px !important;
   }
 
   /* Ensure view containers also have bottom padding */
   .view-container {
-    padding-bottom: 20px !important;
+    padding-bottom: var(--space-5) !important;
   }
 }
 
@@ -122,10 +154,27 @@
   }
 
   .bottom-nav-label {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .bottom-nav-item {
-    padding: 6px 8px;
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
+/* Landscape mode adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  .bottom-nav-container {
+    padding: var(--space-1) 0;
+  }
+
+  .bottom-nav-item {
+    flex-direction: row;
+    gap: var(--space-2);
+  }
+
+  .bottom-nav-icon {
+    font-size: 20px;
+    height: auto;
   }
 }

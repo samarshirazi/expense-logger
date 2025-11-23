@@ -1,44 +1,32 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f7fa;
-  color: #333;
-  line-height: 1.6;
-}
+/* ============================================
+   APP LAYOUT - Apple-Style Clean Design
+   ============================================ */
 
 .app-layout {
   display: flex;
   min-height: 100vh;
   position: relative;
+  background: var(--color-bg-primary);
 }
 
-/* Options Toggle Button - inside timeline container */
+/* Options Toggle Button */
 .options-toggle-btn {
   position: absolute;
-  top: 15px;
-  left: 30px;
+  top: var(--space-4);
+  left: var(--space-6);
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-separator);
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s ease, opacity 0.2s ease, box-shadow 0.3s ease;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-fast);
 }
 
 .options-toggle-btn.visible {
@@ -49,14 +37,14 @@ body {
 
 .options-toggle-btn.hidden {
   opacity: 0;
-  transform: translateY(-120%);
+  transform: translateY(-100%);
   pointer-events: none;
 }
 
 .options-toggle-btn.inline {
   position: absolute;
-  top: 30px;
-  left: 30px;
+  top: var(--space-6);
+  left: var(--space-6);
   transform: none;
   opacity: 1;
   pointer-events: auto;
@@ -74,66 +62,74 @@ body {
 }
 
 .options-toggle-btn:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-  transform: translateY(-2px);
+  background: var(--color-bg-tertiary);
+}
+
+.options-toggle-btn:active {
+  transform: scale(0.95);
 }
 
 .options-icon {
-  font-size: 24px;
+  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+/* Main Content Area */
 .main-content {
   flex: 1;
   margin-left: 280px;
-  background: #f5f7fa;
+  background: var(--color-bg-primary);
   min-height: 100vh;
   overflow-y: auto;
 }
 
+/* Shared Timeline Container */
 .shared-timeline-container {
   position: fixed;
   top: 0;
   left: 280px;
   right: 0;
   z-index: 1050;
-  background: #f5f7fa;
-  padding: 80px 30px 10px 30px;
+  background: var(--color-bg-primary);
+  padding: 72px var(--space-6) var(--space-3) var(--space-6);
   margin: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border-radius: 0;
-  transition: padding-top 0.3s ease;
+  box-shadow: var(--shadow-xs);
+  border-bottom: 1px solid var(--color-separator);
+  transition: padding-top var(--transition-base);
 }
 
 .shared-timeline-container.with-button {
-  padding-top: 80px;
+  padding-top: 72px;
 }
 
 .shared-timeline-container.without-button {
-  padding-top: 20px;
+  padding-top: var(--space-5);
 }
 
+/* View Container */
 .view-container {
-  padding: 30px;
-  padding-top: 175px;
+  padding: var(--space-6);
+  padding-top: 160px;
   max-width: 1400px;
   margin: 0 auto;
+  animation: fadeIn var(--transition-slow) ease-out;
 }
 
 .view-container.no-timeline {
   position: relative;
-  padding-top: 120px;
+  padding-top: 100px;
 }
 
+/* View Header */
 .view-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: var(--space-6);
   flex-wrap: wrap;
-  gap: 15px;
+  gap: var(--space-4);
 }
 
 .view-container.no-timeline .view-header {
@@ -142,55 +138,58 @@ body {
 
 .view-header h1 {
   margin: 0;
-  font-size: 32px;
-  color: #2c3e50;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
 }
 
 .view-header p {
-  margin: 8px 0 0 0;
-  font-size: 16px;
-  color: #7f8c8d;
+  margin: var(--space-2) 0 0 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text-tertiary);
   width: 100%;
 }
 
+/* Summary Button */
 .summary-button {
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-primary);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   white-space: nowrap;
 }
 
 .summary-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(245, 87, 108, 0.4);
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
-
-:root[data-theme='light'] body {
-  background: #f5f7fa;
-  color: #1f2937;
+.summary-button:active {
+  transform: translateY(0);
 }
 
-:root[data-theme='dark'] body {
-  background: #0f172a;
-  color: #e2e8f0;
-}
-
+/* Dark Theme Overrides */
 :root[data-theme='dark'] .main-content,
 :root[data-theme='dark'] .view-container,
 :root[data-theme='dark'] .dashboard,
 :root[data-theme='dark'] .settings {
   background: transparent;
   color: inherit;
+}
+
+:root[data-theme='dark'] .shared-timeline-container {
+  background: var(--color-bg-primary);
+  border-bottom-color: var(--color-separator);
 }
 
 :root[data-theme='dark'] .dashboard-section,
@@ -209,16 +208,16 @@ body {
 :root[data-theme='dark'] .total-card-highlight,
 :root[data-theme='dark'] .settings-theme-card.active,
 :root[data-theme='dark'] .settings-mood-card.active {
-  background: #1e293b;
-  border-color: rgba(148, 163, 184, 0.25);
-  color: #e2e8f0;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.35);
+  background: var(--color-bg-secondary);
+  border-color: var(--color-separator);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-md);
 }
 
 :root[data-theme='dark'] .dashboard-header h1,
 :root[data-theme='dark'] .view-header h1,
 :root[data-theme='dark'] .settings-section-header h2 {
-  color: #f8fafc;
+  color: var(--color-text-primary);
 }
 
 :root[data-theme='dark'] .dashboard-header p,
@@ -232,86 +231,90 @@ body {
 :root[data-theme='dark'] .summary-insights ul,
 :root[data-theme='dark'] .summary-recent-date,
 :root[data-theme='dark'] .summary-progress-meta {
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
 }
 
 :root[data-theme='dark'] .settings-action-button,
 :root[data-theme='dark'] .coach-toggle,
 :root[data-theme='dark'] .summary-export-btn {
-  box-shadow: 0 14px 32px rgba(99, 102, 241, 0.35);
+  box-shadow: var(--shadow-md);
 }
 
 :root[data-theme='dark'] .nav-item {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-secondary);
 }
 
 :root[data-theme='dark'] .nav-item:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--color-bg-tertiary);
 }
 
 :root[data-theme='dark'] .nav-item.active {
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(10, 132, 255, 0.15);
 }
 
 :root[data-theme='dark'] .settings-theme-card,
 :root[data-theme='dark'] .settings-mood-card {
-  background: rgba(30, 41, 59, 0.85);
+  background: var(--color-bg-tertiary);
 }
 
 :root[data-theme='dark'] .settings-theme-card input[type="radio"],
 :root[data-theme='dark'] .settings-mood-card input[type="radio"] {
-  accent-color: #6366f1;
+  accent-color: var(--color-primary);
 }
 
 :root[data-theme='dark'] .settings-theme-card.active,
 :root[data-theme='dark'] .settings-mood-card.active {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.18) 0%, rgba(76, 29, 149, 0.16) 100%);
+  background: rgba(10, 132, 255, 0.12);
+  border-color: var(--color-primary);
 }
 
 :root[data-theme='dark'] .ai-coach__body,
 :root[data-theme='dark'] .ai-coach__message {
-  color: #e2e8f0;
+  color: var(--color-text-primary);
 }
 
 :root[data-theme='dark'] .ai-coach__error {
-  background: rgba(239, 68, 68, 0.12);
-  color: #fecaca;
+  background: rgba(255, 59, 48, 0.12);
+  color: var(--color-error);
 }
 
 :root[data-theme='dark'] .ai-coach__form input {
-  background: rgba(15, 23, 42, 0.6);
-  border-color: rgba(148, 163, 184, 0.4);
-  color: #f1f5f9;
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-separator);
+  color: var(--color-text-primary);
 }
 
 :root[data-theme='dark'] .ai-coach__form input::placeholder {
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
 }
 
 :root[data-theme='dark'] .settings-hint,
 :root[data-theme='dark'] .settings-theme-card,
 :root[data-theme='dark'] .settings-mood-card {
-  border-color: rgba(148, 163, 184, 0.3);
+  border-color: var(--color-separator);
 }
 
 :root[data-theme='dark'] .settings-theme-title,
 :root[data-theme='dark'] .settings-mood-title,
 :root[data-theme='dark'] .settings-toggle-label {
-  color: #f8fafc;
+  color: var(--color-text-primary);
 }
 
 :root[data-theme='dark'] .settings-theme-card.active .settings-theme-description,
 :root[data-theme='dark'] .settings-mood-card.active .settings-mood-description {
-  color: #cbd5f5;
+  color: var(--color-text-secondary);
 }
 
-/* Responsive design */
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
 @media (max-width: 768px) {
   .options-toggle-btn {
-    left: 15px;
-    top: 10px;
-    width: 42px;
-    height: 42px;
+    left: var(--space-4);
+    top: var(--space-3);
+    width: 40px;
+    height: 40px;
   }
 
   .main-content {
@@ -324,34 +327,34 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    padding: 60px 14px 8px 14px;
+    padding: 56px var(--space-4) var(--space-2) var(--space-4);
     margin: 0;
     border-radius: 0;
   }
 
   .shared-timeline-container.with-button {
-    padding-top: 60px;
+    padding-top: 56px;
   }
 
   .shared-timeline-container.without-button {
-    padding-top: 18px;
+    padding-top: var(--space-4);
   }
 
   .view-container {
-    padding: 18px 14px;
-    padding-top: 145px;
+    padding: var(--space-4);
+    padding-top: 140px;
   }
 
   .view-container.no-timeline {
-    padding: 18px 14px;
-    padding-top: 110px;
+    padding: var(--space-4);
+    padding-top: 100px;
   }
 
   .options-toggle-btn.inline {
-    top: 20px;
-    left: 16px;
-    width: 42px;
-    height: 42px;
+    top: var(--space-4);
+    left: var(--space-4);
+    width: 40px;
+    height: 40px;
   }
 
   .options-toggle-btn.inline-hidden {
@@ -360,19 +363,19 @@ body {
 
   .view-header {
     flex-direction: column;
-    align-items: center; /* Center-align on mobile */
+    align-items: center;
     text-align: center;
-    margin-bottom: 16px;
+    margin-bottom: var(--space-4);
   }
 
   .view-header h1 {
-    font-size: 24px;
+    font-size: var(--font-size-xl);
     width: 100%;
   }
 
   .view-header p {
     text-align: center;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     max-width: 480px;
   }
 
@@ -384,59 +387,67 @@ body {
 
 @media (max-width: 480px) {
   .options-toggle-btn {
-    left: 12px;
-    top: 8px;
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
+    left: var(--space-3);
+    top: var(--space-2);
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
   }
 
   .shared-timeline-container {
-    padding: 52px 12px 6px 12px;
+    padding: 48px var(--space-3) var(--space-2) var(--space-3);
   }
 
   .shared-timeline-container.with-button {
-    padding-top: 52px;
+    padding-top: 48px;
   }
 
   .view-container {
-    padding: 16px 12px;
-    padding-top: 135px;
+    padding: var(--space-3);
+    padding-top: 130px;
   }
 
   .view-container.no-timeline {
-    padding: 16px 12px;
-    padding-top: 100px;
+    padding: var(--space-3);
+    padding-top: 90px;
   }
 
   .options-toggle-btn.inline {
-    top: 16px;
-    left: 14px;
-    width: 38px;
-    height: 38px;
-  }
-
-  .options-toggle-btn.inline-hidden {
-    transform: translateY(-8px);
+    top: var(--space-3);
+    left: var(--space-3);
+    width: 36px;
+    height: 36px;
   }
 
   .view-header h1 {
-    font-size: 21px;
+    font-size: var(--font-size-lg);
   }
 
   .view-header p {
-    font-size: 13px;
+    font-size: var(--font-size-xs);
   }
 }
 
-/* Update existing container styles to work with new layout */
+/* Container Reset */
 .container {
   max-width: 100%;
   padding: 0;
   margin: 0;
 }
 
-/* Remove old header styles since sidebar has its own */
+/* Hide old header */
 .header {
   display: none;
+}
+
+/* Fade in animation for views */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
