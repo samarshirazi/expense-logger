@@ -43,9 +43,6 @@ const CustomTooltip = ({
   </div>
 );
 
-// Check if we're on mobile
-const isMobileView = () => window.innerWidth <= 768;
-
 // Items that appear in bottom nav on mobile
 const BOTTOM_NAV_ITEMS = ['overview', 'log-expense', 'expenses'];
 
