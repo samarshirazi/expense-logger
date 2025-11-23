@@ -202,6 +202,38 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
+// Parse manual entry text without saving (for review modal)
+app.post('/api/parse-manual-entry', requireAuth, async (req, res) => {
+  try {
+    const { textEntry } = req.body;
+
+    if (!textEntry || typeof textEntry !== 'string') {
+      return res.status(400).json({ error: 'Text entry is required' });
+    }
+
+    console.log('Parsing manual entry (no save)...');
+    const parsedExpenses = await parseManualEntry(textEntry);
+
+    // Return parsed data without saving - user will review and save via /api/expenses
+    res.json({
+      success: true,
+      count: parsedExpenses.length,
+      expenses: parsedExpenses.map(exp => ({
+        expenseData: exp,
+        expense: exp
+      }))
+    });
+
+  } catch (error) {
+    console.error('Error parsing manual entry:', error);
+    res.status(500).json({
+      error: 'Failed to parse manual entry',
+      details: error.message
+    });
+  }
+});
+
+// Legacy endpoint that parses AND saves (kept for backwards compatibility)
 app.post('/api/manual-entry', requireAuth, async (req, res) => {
   try {
     const { textEntry } = req.body;

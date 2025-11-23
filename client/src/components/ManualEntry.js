@@ -165,8 +165,9 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
         ? '/api'
         : 'http://localhost:5000/api';
 
+      // Use parse-only endpoint - does NOT save to database
       const response = await axios.post(
-        `${API_BASE_URL}/manual-entry`,
+        `${API_BASE_URL}/parse-manual-entry`,
         { textEntry: textEntry.trim() },
         {
           headers: {
@@ -177,22 +178,15 @@ function ManualEntry({ onExpensesAdded, expenses = [] }) {
       );
 
       if (response.data.success && response.data.expenses) {
-        // Extract the parsed expense data for review
+        // Extract the parsed expense data for review (not saved yet!)
         const firstExpense = response.data.expenses[0];
-        const normalizedExpense = firstExpense.expense
-          ? firstExpense.expense
-          : firstExpense.expenseData
-            ? {
-                ...firstExpense.expenseData,
-                id: firstExpense.expenseId || firstExpense.expenseData.id || undefined
-              }
-            : null;
+        const normalizedExpense = firstExpense.expense || firstExpense.expenseData || null;
 
         if (normalizedExpense) {
-          // Show the review modal instead of saving immediately
+          // Show the review modal - expense will be saved when user clicks Save
           setParsedData({
             ...normalizedExpense,
-            paymentMethod: normalizedExpense.paymentMethod || ''
+            paymentMethod: '' // Start empty so user can set it
           });
           setShowReviewModal(true);
           setTextEntry('');
