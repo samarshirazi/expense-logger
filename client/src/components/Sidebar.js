@@ -45,11 +45,21 @@ function Sidebar({ activeView, onViewChange, onSignOut, userName, isMobileMenuOp
           const isActive = item.id !== 'coach' && activeView === item.id;
           // Items to hide on mobile (shown in bottom nav instead)
           const hideOnMobile = ['expenses', 'overview', 'log'].includes(item.id);
+          // Map item IDs to tour data attributes
+          const tourId = {
+            'overview': 'overview',
+            'log': 'log-expense',
+            'expenses': 'expenses',
+            'categories': 'categories',
+            'budgets': 'budgets',
+            'settings': 'settings'
+          }[item.id];
           return (
             <button
               key={item.id}
               className={`nav-item ${isActive ? 'active' : ''} ${item.id === 'coach' ? 'nav-item-coach' : ''} ${hideOnMobile ? 'hide-on-mobile' : ''}`}
               onClick={() => handleMenuItemClick(item)}
+              data-tour={tourId}
             >
               <span className="nav-icon">{item.icon}</span>
               <div className="nav-content">

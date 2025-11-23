@@ -10,13 +10,20 @@ import {
   setStoredNotificationsEnabled,
   emitNotificationPreferencesChanged
 } from '../services/notificationService';
+import {
+  getTourProgress,
+  resetTourProgress,
+  AREA_INFO,
+  TOUR_AREAS
+} from '../services/tourService';
 
 
 const Settings = ({
   onShowNotificationPrompt,
   onOpenCoach,
   coachAutoOpen,
-  onCoachAutoOpenChange
+  onCoachAutoOpenChange,
+  onStartTour
 }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
     if (typeof Notification === 'undefined') {
@@ -30,6 +37,8 @@ const Settings = ({
   });
   const [notificationPrefs, setNotificationPrefs] = useState(() => getStoredNotificationPreferences());
   const [showMuteConfirm, setShowMuteConfirm] = useState(false);
+  const [tourProgress, setTourProgress] = useState(() => getTourProgress());
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   useEffect(() => {
     saveNotificationPreferences(notificationPrefs);
@@ -45,6 +54,21 @@ const Settings = ({
       preferences: notificationPrefs
     });
   }, [notificationsEnabled, notificationPrefs]);
+
+  // Listen for tour state changes
+  useEffect(() => {
+    const handleTourStateChanged = () => {
+      setTourProgress(getTourProgress());
+    };
+    window.addEventListener('tourStateChanged', handleTourStateChanged);
+    return () => window.removeEventListener('tourStateChanged', handleTourStateChanged);
+  }, []);
+
+  const handleResetTour = () => {
+    resetTourProgress();
+    setTourProgress(getTourProgress());
+    setShowResetConfirm(false);
+  };
 
   const handleNotificationToggle = async () => {
     if (notificationsEnabled) {
@@ -339,6 +363,95 @@ const Settings = ({
           When enabled, the AI coach will pop in right after fresh data arrives.
         </div>
       </section>
+
+      <section className="settings-section">
+        <header className="settings-section-header">
+          <div>
+            <h2>App Guide</h2>
+            <p>Learn how to use Expense Logger with an interactive tour.</p>
+          </div>
+        </header>
+
+        <div className="tour-progress-section">
+          <div className="tour-progress-header">
+            <span className="tour-progress-label">Tour Progress</span>
+            <span className="tour-progress-count">
+              {tourProgress.viewedCount} / {tourProgress.totalCount} areas explored
+            </span>
+          </div>
+          <div className="tour-progress-bar">
+            <div
+              className="tour-progress-fill"
+              style={{ width: `${tourProgress.percentage}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="tour-checklist">
+          {Object.entries(TOUR_AREAS).map(([key, areaKey]) => {
+            const info = AREA_INFO[areaKey];
+            const isViewed = tourProgress.viewedAreas[areaKey];
+            return (
+              <div key={key} className={`tour-checklist-item ${isViewed ? 'viewed' : ''}`}>
+                <span className="tour-checklist-icon">{info.icon}</span>
+                <div className="tour-checklist-info">
+                  <span className="tour-checklist-name">{info.name}</span>
+                  <span className="tour-checklist-desc">{info.description}</span>
+                </div>
+                <span className={`tour-checklist-status ${isViewed ? 'checked' : ''}`}>
+                  {isViewed ? '✓' : '○'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="settings-row tour-actions">
+          <button
+            type="button"
+            className="settings-action-button tour-start-btn"
+            onClick={onStartTour}
+          >
+            ▶ Start Tour
+          </button>
+          <button
+            type="button"
+            className="settings-mute-button tour-reset-btn"
+            onClick={() => setShowResetConfirm(true)}
+          >
+            ↺ Reset Progress
+          </button>
+        </div>
+
+        <div className="settings-hint">
+          Tip: Click the ? button at the bottom right to replay the tour anytime.
+        </div>
+      </section>
+
+      {showResetConfirm && (
+        <div className="modal-overlay" onClick={() => setShowResetConfirm(false)}>
+          <div className="mute-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Reset Tour Progress?</h3>
+            <p>This will mark all areas as unexplored and show the tour again on next visit.</p>
+            <div className="mute-confirm-actions">
+              <button
+                type="button"
+                className="btn-cancel"
+                onClick={() => setShowResetConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-confirm"
+                onClick={handleResetTour}
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

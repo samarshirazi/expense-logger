@@ -15,8 +15,10 @@ import Auth from './components/Auth';
 import NotificationPrompt from './components/NotificationPrompt';
 import TimeNavigator from './components/TimeNavigator';
 import BottomNav from './components/BottomNav';
+import AppTour from './components/AppTour';
 import { getExpenses, getCategoryBudgets } from './services/apiService';
 import { getAllCategories } from './services/categoryService';
+import { isFirstTimeUser } from './services/tourService';
 import {
   scheduleDailyExpenseReminder,
   cancelDailyExpenseReminder,
@@ -84,6 +86,7 @@ function App() {
       return false;
     }
   });
+  const [runTour, setRunTour] = useState(false);
   const mainContentRef = useRef(null);
   const scrollStateRef = useRef({
     buttonVisible: true,
@@ -200,6 +203,27 @@ function App() {
         window.removeEventListener('categoriesUpdated', handleCategoriesUpdated);
       }
     };
+  }, []);
+
+  // Auto-trigger tour for first-time users
+  useEffect(() => {
+    if (!authLoading && user && isFirstTimeUser()) {
+      // Delay slightly to ensure UI is ready
+      const timer = setTimeout(() => {
+        setRunTour(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [authLoading, user]);
+
+  // Handle tour completion
+  const handleTourComplete = useCallback((status) => {
+    setRunTour(false);
+  }, []);
+
+  // Start tour manually (from help button or settings)
+  const startTour = useCallback(() => {
+    setRunTour(true);
   }, []);
 
   const loadExpenses = async () => {
@@ -1100,6 +1124,7 @@ function App() {
               onOpenCoach={() => handleCoachToggle(true, 'settings')}
               coachAutoOpen={coachAutoOpen}
               onCoachAutoOpenChange={handleCoachAutoOpenChange}
+              onStartTour={startTour}
             />
           </div>
         )}
@@ -1127,6 +1152,25 @@ function App() {
         onCoachToggle={handleCoachToggle}
         coachHasUnread={coachHasUnread}
       />
+
+      {/* App Tour */}
+      <AppTour
+        run={runTour}
+        onComplete={handleTourComplete}
+        activeView={activeView}
+      />
+
+      {/* Help Button to replay tour */}
+      {!runTour && (
+        <button
+          className="tour-help-btn"
+          onClick={startTour}
+          title="App Guide"
+          aria-label="Start app tour"
+        >
+          ?
+        </button>
+      )}
     </div>
   );
 }

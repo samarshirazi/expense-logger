@@ -27,11 +27,18 @@ function BottomNav({ activeView, onViewChange, showNav, onCoachToggle, coachHasU
       <div className="bottom-nav-container">
         {navItems.map(item => {
           const isActive = item.id !== 'coach' && activeView === item.id;
+          // Map item IDs to tour data attributes
+          const tourId = {
+            'overview': 'overview',
+            'log': 'log-expense',
+            'expenses': 'expenses'
+          }[item.id];
           return (
             <button
               key={item.id}
               className={`bottom-nav-item ${isActive ? 'active' : ''}`}
               onClick={() => handleNavClick(item)}
+              data-tour={tourId}
             >
               <span className="bottom-nav-icon">{item.icon}</span>
               <span className="bottom-nav-label">{item.label}</span>
