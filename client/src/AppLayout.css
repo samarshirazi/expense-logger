@@ -1,5 +1,5 @@
 /* ============================================
-   APP LAYOUT - Apple-Style Clean Design
+   APP LAYOUT - Premium Animated Design
    ============================================ */
 
 .app-layout {
@@ -7,6 +7,29 @@
   min-height: 100vh;
   position: relative;
   background: var(--color-bg-primary);
+  overflow: hidden;
+}
+
+/* Animated background particles */
+.app-layout::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(102, 126, 234, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(245, 87, 108, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(0, 242, 254, 0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+  animation: backgroundPulse 10s ease-in-out infinite;
+}
+
+@keyframes backgroundPulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
 }
 
 /* Options Toggle Button */
@@ -18,15 +41,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-secondary);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
   color: var(--color-text-primary);
-  border: 1px solid var(--color-separator);
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  box-shadow: var(--shadow-md);
-  transition: all var(--transition-fast);
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  backdrop-filter: blur(10px);
 }
 
 .options-toggle-btn.visible {
@@ -62,7 +86,9 @@
 }
 
 .options-toggle-btn:hover {
-  background: var(--color-bg-tertiary);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.4) 0%, rgba(118, 75, 162, 0.4) 100%);
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 6px 30px rgba(102, 126, 234, 0.5);
 }
 
 .options-toggle-btn:active {
@@ -70,19 +96,26 @@
 }
 
 .options-icon {
-  font-size: 20px;
+  font-size: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.options-toggle-btn:hover .options-icon {
+  transform: rotate(-10deg);
 }
 
 /* Main Content Area */
 .main-content {
   flex: 1;
   margin-left: 280px;
-  background: var(--color-bg-primary);
+  background: transparent;
   min-height: 100vh;
   overflow-y: auto;
+  position: relative;
+  z-index: 1;
 }
 
 /* Shared Timeline Container */
@@ -92,12 +125,14 @@
   left: 280px;
   right: 0;
   z-index: 1050;
-  background: var(--color-bg-primary);
+  background: linear-gradient(180deg, rgba(15, 15, 26, 0.95) 0%, rgba(15, 15, 26, 0.8) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   padding: 72px var(--space-6) var(--space-3) var(--space-6);
   margin: 0;
-  box-shadow: var(--shadow-xs);
-  border-bottom: 1px solid var(--color-separator);
-  transition: padding-top var(--transition-base);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+  transition: all var(--transition-base);
 }
 
 .shared-timeline-container.with-button {
@@ -114,7 +149,18 @@
   padding-top: 160px;
   max-width: 1400px;
   margin: 0 auto;
-  animation: fadeIn var(--transition-slow) ease-out;
+  animation: slideInUp 0.6s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .view-container.no-timeline {
@@ -139,8 +185,11 @@
 .view-header h1 {
   margin: 0;
   font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  font-weight: var(--font-weight-black);
+  background: linear-gradient(135deg, #fff 0%, rgba(102, 126, 234, 0.9) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   letter-spacing: -0.02em;
 }
 
@@ -154,31 +203,73 @@
 /* Summary Button */
 .summary-button {
   padding: var(--space-3) var(--space-5);
-  background: var(--color-primary);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-bold);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   align-items: center;
   gap: var(--space-2);
   white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.summary-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.summary-button:hover::before {
+  left: 100%;
 }
 
 .summary-button:hover {
-  background: var(--color-primary-dark);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 6px 30px rgba(102, 126, 234, 0.6);
 }
 
 .summary-button:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
 }
 
-/* Dark Theme Overrides */
+/* Light Theme Overrides */
+:root[data-theme='light'] .app-layout::before {
+  background:
+    radial-gradient(circle at 10% 20%, rgba(102, 126, 234, 0.1) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(245, 87, 108, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(0, 242, 254, 0.05) 0%, transparent 50%);
+}
+
+:root[data-theme='light'] .shared-timeline-container {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.8) 100%);
+  border-bottom-color: rgba(102, 126, 234, 0.15);
+}
+
+:root[data-theme='light'] .view-header h1 {
+  background: linear-gradient(135deg, #1a1a2e 0%, #667eea 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+:root[data-theme='light'] .options-toggle-btn {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+  border-color: rgba(102, 126, 234, 0.2);
+}
+
+/* Dark Theme (default) */
 :root[data-theme='dark'] .main-content,
 :root[data-theme='dark'] .view-container,
 :root[data-theme='dark'] .dashboard,
@@ -188,8 +279,8 @@
 }
 
 :root[data-theme='dark'] .shared-timeline-container {
-  background: var(--color-bg-primary);
-  border-bottom-color: var(--color-separator);
+  background: linear-gradient(180deg, rgba(15, 15, 26, 0.95) 0%, rgba(15, 15, 26, 0.8) 100%);
+  border-bottom-color: rgba(102, 126, 234, 0.2);
 }
 
 :root[data-theme='dark'] .dashboard-section,
@@ -440,14 +531,3 @@
   display: none;
 }
 
-/* Fade in animation for views */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
