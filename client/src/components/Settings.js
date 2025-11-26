@@ -23,6 +23,8 @@ const Settings = ({
   onOpenCoach,
   coachAutoOpen,
   onCoachAutoOpenChange,
+  cardStyle,
+  onCardStyleChange,
   onStartTour
 }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
@@ -361,6 +363,56 @@ const Settings = ({
         </div>
         <div className="settings-hint">
           When enabled, the AI coach will pop in right after fresh data arrives.
+        </div>
+      </section>
+
+      <section className="settings-section">
+        <header className="settings-section-header">
+          <div>
+            <h2>Appearance</h2>
+            <p>Customize how cards and panels look throughout the app.</p>
+          </div>
+        </header>
+
+        <div className="settings-subsection">
+          <h3 className="settings-subsection-title">Card Style</h3>
+          <p className="settings-subsection-description">Choose between transparent glassmorphism or classic white cards</p>
+
+          <div className="card-style-options">
+            <label className={`card-style-option ${cardStyle === 'glass' ? 'active' : ''}`}>
+              <input
+                type="radio"
+                name="cardStyle"
+                value="glass"
+                checked={cardStyle === 'glass'}
+                onChange={() => onCardStyleChange && onCardStyleChange('glass')}
+              />
+              <div className="card-style-preview glass-preview">
+                <div className="preview-card"></div>
+              </div>
+              <div className="card-style-info">
+                <span className="card-style-label">✨ Glassmorphism</span>
+                <span className="card-style-description">Transparent cards with gradient background</span>
+              </div>
+            </label>
+
+            <label className={`card-style-option ${cardStyle === 'solid' ? 'active' : ''}`}>
+              <input
+                type="radio"
+                name="cardStyle"
+                value="solid"
+                checked={cardStyle === 'solid'}
+                onChange={() => onCardStyleChange && onCardStyleChange('solid')}
+              />
+              <div className="card-style-preview solid-preview">
+                <div className="preview-card"></div>
+              </div>
+              <div className="card-style-info">
+                <span className="card-style-label">📄 Clean White</span>
+                <span className="card-style-description">Classic white cards with solid backgrounds</span>
+              </div>
+            </label>
+          </div>
         </div>
       </section>
 

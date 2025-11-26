@@ -1,0 +1,190 @@
+/* Card Theme System - Glass vs Solid */
+
+/* Default: Glassmorphism (transparent cards) */
+:root[data-card-style="glass"] .expenses-summary,
+:root[data-card-style="glass"] .expenses-header,
+:root[data-card-style="glass"] .budget-summary-card,
+:root[data-card-style="glass"] .categorized-expenses,
+:root[data-card-style="glass"] .chat-input-container,
+:root[data-card-style="glass"] .chat-panel,
+:root[data-card-style="glass"] .settings-section,
+:root[data-card-style="glass"] .dashboard-chart-section,
+:root[data-card-style="glass"] .dashboard-insights-section,
+:root[data-card-style="glass"] .dashboard-recent-section,
+:root[data-card-style="glass"] .dashboard-export-section,
+:root[data-card-style="glass"] .summary-card,
+:root[data-card-style="glass"] .chart-card,
+:root[data-card-style="glass"] .forecast-card,
+:root[data-card-style="glass"] .expense-item {
+  /* Glassmorphism styling - already applied */
+}
+
+/* Solid White Cards Theme */
+:root[data-card-style="solid"] .expenses-header {
+  background: white !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:root[data-card-style="solid"] .expenses-header h1,
+:root[data-card-style="solid"] .expenses-header p {
+  color: #1f2937 !important;
+  text-shadow: none !important;
+}
+
+:root[data-card-style="solid"] .budget-summary-card {
+  background: white !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:root[data-card-style="solid"] .budget-summary-card h3,
+:root[data-card-style="solid"] .budget-summary-card p {
+  color: #1f2937 !important;
+}
+
+:root[data-card-style="solid"] .categorized-expenses {
+  background: white !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:root[data-card-style="solid"] .categorized-expenses h2,
+:root[data-card-style="solid"] .categorized-expenses p,
+:root[data-card-style="solid"] .categorized-expenses .board-subtitle {
+  color: #2c3e50 !important;
+  text-shadow: none !important;
+}
+
+:root[data-card-style="solid"] .chat-input-container {
+  background: white !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:root[data-card-style="solid"] .chat-panel {
+  background: white !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+:root[data-card-style="solid"] .chat-action-btn {
+  background: #f8f9fa !important;
+  border: 1px solid #e9ecef !important;
+  color: #495057 !important;
+}
+
+:root[data-card-style="solid"] .chat-action-btn:hover {
+  background: #e9ecef !important;
+  border-color: #667eea !important;
+  color: #667eea !important;
+}
+
+:root[data-card-style="solid"] .settings-section {
+  background: white !important;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:root[data-card-style="solid"] .settings-section h2,
+:root[data-card-style="solid"] .settings-section h3 {
+  color: #1f2937 !important;
+  text-shadow: none !important;
+}
+
+:root[data-card-style="solid"] .settings-section p {
+  color: #6b7280 !important;
+}
+
+:root[data-card-style="solid"] .settings-toggle {
+  color: #1f2937 !important;
+}
+
+:root[data-card-style="solid"] .dashboard-chart-section,
+:root[data-card-style="solid"] .dashboard-insights-section,
+:root[data-card-style="solid"] .dashboard-recent-section,
+:root[data-card-style="solid"] .dashboard-export-section {
+  background: white !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:root[data-card-style="solid"] .section-title {
+  color: #1f2937 !important;
+  text-shadow: none !important;
+}
+
+:root[data-card-style="solid"] .insight-text {
+  color: #4b5563 !important;
+}
+
+:root[data-card-style="solid"] .expense-item {
+  background: #f9fafb !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+:root[data-card-style="solid"] .expense-merchant {
+  color: #1f2937 !important;
+}
+
+:root[data-card-style="solid"] .expense-date {
+  color: #6b7280 !important;
+}
+
+:root[data-card-style="solid"] .expense-amount {
+  color: #1f2937 !important;
+}
+
+:root[data-card-style="solid"] .summary-card {
+  background: white !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:root[data-card-style="solid"] .card-label {
+  color: #6b7280 !important;
+}
+
+:root[data-card-style="solid"] .card-value,
+:root[data-card-style="solid"] .card-value-small {
+  color: #1f2937 !important;
+  text-shadow: none !important;
+}
+
+:root[data-card-style="solid"] .chart-card {
+  background: white !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:root[data-card-style="solid"] .chart-title {
+  color: #1f2937 !important;
+  text-shadow: none !important;
+}
+
+:root[data-card-style="solid"] .forecast-card {
+  background: white !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:root[data-card-style="solid"] .forecast-title {
+  color: #1f2937 !important;
+  text-shadow: none !important;
+}
+
+:root[data-card-style="solid"] .forecast-budget {
+  color: #6b7280 !important;
+}
+
+:root[data-card-style="solid"] .overview-header h1 {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: none !important;
+}
+
+:root[data-card-style="solid"] .overview-subtitle {
+  color: #6b7280 !important;
+  text-shadow: none !important;
+}

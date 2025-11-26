@@ -30,6 +30,7 @@ import {
 import authService from './services/authService';
 import { normalizeBudgets, buildBudgetLookup } from './constants/defaultBudgets';
 import './AppLayout.css';
+import './cardTheme.css';
 
 // Helper function to format date in local timezone
 const toLocalDateString = (date) => {
@@ -87,6 +88,15 @@ function App() {
     }
   });
   const [runTour, setRunTour] = useState(false);
+  const [cardStyle, setCardStyle] = useState(() => {
+    if (typeof window === 'undefined') return 'glass';
+    try {
+      return window.localStorage.getItem('cardStyle') || 'glass';
+    } catch (error) {
+      console.warn('Failed to read card style preference:', error);
+      return 'glass';
+    }
+  });
   const mainContentRef = useRef(null);
   const scrollStateRef = useRef({
     buttonVisible: true,
@@ -354,6 +364,25 @@ function App() {
       }
     }
   }, []);
+
+  const handleCardStyleChange = useCallback((style) => {
+    setCardStyle(style);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('cardStyle', style);
+        document.documentElement.setAttribute('data-card-style', style);
+      } catch (error) {
+        console.warn('Failed to store card style preference:', error);
+      }
+    }
+  }, []);
+
+  // Apply card style on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      document.documentElement.setAttribute('data-card-style', cardStyle);
+    }
+  }, [cardStyle]);
 
   const handleCoachToggle = useCallback((valueOrUpdater, context) => {
     setIsCoachOpen(prev => {
@@ -1143,6 +1172,8 @@ function App() {
               onOpenCoach={() => handleCoachToggle(true, 'settings')}
               coachAutoOpen={coachAutoOpen}
               onCoachAutoOpenChange={handleCoachAutoOpenChange}
+              cardStyle={cardStyle}
+              onCardStyleChange={handleCardStyleChange}
               onStartTour={startTour}
             />
           </div>
