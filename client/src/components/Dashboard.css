@@ -4,8 +4,21 @@
   padding-bottom: 100px;
   max-width: 100%;
   margin: 0 auto;
-  background: #f8f9fa;
+  background: transparent;
   min-height: 100vh;
+  will-change: transform;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Mobile-First Header */
@@ -109,18 +122,48 @@
 .dashboard-insights-section,
 .dashboard-recent-section,
 .dashboard-export-section {
-  background: white;
+  background: rgba(255, 255, 255, 0.05);
   margin: 16px;
   padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  position: relative;
+  transition: all 0.2s ease-out;
+}
+
+.dashboard-chart-section::before,
+.dashboard-insights-section::before,
+.dashboard-recent-section::before,
+.dashboard-export-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(102, 126, 234, 0.6) 50%,
+    transparent 100%
+  );
+  border-radius: 20px 20px 0 0;
+}
+
+.dashboard-chart-section:hover,
+.dashboard-insights-section:hover,
+.dashboard-recent-section:hover,
+.dashboard-export-section:hover {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 28px rgba(102, 126, 234, 0.3);
 }
 
 .section-title {
   margin: 0 0 16px 0;
   font-size: 18px;
   font-weight: 700;
-  color: #1f2937;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.2);
 }
 
 .section-header {
@@ -170,7 +213,7 @@
 .insight-text {
   margin: 0;
   font-size: 14px;
-  color: #4b5563;
+  color: rgba(255, 255, 255, 0.85);
   line-height: 1.6;
 }
 
@@ -186,13 +229,20 @@
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-  transition: background 0.2s;
+  transition: all 0.2s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.expense-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(102, 126, 234, 0.3);
+  transform: translateX(4px);
 }
 
 .expense-item:active {
-  background: #f3f4f6;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .expense-icon {
@@ -218,7 +268,7 @@
 .expense-merchant {
   font-size: 15px;
   font-weight: 600;
-  color: #1f2937;
+  color: rgba(255, 255, 255, 0.95);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -226,13 +276,13 @@
 
 .expense-date {
   font-size: 13px;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .expense-amount {
   font-size: 16px;
   font-weight: 700;
-  color: #1f2937;
+  color: rgba(255, 255, 255, 0.95);
   flex-shrink: 0;
 }
 

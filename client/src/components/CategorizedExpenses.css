@@ -1,16 +1,16 @@
 :root {
-  --board-bg: #ffffff;
-  --board-gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(245, 247, 250, 0.95));
-  --text-primary: #2c3e50;
-  --text-secondary: #607487;
-  --card-bg: #ffffff;
-  --card-shadow: 0 12px 32px rgba(44, 62, 80, 0.08);
-  --border-soft: rgba(44, 62, 80, 0.08);
-  --pill-bg: #f4f6fa;
-  --pill-border: rgba(44, 62, 80, 0.12);
-  --active-pill: linear-gradient(135deg, rgba(124, 93, 250, 0.18), rgba(255, 107, 107, 0.2));
-  --action-zone-border: rgba(44, 62, 80, 0.12);
-  --action-zone-gradient: linear-gradient(135deg, rgba(78, 205, 196, 0.12), rgba(69, 183, 209, 0.14));
+  --board-bg: rgba(255, 255, 255, 0.04);
+  --board-gradient: transparent;
+  --text-primary: rgba(255, 255, 255, 0.95);
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --card-bg: rgba(255, 255, 255, 0.05);
+  --card-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  --border-soft: rgba(255, 255, 255, 0.12);
+  --pill-bg: rgba(255, 255, 255, 0.08);
+  --pill-border: rgba(255, 255, 255, 0.15);
+  --active-pill: linear-gradient(135deg, rgba(124, 93, 250, 0.3), rgba(255, 107, 107, 0.3));
+  --action-zone-border: rgba(255, 255, 255, 0.15);
+  --action-zone-gradient: linear-gradient(135deg, rgba(78, 205, 196, 0.15), rgba(69, 183, 209, 0.18));
 }
 
 .categorized-expenses {
@@ -21,8 +21,10 @@
   background: var(--board-bg);
   background-image: var(--board-gradient);
   border-radius: 28px;
-  box-shadow: 0 28px 55px rgba(44, 62, 80, 0.12);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   overflow-x: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease-out;
 }
 
 .categorized-expenses.mobile-view {

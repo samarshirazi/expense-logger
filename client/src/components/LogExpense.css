@@ -7,10 +7,28 @@
 
 /* Chat input container - positioned at top */
 .chat-input-container {
-  background: white;
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  position: relative;
+  transition: all 0.2s ease-out;
+}
+
+.chat-input-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(102, 126, 234, 0.7) 50%,
+    transparent 100%
+  );
+  border-radius: 20px 20px 0 0;
 }
 
 .chat-input-area {
@@ -36,12 +54,12 @@
 
 .chat-action-btn {
   padding: 12px 20px;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 24px;
   font-size: 14px;
   font-weight: 500;
-  color: #495057;
+  color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -50,10 +68,11 @@
 }
 
 .chat-action-btn:hover {
-  background: #e9ecef;
-  border-color: #667eea;
-  color: #667eea;
-  transform: translateY(-1px);
+  background: rgba(102, 126, 234, 0.2);
+  border-color: rgba(102, 126, 234, 0.5);
+  color: rgba(255, 255, 255, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .chat-action-btn:active {
@@ -83,8 +102,8 @@
 }
 
 .chat-panel {
-  background: white;
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
   padding: 24px;
   max-width: 600px;
   width: 100%;
@@ -92,6 +111,23 @@
   overflow-y: auto;
   position: relative;
   animation: slideUp 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+}
+
+.chat-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg,
+    rgba(102, 126, 234, 0.7) 0%,
+    rgba(240, 147, 251, 0.7) 50%,
+    rgba(102, 126, 234, 0.7) 100%
+  );
+  border-radius: 20px 20px 0 0;
 }
 
 @keyframes slideUp {

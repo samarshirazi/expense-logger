@@ -5,26 +5,49 @@
 }
 
 .settings-section {
-  background: white;
-  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
   padding: 24px 28px;
-  box-shadow: 0 8px 26px rgba(15, 23, 42, 0.08);
-  border: 1px solid rgba(226, 232, 240, 0.6);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
   gap: 18px;
+  position: relative;
+  transition: all 0.2s ease-out;
+}
+
+.settings-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(102, 126, 234, 0.6) 50%,
+    transparent 100%
+  );
+  border-radius: 20px 20px 0 0;
+}
+
+.settings-section:hover {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 28px rgba(102, 126, 234, 0.3);
 }
 
 .settings-section-header h2 {
   margin: 0;
   font-size: 20px;
-  color: #1f2937;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.2);
 }
 
 .settings-section-header p {
   margin: 4px 0 0 0;
   font-size: 14px;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .settings-row {
@@ -43,7 +66,7 @@
   cursor: pointer;
   user-select: none;
   font-size: 14px;
-  color: #1f2937;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .settings-toggle input {
