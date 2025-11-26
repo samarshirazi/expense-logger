@@ -188,3 +188,266 @@
   color: #6b7280 !important;
   text-shadow: none !important;
 }
+
+/* Additional components - Glass theme (transparent) */
+:root[data-card-style="glass"] .receipt-review-modal {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+:root[data-card-style="glass"] .review-modal-header,
+:root[data-card-style="glass"] .review-modal-footer {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+:root[data-card-style="glass"] .ai-coach {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+:root[data-card-style="glass"] .manual-entry-input {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+:root[data-card-style="glass"] .manual-entry-input:focus {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+:root[data-card-style="glass"] .review-merchant-input,
+:root[data-card-style="glass"] .review-date-input,
+:root[data-card-style="glass"] .review-item-description,
+:root[data-card-style="glass"] .review-item-qty,
+:root[data-card-style="glass"] .review-item-price-input input,
+:root[data-card-style="glass"] .review-item-category {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+:root[data-card-style="glass"] .review-merchant-info,
+:root[data-card-style="glass"] .review-item {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+:root[data-card-style="glass"] .budget-manage-modern,
+:root[data-card-style="glass"] .budget-page-header,
+:root[data-card-style="glass"] .budget-main-content {
+  background: transparent !important;
+}
+
+:root[data-card-style="glass"] .budget-card,
+:root[data-card-style="glass"] .category-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+:root[data-card-style="glass"] .budget-title-section h1,
+:root[data-card-style="glass"] .budget-subtitle,
+:root[data-card-style="glass"] .budget-card-title,
+:root[data-card-style="glass"] .section-title,
+:root[data-card-style="glass"] .category-name,
+:root[data-card-style="glass"] .amount-budget,
+:root[data-card-style="glass"] .stat-value {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+:root[data-card-style="glass"] .modal {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+:root[data-card-style="glass"] .modal-header,
+:root[data-card-style="glass"] .modal-footer {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+:root[data-card-style="glass"] .modal-header h3,
+:root[data-card-style="glass"] .modal-form label {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+:root[data-card-style="glass"] .input-with-currency input {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+:root[data-card-style="glass"] .action-bar {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+:root[data-card-style="glass"] .btn-secondary {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+:root[data-card-style="glass"] .ai-panel {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Additional components - Solid theme (white) */
+:root[data-card-style="solid"] .receipt-review-modal {
+  background: white !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+}
+
+:root[data-card-style="solid"] .review-modal-header,
+:root[data-card-style="solid"] .review-modal-footer {
+  background: white !important;
+}
+
+:root[data-card-style="solid"] .ai-coach {
+  background: white !important;
+  box-shadow: 0 18px 45px rgba(31, 41, 55, 0.18) !important;
+}
+
+:root[data-card-style="solid"] .budget-manage-modern,
+:root[data-card-style="solid"] .budget-page-header,
+:root[data-card-style="solid"] .budget-main-content {
+  background: #ffffff !important;
+}
+
+:root[data-card-style="solid"] .budget-card,
+:root[data-card-style="solid"] .category-card {
+  background: white !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+:root[data-card-style="solid"] .budget-title-section h1,
+:root[data-card-style="solid"] .budget-subtitle,
+:root[data-card-style="solid"] .budget-card-title,
+:root[data-card-style="solid"] .section-title,
+:root[data-card-style="solid"] .category-name,
+:root[data-card-style="solid"] .amount-budget,
+:root[data-card-style="solid"] .stat-value {
+  color: #000000 !important;
+}
+
+:root[data-card-style="solid"] .modal {
+  background: white !important;
+}
+
+:root[data-card-style="solid"] .modal-header,
+:root[data-card-style="solid"] .modal-footer {
+  background: white !important;
+}
+
+:root[data-card-style="solid"] .modal-header h3,
+:root[data-card-style="solid"] .modal-form label {
+  color: #000000 !important;
+}
+
+:root[data-card-style="solid"] .action-bar {
+  background: white !important;
+}
+
+:root[data-card-style="solid"] .btn-secondary {
+  background: white !important;
+  color: #000000 !important;
+}
+
+:root[data-card-style="solid"] .ai-panel {
+  background: white !important;
+}
+
+/* Manage screen and related components */
+:root[data-card-style="glass"] .manage-screen {
+  background: transparent !important;
+}
+
+:root[data-card-style="glass"] .month-selector {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+:root[data-card-style="solid"] .manage-screen {
+  background: #ffffff !important;
+}
+
+:root[data-card-style="solid"] .month-selector {
+  background: white !important;
+}
+
+/* Recurring expenses */
+:root[data-card-style="glass"] .recurring-form {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+:root[data-card-style="solid"] .recurring-form {
+  background: white !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Manual expense form */
+:root[data-card-style="glass"] .manual-expense-form {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+:root[data-card-style="solid"] .manual-expense-form {
+  background: white !important;
+}
+
+/* Summary metrics, date pickers, spending summary */
+:root[data-card-style="glass"] .summary-metrics,
+:root[data-card-style="glass"] .date-range-picker,
+:root[data-card-style="glass"] .spending-summary-container {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+:root[data-card-style="solid"] .summary-metrics,
+:root[data-card-style="solid"] .date-range-picker,
+:root[data-card-style="solid"] .spending-summary-container {
+  background: white !important;
+}
+
+/* Image crop modal */
+:root[data-card-style="glass"] .image-crop-modal {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+:root[data-card-style="solid"] .image-crop-modal {
+  background: #fff !important;
+}
+
+/* Modals and overlays in CategorizedExpenses */
+:root[data-card-style="glass"] .add-expense-modal,
+:root[data-card-style="glass"] .edit-modal-content,
+:root[data-card-style="glass"] .delete-modal-content,
+:root[data-card-style="glass"] .split-modal-content {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+:root[data-card-style="solid"] .add-expense-modal,
+:root[data-card-style="solid"] .edit-modal-content,
+:root[data-card-style="solid"] .delete-modal-content,
+:root[data-card-style="solid"] .split-modal-content {
+  background: #ffffff !important;
+}
+
+/* Overview modals */
+:root[data-card-style="glass"] .delete-confirmation-modal,
+:root[data-card-style="glass"] .edit-expense-modal {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+:root[data-card-style="solid"] .delete-confirmation-modal,
+:root[data-card-style="solid"] .edit-expense-modal {
+  background: white !important;
+}
