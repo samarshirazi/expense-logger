@@ -451,3 +451,154 @@
 :root[data-card-style="solid"] .edit-expense-modal {
   background: white !important;
 }
+
+/* Category budgets */
+:root[data-card-style="glass"] .category-budgets-container {
+  background: transparent !important;
+}
+
+:root[data-card-style="glass"] .budget-item {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+:root[data-card-style="glass"] .budget-modal {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+:root[data-card-style="glass"] .category-name {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+:root[data-card-style="solid"] .category-budgets-container {
+  background: #f8f9fa !important;
+}
+
+:root[data-card-style="solid"] .budget-item {
+  background: white !important;
+}
+
+:root[data-card-style="solid"] .budget-modal {
+  background: white !important;
+}
+
+/* Performance optimization - Remove backdrop-filter from bottom nav */
+:root[data-card-style="glass"] .bottom-nav::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+:root[data-card-style="solid"] .bottom-nav::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Mobile Overview - Glass theme */
+:root[data-card-style="glass"] .m-overview-screen .overview-header {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+:root[data-card-style="glass"] .m-overview-screen .overview-header h1,
+:root[data-card-style="glass"] .m-overview-screen .overview-summary-line {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+:root[data-card-style="glass"] .m-overview-screen .overview-subtext {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+:root[data-card-style="glass"] .m-overview-screen .summary-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+:root[data-card-style="glass"] .ask-ai-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+:root[data-card-style="glass"] .ask-ai-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Mobile Overview - Solid theme */
+:root[data-card-style="solid"] .m-overview-screen .overview-header {
+  background: white !important;
+}
+
+:root[data-card-style="solid"] .m-overview-screen .summary-card {
+  background: white !important;
+}
+
+:root[data-card-style="solid"] .ask-ai-btn {
+  background: white !important;
+}
+
+/* CategorizedExpenses - Glass theme */
+:root[data-card-style="glass"] .category-row {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+:root[data-card-style="glass"] .bottom-sheet {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 -18px 35px rgba(0, 0, 0, 0.4) !important;
+}
+
+:root[data-card-style="glass"] .mobile-category-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+:root[data-card-style="glass"] .mobile-category-card:hover {
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.3) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* CategorizedExpenses - Solid theme */
+:root[data-card-style="solid"] .category-row {
+  background: #ffffff !important;
+}
+
+:root[data-card-style="solid"] .bottom-sheet {
+  background: #ffffff !important;
+}
+
+:root[data-card-style="solid"] .mobile-category-card {
+  background: white !important;
+}
+
+/* Performance optimizations for mobile */
+@media (max-width: 768px) {
+  /* Reduce animation complexity on mobile */
+  :root[data-card-style="glass"] *,
+  :root[data-card-style="solid"] * {
+    will-change: auto !important;
+  }
+
+  /* Simplify transitions on mobile */
+  :root[data-card-style="glass"] .summary-card,
+  :root[data-card-style="glass"] .mobile-category-card,
+  :root[data-card-style="glass"] .budget-item,
+  :root[data-card-style="glass"] .expense-item,
+  :root[data-card-style="solid"] .summary-card,
+  :root[data-card-style="solid"] .mobile-category-card,
+  :root[data-card-style="solid"] .budget-item,
+  :root[data-card-style="solid"] .expense-item {
+    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+  }
+
+  /* Reduce hover effects on mobile (they don't work well on touch) */
+  :root[data-card-style="glass"] .mobile-category-card:hover,
+  :root[data-card-style="solid"] .mobile-category-card:hover {
+    transform: none !important;
+  }
+}

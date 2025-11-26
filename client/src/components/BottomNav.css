@@ -34,7 +34,7 @@
   100% { background-position: 0% 50%; }
 }
 
-/* Glassmorphism background */
+/* Glassmorphism background - optimized (removed blur for performance) */
 .bottom-nav::after {
   content: '';
   position: absolute;
@@ -42,9 +42,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(26, 26, 46, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(26, 26, 46, 0.95);
   z-index: -1;
 }
 
