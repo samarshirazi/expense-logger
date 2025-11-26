@@ -36,21 +36,13 @@
 }
 
 .summary-card {
-  background: linear-gradient(135deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.08) 100%
-  );
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 20px;
   padding: 28px;
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
-  overflow: hidden;
 }
 
 .summary-card::before {
@@ -59,21 +51,19 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 1px;
+  height: 2px;
   background: linear-gradient(90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.4) 50%,
+    rgba(102, 126, 234, 0.6) 50%,
     transparent 100%
   );
 }
 
 .summary-card:hover {
-  transform: translateY(-6px) scale(1.02);
-  box-shadow:
-    0 16px 48px rgba(102, 126, 234, 0.25),
-    0 0 0 1px rgba(102, 126, 234, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  border-color: rgba(102, 126, 234, 0.4);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+  border-color: rgba(102, 126, 234, 0.3);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .card-icon {
@@ -169,21 +159,13 @@
 }
 
 .chart-card {
-  background: linear-gradient(135deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.08) 100%
-  );
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 20px;
   padding: 28px;
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease-out;
 }
 
 .chart-card::before {
@@ -192,19 +174,18 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 1px;
+  height: 2px;
   background: linear-gradient(90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.4) 50%,
+    rgba(102, 126, 234, 0.6) 50%,
     transparent 100%
   );
 }
 
 .chart-card:hover {
-  box-shadow:
-    0 12px 40px rgba(102, 126, 234, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
   border-color: rgba(102, 126, 234, 0.3);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .chart-card-wide {
@@ -444,22 +425,14 @@
 }
 
 .forecast-card {
-  background: linear-gradient(135deg,
-    rgba(255, 255, 255, 0.14) 0%,
-    rgba(255, 255, 255, 0.1) 100%
-  );
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.06);
   border-radius: 24px;
   padding: 32px;
-  box-shadow:
-    0 12px 40px rgba(102, 126, 234, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   margin-bottom: 20px;
   position: relative;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease-out;
 }
 
 .forecast-card::before {
@@ -468,20 +441,20 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
+  height: 3px;
   background: linear-gradient(90deg,
-    rgba(102, 126, 234, 0.5) 0%,
-    rgba(240, 147, 251, 0.5) 50%,
-    rgba(102, 126, 234, 0.5) 100%
+    rgba(102, 126, 234, 0.7) 0%,
+    rgba(240, 147, 251, 0.7) 50%,
+    rgba(102, 126, 234, 0.7) 100%
   );
+  border-radius: 24px 24px 0 0;
 }
 
 .forecast-card:hover {
   transform: translateY(-4px);
-  box-shadow:
-    0 16px 56px rgba(102, 126, 234, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  border-color: rgba(102, 126, 234, 0.4);
+  box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+  border-color: rgba(102, 126, 234, 0.3);
+  background: rgba(255, 255, 255, 0.09);
 }
 
 .forecast-title {
@@ -558,36 +531,7 @@
   transform: translateY(0);
 }
 
-/* Dark theme support */
-:root[data-theme='dark'] .overview-screen {
-  background: #0f172a;
-}
-
-:root[data-theme='dark'] .summary-card,
-:root[data-theme='dark'] .chart-card,
-:root[data-theme='dark'] .forecast-card {
-  background: #1e293b;
-  border-color: rgba(148, 163, 184, 0.25);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.35);
-}
-
-:root[data-theme='dark'] .card-value,
-:root[data-theme='dark'] .card-value-small,
-:root[data-theme='dark'] .section-title,
-:root[data-theme='dark'] .chart-title,
-:root[data-theme='dark'] .forecast-title {
-  color: #f1f5f9;
-}
-
-:root[data-theme='dark'] .card-label,
-:root[data-theme='dark'] .overview-subtitle,
-:root[data-theme='dark'] .forecast-budget {
-  color: #94a3b8;
-}
-
-:root[data-theme='dark'] .forecast-progress {
-  background: #334155;
-}
+/* Dark theme support - removed solid backgrounds to show gradient */
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
