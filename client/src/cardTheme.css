@@ -19,7 +19,20 @@
   /* Glassmorphism styling - already applied */
 }
 
+/* Desktop Overview - ensure it's transparent in glass mode */
+:root[data-card-style="glass"] .overview-screen {
+  background: transparent !important;
+}
+
+:root[data-card-style="glass"] .overview-header {
+  background: transparent !important;
+}
+
 /* Solid White Cards Theme */
+:root[data-card-style="solid"] .expenses-summary {
+  background: transparent !important;
+}
+
 :root[data-card-style="solid"] .expenses-header {
   background: white !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
@@ -41,6 +54,14 @@
 :root[data-card-style="solid"] .budget-summary-card h3,
 :root[data-card-style="solid"] .budget-summary-card p {
   color: #1f2937 !important;
+}
+
+:root[data-card-style="solid"] .expenses-summary .expenses-header-text h1 {
+  color: #1f2937 !important;
+}
+
+:root[data-card-style="solid"] .expenses-summary .expenses-header-text p {
+  color: #6b7280 !important;
 }
 
 :root[data-card-style="solid"] .categorized-expenses {
@@ -574,6 +595,85 @@
 
 :root[data-card-style="solid"] .mobile-category-card {
   background: white !important;
+}
+
+/* Fix modal overlays - prevent click-through and ensure proper z-index */
+:root[data-card-style="glass"] .modal-overlay,
+:root[data-card-style="glass"] .budget-modal-overlay,
+:root[data-card-style="glass"] .receipt-review-modal-overlay,
+:root[data-card-style="solid"] .modal-overlay,
+:root[data-card-style="solid"] .budget-modal-overlay,
+:root[data-card-style="solid"] .receipt-review-modal-overlay {
+  background: rgba(0, 0, 0, 0.7) !important;
+  pointer-events: auto !important;
+  z-index: 2000 !important;
+}
+
+/* Ensure modals are solid and block interaction with content below */
+:root[data-card-style="glass"] .modal,
+:root[data-card-style="glass"] .budget-modal,
+:root[data-card-style="glass"] .receipt-review-modal,
+:root[data-card-style="glass"] .mute-confirm-modal {
+  background: rgba(20, 20, 35, 0.98) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  pointer-events: auto !important;
+  z-index: 2001 !important;
+}
+
+:root[data-card-style="solid"] .modal,
+:root[data-card-style="solid"] .budget-modal,
+:root[data-card-style="solid"] .receipt-review-modal,
+:root[data-card-style="solid"] .mute-confirm-modal {
+  background: white !important;
+  pointer-events: auto !important;
+  z-index: 2001 !important;
+}
+
+/* Fix text visibility in glass mode - ensure modal text is readable */
+:root[data-card-style="glass"] .modal h1,
+:root[data-card-style="glass"] .modal h2,
+:root[data-card-style="glass"] .modal h3,
+:root[data-card-style="glass"] .modal p,
+:root[data-card-style="glass"] .modal label,
+:root[data-card-style="glass"] .budget-modal h1,
+:root[data-card-style="glass"] .budget-modal h2,
+:root[data-card-style="glass"] .budget-modal h3,
+:root[data-card-style="glass"] .budget-modal p,
+:root[data-card-style="glass"] .budget-modal label,
+:root[data-card-style="glass"] .receipt-review-modal h1,
+:root[data-card-style="glass"] .receipt-review-modal h2,
+:root[data-card-style="glass"] .receipt-review-modal h3,
+:root[data-card-style="glass"] .receipt-review-modal p,
+:root[data-card-style="glass"] .receipt-review-modal label,
+:root[data-card-style="glass"] .mute-confirm-modal h1,
+:root[data-card-style="glass"] .mute-confirm-modal h2,
+:root[data-card-style="glass"] .mute-confirm-modal h3,
+:root[data-card-style="glass"] .mute-confirm-modal p {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Modal input text visibility */
+:root[data-card-style="glass"] .modal input,
+:root[data-card-style="glass"] .modal textarea,
+:root[data-card-style="glass"] .modal select,
+:root[data-card-style="glass"] .budget-modal input,
+:root[data-card-style="glass"] .budget-modal textarea,
+:root[data-card-style="glass"] .budget-modal select,
+:root[data-card-style="glass"] .receipt-review-modal input,
+:root[data-card-style="glass"] .receipt-review-modal textarea,
+:root[data-card-style="glass"] .receipt-review-modal select {
+  color: rgba(255, 255, 255, 0.95) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+:root[data-card-style="glass"] .modal input::placeholder,
+:root[data-card-style="glass"] .modal textarea::placeholder,
+:root[data-card-style="glass"] .budget-modal input::placeholder,
+:root[data-card-style="glass"] .budget-modal textarea::placeholder,
+:root[data-card-style="glass"] .receipt-review-modal input::placeholder,
+:root[data-card-style="glass"] .receipt-review-modal textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
 }
 
 /* Performance optimizations for mobile */
