@@ -738,4 +738,227 @@
   :root[data-card-style="solid"] .mobile-category-card:hover {
     transform: none !important;
   }
+
+  /* Mobile Dashboard - Glass theme */
+  :root[data-card-style="glass"] .dashboard {
+    background: transparent !important;
+  }
+
+  :root[data-card-style="glass"] .dashboard-header-mobile {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  :root[data-card-style="glass"] .dashboard-header-mobile h1,
+  :root[data-card-style="glass"] .dashboard-subtitle,
+  :root[data-card-style="glass"] .budget-info {
+    color: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  :root[data-card-style="glass"] .dashboard-chart-section,
+  :root[data-card-style="glass"] .dashboard-insights-section,
+  :root[data-card-style="glass"] .dashboard-recent-section,
+  :root[data-card-style="glass"] .dashboard-export-section {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  /* Mobile Dashboard - Solid theme */
+  :root[data-card-style="solid"] .dashboard {
+    background: transparent !important;
+  }
+
+  :root[data-card-style="solid"] .dashboard-header-mobile {
+    background: white !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+
+  :root[data-card-style="solid"] .dashboard-header-mobile h1 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+  }
+
+  :root[data-card-style="solid"] .dashboard-subtitle,
+  :root[data-card-style="solid"] .budget-info {
+    color: #1f2937 !important;
+  }
+
+  :root[data-card-style="solid"] .dashboard-chart-section,
+  :root[data-card-style="solid"] .dashboard-insights-section,
+  :root[data-card-style="solid"] .dashboard-recent-section,
+  :root[data-card-style="solid"] .dashboard-export-section {
+    background: white !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+
+  /* Mobile Log Expense - Glass theme */
+  :root[data-card-style="glass"] .log-expense-chat {
+    background: transparent !important;
+  }
+
+  :root[data-card-style="glass"] .chat-input-container {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  :root[data-card-style="glass"] .chat-action-btn {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
+
+  :root[data-card-style="glass"] .chat-panel {
+    background: rgba(20, 20, 35, 0.98) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  }
+
+  /* Mobile Log Expense - Solid theme */
+  :root[data-card-style="solid"] .log-expense-chat {
+    background: transparent !important;
+  }
+
+  :root[data-card-style="solid"] .chat-input-container {
+    background: white !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+
+  :root[data-card-style="solid"] .chat-action-btn {
+    background: #f8f9fa !important;
+    border: 1px solid #e9ecef !important;
+    color: #495057 !important;
+  }
+
+  :root[data-card-style="solid"] .chat-panel {
+    background: white !important;
+  }
+
+  /* Mobile Settings - Glass theme */
+  :root[data-card-style="glass"] .settings {
+    background: transparent !important;
+  }
+
+  :root[data-card-style="glass"] .settings-section {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  :root[data-card-style="glass"] .settings-section-header h2,
+  :root[data-card-style="glass"] .settings-section-header p,
+  :root[data-card-style="glass"] .settings-toggle {
+    color: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  :root[data-card-style="glass"] .card-style-option {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+  }
+
+  :root[data-card-style="glass"] .card-style-option.active {
+    border-color: rgba(102, 126, 234, 0.8) !important;
+    background: rgba(102, 126, 234, 0.1) !important;
+  }
+
+  /* Mobile Settings - Solid theme */
+  :root[data-card-style="solid"] .settings {
+    background: transparent !important;
+  }
+
+  :root[data-card-style="solid"] .settings-section {
+    background: white !important;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.08) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+
+  :root[data-card-style="solid"] .settings-section-header h2 {
+    color: #1f2937 !important;
+  }
+
+  :root[data-card-style="solid"] .settings-section-header p {
+    color: #6b7280 !important;
+  }
+
+  :root[data-card-style="solid"] .settings-toggle {
+    color: #1f2937 !important;
+  }
+
+  /* Mobile Manage Screen - Glass theme */
+  :root[data-card-style="glass"] .manage-screen {
+    background: transparent !important;
+  }
+
+  :root[data-card-style="glass"] .budget-manage-modern,
+  :root[data-card-style="glass"] .budget-page-header,
+  :root[data-card-style="glass"] .budget-main-content {
+    background: transparent !important;
+  }
+
+  :root[data-card-style="glass"] .budget-card,
+  :root[data-card-style="glass"] .category-card {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  :root[data-card-style="glass"] .month-selector {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  /* Mobile Manage Screen - Solid theme */
+  :root[data-card-style="solid"] .manage-screen {
+    background: #ffffff !important;
+  }
+
+  :root[data-card-style="solid"] .budget-manage-modern,
+  :root[data-card-style="solid"] .budget-page-header,
+  :root[data-card-style="solid"] .budget-main-content {
+    background: #ffffff !important;
+  }
+
+  :root[data-card-style="solid"] .budget-card,
+  :root[data-card-style="solid"] .category-card {
+    background: white !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  :root[data-card-style="solid"] .month-selector {
+    background: white !important;
+    color: #1f2937 !important;
+  }
+
+  /* Ensure all text is visible in mobile glass mode */
+  :root[data-card-style="glass"] .section-title,
+  :root[data-card-style="glass"] .insight-text,
+  :root[data-card-style="glass"] .expense-merchant,
+  :root[data-card-style="glass"] .expense-date,
+  :root[data-card-style="glass"] .expense-amount {
+    color: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  /* Ensure all text is visible in mobile solid mode */
+  :root[data-card-style="solid"] .section-title {
+    color: #1f2937 !important;
+  }
+
+  :root[data-card-style="solid"] .insight-text {
+    color: #4b5563 !important;
+  }
+
+  :root[data-card-style="solid"] .expense-merchant,
+  :root[data-card-style="solid"] .expense-amount {
+    color: #1f2937 !important;
+  }
+
+  :root[data-card-style="solid"] .expense-date {
+    color: #6b7280 !important;
+  }
 }
