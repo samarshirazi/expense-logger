@@ -64,6 +64,43 @@
   color: #6b7280 !important;
 }
 
+/* Expenses main content area - merchant groups and expense items */
+:root[data-card-style="solid"] .merchant-group {
+  background: white !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+:root[data-card-style="solid"] .merchant-header {
+  background: #f9fafb !important;
+  border-bottom-color: #e5e7eb !important;
+}
+
+:root[data-card-style="solid"] .merchant-name,
+:root[data-card-style="solid"] .product-name {
+  color: #1f2937 !important;
+}
+
+:root[data-card-style="solid"] .product-item {
+  background: white !important;
+  border-color: #e5e7eb !important;
+}
+
+/* Glass theme - ensure merchant groups are transparent */
+:root[data-card-style="glass"] .merchant-group {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+:root[data-card-style="glass"] .merchant-header {
+  background: rgba(118, 100, 255, 0.06) !important;
+}
+
+:root[data-card-style="glass"] .product-item {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
 :root[data-card-style="solid"] .categorized-expenses {
   background: white !important;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1) !important;
