@@ -694,7 +694,7 @@
 .m-overview-screen {
   padding: 24px;
   padding-bottom: 140px;
-  background: #f6f7fb;
+  background: transparent;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -702,10 +702,11 @@
 }
 
 .m-overview-screen .overview-header {
-  background: white;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 24px;
   padding: 24px;
-  box-shadow: 0 10px 35px rgba(118, 75, 162, 0.08);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: hidden;
 }
@@ -721,7 +722,7 @@
   font-size: 28px;
   font-weight: 700;
   margin: 0;
-  color: #1f2937;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .m-overview-screen .overview-title-glow {
@@ -733,12 +734,12 @@
   margin: 8px 0 4px;
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .m-overview-screen .overview-subtext {
   margin: 0;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 14px;
 }
 
@@ -769,11 +770,11 @@
 }
 
 .m-overview-screen .summary-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 18px;
   padding: 18px;
-  border: 1px solid rgba(103, 111, 255, 0.08);
-  box-shadow: 0 6px 20px rgba(103, 111, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
   text-align: left;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -787,7 +788,9 @@
 
 .m-overview-screen .summary-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 14px 30px rgba(103, 111, 255, 0.15);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.3);
+  border-color: rgba(102, 126, 234, 0.3);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .m-overview-screen .summary-card-header {
@@ -834,8 +837,9 @@
 .m-overview-screen .card-value {
   font-size: 26px;
   font-weight: 700;
-  color: #111827;
+  color: rgba(255, 255, 255, 0.95);
   margin: 6px 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .m-overview-screen .card-ai-tip {
@@ -926,10 +930,11 @@
 }
 
 .m-overview-screen .charts-section {
-  background: white;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 24px;
   padding: 24px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
   touch-action: pan-y;
 }
 
@@ -979,17 +984,18 @@
 .m-overview-screen .chart-panel {
   position: relative;
   border-radius: 24px;
-  border: 1px solid rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 16px;
   min-height: 400px;
-  background: white;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .m-overview-screen .chart-panel .chart-title {
   font-size: 16px;
   font-weight: 700;
-  color: #1f2937;
+  color: rgba(255, 255, 255, 0.92);
   margin-bottom: 16px;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.2);
 }
 
 .m-overview-screen .chart-ai-tip {
@@ -1047,11 +1053,11 @@
 }
 
 .m-overview-screen .ai-insights-panel {
-  background: white;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 24px;
   padding: 24px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-  border: 1px solid rgba(118, 75, 162, 0.1);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
 }
 
 .m-overview-screen .ai-insights-panel.integrated {
@@ -1126,11 +1132,11 @@
 }
 
 .m-overview-screen .forecast-card {
-  background: white;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 24px;
   padding: 20px;
-  box-shadow: 0 14px 30px rgba(103, 111, 255, 0.2);
-  border: 1px solid rgba(103, 111, 255, 0.1);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.35);
 }
 
 .m-overview-screen .forecast-header {
@@ -1150,7 +1156,8 @@
   margin: 4px 0 0;
   font-size: 24px;
   font-weight: 700;
-  color: #1f2937;
+  color: rgba(102, 126, 234, 1);
+  text-shadow: 0 0 24px rgba(102, 126, 234, 0.6);
 }
 
 .m-overview-screen .forecast-amount span {
