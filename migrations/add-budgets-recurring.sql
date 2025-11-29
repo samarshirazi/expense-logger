@@ -29,6 +29,15 @@ CREATE TABLE IF NOT EXISTS recurring_expenses (
   notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+
+
+
+
+
+
+
+
+  
 );
 
 -- Create indexes
