@@ -28,6 +28,29 @@ const DEFAULT_BUDGET = {
   Other: 100
 };
 
+const clampColorValue = (value) => Math.max(0, Math.min(255, Math.round(value)));
+
+const getDarkenedCategoryColor = (color, factor = 0.45) => {
+  if (typeof color !== 'string') {
+    return '#1f2937';
+  }
+
+  const match = color.trim().match(/^#?([0-9a-f]{6})$/i);
+  if (!match) {
+    return '#1f2937';
+  }
+
+  const hex = match[1];
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+
+  const toHex = (val) => clampColorValue(val).toString(16).padStart(2, '0');
+  const adjust = (channel) => clampColorValue(channel * factor);
+
+  return `#${toHex(adjust(r))}${toHex(adjust(g))}${toHex(adjust(b))}`;
+};
+
 function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRefresh, dateRange, onSwitchToLog, categoryBudgets = {} }) {
   const [categorizedExpenses, setCategorizedExpenses] = useState({});
   const [error, setError] = useState(null);
@@ -982,7 +1005,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                 </div>
                 <div className="mobile-card-icon">{category.icon}</div>
                 <div className="mobile-card-name">{category.name}</div>
-                <div className="mobile-card-amount" style={{ color: category.color }}>
+                <div className="mobile-card-amount" style={{ color: getDarkenedCategoryColor(category.color) }}>
                   {formatCurrency(total)}
                 </div>
                 <div className="mobile-card-progress-bar">
@@ -1045,7 +1068,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                                       {item.description || item.merchantName}
                                       {item.quantity && item.quantity > 1 && ` (×${item.quantity})`}
                                     </div>
-                                    <div className="product-card-amount" style={{ color: category.color }}>
+                                    <div className="product-card-amount" style={{ color: getDarkenedCategoryColor(category.color) }}>
                                       {formatCurrency(item.totalPrice || 0, item.currency)}
                                     </div>
                                   </div>
@@ -1129,7 +1152,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                     <div className="mobile-sheet-info">
                       <h3>{category.name}</h3>
                       <div className="mobile-sheet-stats">
-                        <span>Spent: <strong style={{ color: category.color }}>{formatCurrency(total)}</strong></span>
+                        <span>Spent: <strong style={{ color: getDarkenedCategoryColor(category.color) }}>{formatCurrency(total)}</strong></span>
                         <span className="stat-divider">•</span>
                         <span>Budget: <strong>{formatCurrency(getCategoryBudget(category.id))}</strong></span>
                         <span className="stat-divider">•</span>
@@ -1194,7 +1217,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                                     <div className="mobile-expense-merchant">{item.merchantName}</div>
                                   )}
                                 </div>
-                                <div className="mobile-expense-amount" style={{ color: category.color }}>
+                                <div className="mobile-expense-amount" style={{ color: getDarkenedCategoryColor(category.color) }}>
                                   {formatCurrency(item.totalPrice || item.totalAmount)}
                                 </div>
                               </div>
@@ -1327,7 +1350,7 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
                         </div>
                         <div className="mobile-adjust-cat-row">
                           <span>Spent:</span>
-                          <strong style={{color: category.color}}>{formatCurrency(total)}</strong>
+                          <strong style={{ color: getDarkenedCategoryColor(category.color) }}>{formatCurrency(total)}</strong>
                         </div>
                         <div className="mobile-adjust-cat-progress">
                           <div
@@ -1419,10 +1442,6 @@ function CategorizedExpenses({ expenses, onExpenseSelect, onCategoryUpdate, onRe
           </div>
         </div>
       )}
-
-      <button className="floating-add-button" onClick={() => onSwitchToLog && onSwitchToLog()}>
-        ＋ Add Expense
-      </button>
 
       {showAiPanel && (
         <>

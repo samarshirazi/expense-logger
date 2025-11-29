@@ -382,12 +382,12 @@
 
 .action-label {
   font-weight: 700;
-  color: var(--text-primary);
+  color: #1f2937;
 }
 
 .action-hint {
   margin: 6px 0 0;
-  color: var(--text-secondary);
+  color: #1f2937;
   font-size: 13px;
 }
 
