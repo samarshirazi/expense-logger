@@ -30,7 +30,7 @@ const DEFAULT_BUDGET = {
 
 const clampColorValue = (value) => Math.max(0, Math.min(255, Math.round(value)));
 
-const getDarkenedCategoryColor = (color, factor = 0.45) => {
+const getDarkenedCategoryColor = (color, factor = 0.85, lift = 40) => {
   if (typeof color !== 'string') {
     return '#1f2937';
   }
@@ -46,7 +46,7 @@ const getDarkenedCategoryColor = (color, factor = 0.45) => {
   const b = parseInt(hex.slice(4, 6), 16);
 
   const toHex = (val) => clampColorValue(val).toString(16).padStart(2, '0');
-  const adjust = (channel) => clampColorValue(channel * factor);
+  const adjust = (channel) => clampColorValue(channel * factor + lift);
 
   return `#${toHex(adjust(r))}${toHex(adjust(g))}${toHex(adjust(b))}`;
 };
