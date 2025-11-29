@@ -1321,7 +1321,7 @@ function ExpensesSummary({
                                 value={item.description || ''}
                                 onChange={(e) => handleItemFieldChange(index, 'description', e.target.value)}
                                 disabled={isSaving}
-                                style={{ fontSize: '0.9rem', width: '100%' }}
+                                style={{ fontSize: '0.9rem', width: '100%', color: 'black' }}
                               />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -1335,7 +1335,7 @@ function ExpensesSummary({
                                   value={item.totalPrice || item.price || ''}
                                   onChange={(e) => handleItemFieldChange(index, 'totalPrice', e.target.value)}
                                   disabled={isSaving}
-                                  style={{ fontSize: '0.9rem', width: '100%' }}
+                                  style={{ fontSize: '0.9rem', width: '100%', color: 'black' }}
                                 />
                               </div>
                               <div className="form-field" style={{ margin: 0 }}>
