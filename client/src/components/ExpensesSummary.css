@@ -873,6 +873,14 @@
   font-weight: 600;
 }
 
+.edit-items-section .form-field label {
+  color: #1f2937;
+}
+
+:root[data-card-style='glass'] .edit-items-section .form-field label {
+  color: #1f2937 !important;
+}
+
 .form-field input,
 .form-field select {
   border-radius: 12px;
