@@ -782,14 +782,15 @@
 .expense-modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
 }
 
 .expense-modal-content {
   position: relative;
   z-index: 1;
-  background: var(--surface);
+  background: linear-gradient(135deg, rgba(40, 50, 80, 0.98) 0%, rgba(60, 40, 70, 0.98) 50%, rgba(50, 30, 60, 0.98) 100%);
+  border: 1px solid rgba(118, 100, 255, 0.3);
   width: min(480px, 92vw);
   max-height: 90vh;
   overflow-y: auto;
@@ -878,8 +879,8 @@
   border: 1px solid rgba(148, 163, 184, 0.35);
   padding: 12px 14px;
   font-size: 14px;
-  background: var(--surface-muted);
-  color: var(--text-primary);
+  background: rgba(30, 30, 50, 0.6);
+  color: #ffffff;
   transition: border 0.2s ease, box-shadow 0.2s ease;
 }
 
