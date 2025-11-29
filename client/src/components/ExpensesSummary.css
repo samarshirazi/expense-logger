@@ -885,11 +885,11 @@
 }
 
 .edit-items-section .form-field label {
-  color: var(--text-secondary);
+  color: #1f2937 !important;
 }
 
-:root[data-card-style='solid'] .edit-items-section .form-field label {
-  color: #1f2937;
+:root[data-card-style='glass'] .edit-items-section .form-field label {
+  color: #1f2937 !important;
 }
 
 .form-field input,
