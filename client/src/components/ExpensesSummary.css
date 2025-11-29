@@ -879,8 +879,8 @@
   border: 1px solid rgba(148, 163, 184, 0.35);
   padding: 12px 14px;
   font-size: 14px;
-  background: rgba(30, 30, 50, 0.6);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.95);
+  color: #000000;
   transition: border 0.2s ease, box-shadow 0.2s ease;
 }
 
