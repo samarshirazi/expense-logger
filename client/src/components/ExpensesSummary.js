@@ -29,37 +29,54 @@ const formatCurrency = (amount, currency = 'USD') => {
   }).format(amount || 0);
 };
 
-const formatDate = (dateString) => {
-  if (!dateString) return '—';
-  try {
-    // Parse date string as local date to avoid timezone shift
-    const [year, month, day] = dateString.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    if (Number.isNaN(date.getTime())) return '—';
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  } catch {
-    return '—';
+const normalizeDateString = (input) => {
+  if (!input) {
+    return null;
   }
+
+  const handleDate = (date) => {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+      return null;
+    }
+    return date.toISOString().substring(0, 10);
+  };
+
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+    if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+      return trimmed.substring(0, 10);
+    }
+    const parsed = new Date(trimmed);
+    return handleDate(parsed);
+  }
+
+  return handleDate(new Date(input));
 };
 
-const formatDateShort = (dateString) => {
-  if (!dateString) return '—';
-  try {
-    // Parse date string as local date to avoid timezone shift
-    const [year, month, day] = dateString.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    if (Number.isNaN(date.getTime())) return '—';
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric'
-    });
-  } catch {
-    return '—';
-  }
+const formatDate = (value) => {
+  const normalized = normalizeDateString(value);
+  if (!normalized) return '—';
+  const [year, month, day] = normalized.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
+
+const formatDateShort = (value) => {
+  const normalized = normalizeDateString(value);
+  if (!normalized) return '—';
+  const [year, month, day] = normalized.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric'
+  });
 };
 
 const deriveTags = (expense) => {
@@ -169,24 +186,33 @@ function ExpensesSummary({
   const parsedExpenses = useMemo(() => {
     return (expenses || []).map(expense => ({
       ...expense,
-      dateStr: expense.date ? expense.date.substring(0, 10) : null,
+      dateStr: normalizeDateString(expense.date),
       amount: Number(expense.totalAmount || expense.total_price || 0)
     }));
   }, [expenses]);
 
   const filteredExpenses = useMemo(() => {
-    // Apply the global dateRange filter first if it exists
-    let filtered = parsedExpenses;
+    const hasCustomRange = Boolean(filters.startDate || filters.endDate);
+    const effectiveStart = normalizeDateString(
+      hasCustomRange ? filters.startDate : dateRange?.startDate
+    );
+    const effectiveEnd = normalizeDateString(
+      hasCustomRange ? filters.endDate : dateRange?.endDate
+    );
 
-    if (dateRange?.startDate && dateRange?.endDate) {
-      filtered = filtered.filter(expense => {
-        if (!expense.dateStr) return false;
-        return expense.dateStr >= dateRange.startDate && expense.dateStr <= dateRange.endDate;
-      });
-    }
+    return parsedExpenses.filter(expense => {
+      if (effectiveStart) {
+        if (!expense.dateStr || expense.dateStr < effectiveStart) {
+          return false;
+        }
+      }
 
-    // Then apply user-selected filters
-    return filtered.filter(expense => {
+      if (effectiveEnd) {
+        if (!expense.dateStr || expense.dateStr > effectiveEnd) {
+          return false;
+        }
+      }
+
       if (filters.category !== 'all' && (expense.category || 'Other') !== filters.category) {
         return false;
       }
@@ -201,18 +227,6 @@ function ExpensesSummary({
 
       if (filters.maxAmount && expense.amount > Number(filters.maxAmount)) {
         return false;
-      }
-
-      if (filters.startDate) {
-        if (!expense.dateStr || expense.dateStr < filters.startDate) {
-          return false;
-        }
-      }
-
-      if (filters.endDate) {
-        if (!expense.dateStr || expense.dateStr > filters.endDate) {
-          return false;
-        }
       }
 
       if (filters.search) {
@@ -376,7 +390,7 @@ function ExpensesSummary({
 
     sortedExpenses.forEach(expense => {
       rows.push([
-        formatDate(expense.date),
+        formatDate(expense.dateStr || expense.date),
         expense.merchantName || 'Unknown',
         expense.category || 'Other',
         (expense.amount || 0).toFixed(2),
