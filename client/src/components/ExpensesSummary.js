@@ -133,7 +133,8 @@ function ExpensesSummary({
     minAmount: '',
     maxAmount: '',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    allTime: false
   };
 
   const [filters, setFilters] = useState(() => ({ ...defaultFilters }));
@@ -183,6 +184,10 @@ function ExpensesSummary({
     setFilters(() => ({ ...defaultFilters }));
   };
 
+  const toggleAllTimeFilter = () => {
+    setFilters(prev => ({ ...prev, allTime: !prev.allTime }));
+  };
+
   const parsedExpenses = useMemo(() => {
     return (expenses || []).map(expense => ({
       ...expense,
@@ -192,13 +197,18 @@ function ExpensesSummary({
   }, [expenses]);
 
   const filteredExpenses = useMemo(() => {
-    const hasCustomRange = Boolean(filters.startDate || filters.endDate);
-    const effectiveStart = normalizeDateString(
-      hasCustomRange ? filters.startDate : dateRange?.startDate
-    );
-    const effectiveEnd = normalizeDateString(
-      hasCustomRange ? filters.endDate : dateRange?.endDate
-    );
+    const useAllTime = Boolean(filters.allTime);
+    const hasCustomRange = !useAllTime && Boolean(filters.startDate || filters.endDate);
+    const effectiveStart = useAllTime
+      ? null
+      : normalizeDateString(
+        hasCustomRange ? filters.startDate : dateRange?.startDate
+      );
+    const effectiveEnd = useAllTime
+      ? null
+      : normalizeDateString(
+        hasCustomRange ? filters.endDate : dateRange?.endDate
+      );
 
     return parsedExpenses.filter(expense => {
       if (effectiveStart) {
@@ -282,6 +292,10 @@ function ExpensesSummary({
   const activeFilterLabels = useMemo(() => {
     const labels = [];
 
+    if (filters.allTime) {
+      labels.push('All Time');
+    }
+
     if (filters.search) {
       labels.push(`Search: "${filters.search}"`);
     }
@@ -305,7 +319,7 @@ function ExpensesSummary({
       labels.push(`Amount ${parts.join(' ')}`);
     }
 
-    if (filters.startDate || filters.endDate) {
+    if (!filters.allTime && (filters.startDate || filters.endDate)) {
       const startLabel = filters.startDate ? formatDate(filters.startDate) : 'Any';
       const endLabel = filters.endDate ? formatDate(filters.endDate) : 'Any';
       labels.push(`Date ${startLabel} -> ${endLabel}`);
@@ -314,17 +328,20 @@ function ExpensesSummary({
     return labels;
   }, [filters]);
 
-  const hasActiveFilters = activeFilterLabels.length > 0;
+  const hasMeaningfulFilters = useMemo(
+    () => activeFilterLabels.some(label => label !== 'All Time'),
+    [activeFilterLabels]
+  );
 
   const resultsLabel = useMemo(() => {
     if (!sortedExpenses.length) {
       return 'No results';
     }
-    if (sortedExpenses.length === parsedExpenses.length && !hasActiveFilters) {
+    if (sortedExpenses.length === parsedExpenses.length && !hasMeaningfulFilters) {
       return `${sortedExpenses.length} result${sortedExpenses.length === 1 ? '' : 's'}`;
     }
     return `${sortedExpenses.length} of ${parsedExpenses.length} result${sortedExpenses.length === 1 ? '' : 's'}`;
-  }, [sortedExpenses, parsedExpenses, hasActiveFilters]);
+  }, [sortedExpenses, parsedExpenses, hasMeaningfulFilters]);
 
   const sources = useMemo(() => sourceOptionsFromExpenses(expenses), [expenses]);
 
@@ -813,6 +830,34 @@ function ExpensesSummary({
             title="Filters"
           >
             🔍
+          </button>
+
+          <button
+            type="button"
+            onClick={toggleAllTimeFilter}
+            aria-pressed={filters.allTime}
+            style={{
+              background: filters.allTime
+                ? 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)'
+                : 'white',
+              color: filters.allTime ? '#4a1c40' : '#333',
+              border: filters.allTime ? 'none' : '1px solid #ddd',
+              borderRadius: '8px',
+              padding: '0.6rem 1rem',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: filters.allTime
+                ? '0 4px 12px rgba(255, 154, 158, 0.35)'
+                : '0 1px 3px rgba(0,0,0,0.1)',
+              transition: 'all 0.2s ease'
+            }}
+            title={filters.allTime ? 'Showing every expense' : 'Show every expense across all time'}
+          >
+            ♾️ {filters.allTime ? 'All Time On' : 'All Time'}
           </button>
 
           <button
@@ -1639,6 +1684,44 @@ function ExpensesSummary({
                     onChange={(event) => handleFilterChange('endDate', event.target.value)}
                   />
                 </div>
+              </div>
+
+              <div
+                style={{
+                  marginTop: '1rem',
+                  padding: '1rem',
+                  borderRadius: '12px',
+                  border: filters.allTime ? '1px solid #fdba74' : '1px solid #e0e6f0',
+                  backgroundColor: filters.allTime ? '#fff7ed' : '#f5f7fb',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem'
+                }}
+              >
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#333' }}>Timeline</div>
+                <div style={{ fontSize: '0.9rem', color: '#555', lineHeight: 1.4 }}>
+                  Ignore the shared dashboard date range and show every expense you've ever logged.
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleAllTimeFilter}
+                  style={{
+                    alignSelf: 'flex-start',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '999px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    background: filters.allTime
+                      ? 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)'
+                      : 'linear-gradient(135deg, #8ec5fc 0%, #e0c3fc 100%)',
+                    color: '#fff',
+                    boxShadow: '0 6px 14px rgba(0,0,0,0.15)',
+                    transition: 'transform 0.2s ease'
+                  }}
+                >
+                  {filters.allTime ? 'Disable All Time' : 'Show All Time'}
+                </button>
               </div>
 
               {/* Active Filters Summary */}
