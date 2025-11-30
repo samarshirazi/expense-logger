@@ -125,7 +125,7 @@ export const uploadReceipt = async (file, onProgress) => {
   }
 };
 
-export const getExpenses = async (limit = 50, offset = 0) => {
+export const getExpenses = async (limit = 1000, offset = 0) => {
   try {
     const response = await api.get('/expenses', {
       params: { limit, offset }

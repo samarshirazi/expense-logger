@@ -496,7 +496,12 @@ app.post('/api/upload-receipt', requireAuth, upload.single('receipt'), async (re
 
 app.get('/api/expenses', requireAuth, async (req, res) => {
   try {
-    const expenses = await getExpenses(req.user.id, 50, 0, req.token);
+    const requestedLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Math.min(Number.isFinite(requestedLimit) ? Math.max(requestedLimit, 1) : 1000, 10000);
+    const requestedOffset = Number.parseInt(req.query.offset, 10);
+    const offset = Number.isFinite(requestedOffset) ? Math.max(requestedOffset, 0) : 0;
+
+    const expenses = await getExpenses(req.user.id, limit, offset, req.token);
     res.json(expenses);
   } catch (error) {
     console.error('Error fetching expenses:', error);

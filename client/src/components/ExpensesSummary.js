@@ -79,6 +79,18 @@ const formatDateShort = (value) => {
   });
 };
 
+const formatMonthYear = (value) => {
+  const normalized = normalizeDateString(value);
+  if (!normalized) return null;
+  const [year, month] = normalized.split('-').map(Number);
+  const date = new Date(year, month - 1, 1);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric'
+  });
+};
+
 const deriveTags = (expense) => {
   if (Array.isArray(expense.tags) && expense.tags.length) {
     return expense.tags;
@@ -195,6 +207,38 @@ function ExpensesSummary({
       amount: Number(expense.totalAmount || expense.total_price || 0)
     }));
   }, [expenses]);
+
+  const overallDateRange = useMemo(() => {
+    const dated = parsedExpenses
+      .map(expense => expense.dateStr)
+      .filter(Boolean)
+      .sort();
+    if (!dated.length) {
+      return null;
+    }
+    return {
+      start: dated[0],
+      end: dated[dated.length - 1]
+    };
+  }, [parsedExpenses]);
+
+  const allTimeRangeLabel = useMemo(() => {
+    if (!overallDateRange) {
+      return null;
+    }
+    const startLabel = formatMonthYear(overallDateRange.start);
+    const endLabel = formatMonthYear(overallDateRange.end);
+    if (startLabel && endLabel) {
+      return startLabel === endLabel ? startLabel : `${startLabel} → ${endLabel}`;
+    }
+    if (startLabel) {
+      return `${startLabel} → Present`;
+    }
+    if (endLabel) {
+      return `Up to ${endLabel}`;
+    }
+    return null;
+  }, [overallDateRange]);
 
   const filteredExpenses = useMemo(() => {
     const useAllTime = Boolean(filters.allTime);
@@ -832,33 +876,47 @@ function ExpensesSummary({
             🔍
           </button>
 
-          <button
-            type="button"
-            onClick={toggleAllTimeFilter}
-            aria-pressed={filters.allTime}
-            style={{
-              background: filters.allTime
-                ? 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)'
-                : 'white',
-              color: filters.allTime ? '#4a1c40' : '#333',
-              border: filters.allTime ? 'none' : '1px solid #ddd',
-              borderRadius: '8px',
-              padding: '0.6rem 1rem',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              boxShadow: filters.allTime
-                ? '0 4px 12px rgba(255, 154, 158, 0.35)'
-                : '0 1px 3px rgba(0,0,0,0.1)',
-              transition: 'all 0.2s ease'
-            }}
-            title={filters.allTime ? 'Showing every expense' : 'Show every expense across all time'}
-          >
-            ♾️ {filters.allTime ? 'All Time On' : 'All Time'}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            <button
+              type="button"
+              onClick={toggleAllTimeFilter}
+              aria-pressed={filters.allTime}
+              style={{
+                background: filters.allTime
+                  ? 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)'
+                  : 'white',
+                color: filters.allTime ? '#4a1c40' : '#333',
+                border: filters.allTime ? 'none' : '1px solid #ddd',
+                borderRadius: '8px',
+                padding: '0.6rem 1rem',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: filters.allTime
+                  ? '0 4px 12px rgba(255, 154, 158, 0.35)'
+                  : '0 1px 3px rgba(0,0,0,0.1)',
+                transition: 'all 0.2s ease'
+              }}
+              title={filters.allTime ? 'Showing every expense' : 'Show every expense across all time'}
+            >
+              ♾️ {filters.allTime ? 'All Time On' : 'All Time'}
+            </button>
+            {filters.allTime && (
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  color: '#5c5f77',
+                  fontWeight: 600,
+                  paddingLeft: '0.25rem'
+                }}
+              >
+                {allTimeRangeLabel || 'All dated receipts'}
+              </span>
+            )}
+          </div>
 
           <button
             type="button"
@@ -1702,6 +1760,11 @@ function ExpensesSummary({
                 <div style={{ fontSize: '0.9rem', color: '#555', lineHeight: 1.4 }}>
                   Ignore the shared dashboard date range and show every expense you've ever logged.
                 </div>
+                {filters.allTime && (
+                  <div style={{ fontSize: '0.85rem', color: '#aa5200', fontWeight: 600 }}>
+                    {allTimeRangeLabel ? `Covering ${allTimeRangeLabel}` : 'Covering every dated receipt'}
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={toggleAllTimeFilter}

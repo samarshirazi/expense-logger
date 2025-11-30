@@ -53,6 +53,9 @@ const mapBudgetsByCategory = (records = []) => {
   return shaped;
 };
 
+const EXPENSE_FETCH_PAGE_SIZE = 1000;
+const MAX_EXPENSE_FETCH_PAGES = 12; // Safety cap (approx 12k records)
+
 function App() {
   const [expenses, setExpenses] = useState([]);
   const [selectedExpense, setSelectedExpense] = useState(null);
@@ -166,6 +169,32 @@ function App() {
     [normalizedCategoryBudgets]
   );
 
+  const loadExpenses = useCallback(async () => {
+    try {
+      const allExpenses = [];
+      let offset = 0;
+
+      for (let page = 0; page < MAX_EXPENSE_FETCH_PAGES; page += 1) {
+        const batch = await getExpenses(EXPENSE_FETCH_PAGE_SIZE, offset);
+        if (!Array.isArray(batch) || batch.length === 0) {
+          break;
+        }
+
+        allExpenses.push(...batch);
+
+        if (batch.length < EXPENSE_FETCH_PAGE_SIZE) {
+          break;
+        }
+
+        offset += batch.length;
+      }
+
+      setExpenses(allExpenses);
+    } catch (error) {
+      console.error('Failed to load expenses:', error);
+    }
+  }, []);
+
   useEffect(() => {
     // Initialize auth state
     const initAuth = async () => {
@@ -193,7 +222,7 @@ function App() {
     });
 
     return unsubscribe;
-  }, []);
+  }, [loadExpenses]);
 
   useEffect(() => {
     const handleCategoriesUpdated = () => {
@@ -245,15 +274,6 @@ function App() {
     scrollStateRef.current.buttonVisible = true;
     setRunTour(true);
   }, []);
-
-  const loadExpenses = async () => {
-    try {
-      const data = await getExpenses();
-      setExpenses(data);
-    } catch (error) {
-      console.error('Failed to load expenses:', error);
-    }
-  };
 
   const handleExpenseAdded = async (newExpense) => {
     // Add to local state for immediate feedback
