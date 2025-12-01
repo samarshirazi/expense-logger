@@ -54,9 +54,35 @@ const normalizeDateString = (input) => {
   return handleDate(new Date(input));
 };
 
+const resolveExpenseDateString = (expense) => {
+  if (!expense) {
+    return null;
+  }
+  const candidates = [
+    expense.date,
+    expense.uploadDate,
+    expense.createdAt,
+    expense.updatedAt
+  ];
+  for (const candidate of candidates) {
+    const normalized = normalizeDateString(candidate);
+    if (normalized) {
+      return normalized;
+    }
+  }
+  return null;
+};
+
+const formatUndatedLabel = () => 'Undated';
+
 const formatDate = (value) => {
   const normalized = normalizeDateString(value);
-  if (!normalized) return '—';
+  if (!normalized) {
+    if (value === 'No date') {
+      return formatUndatedLabel();
+    }
+    return '—';
+  }
   const [year, month, day] = normalized.split('-').map(Number);
   const date = new Date(year, month - 1, day);
   if (Number.isNaN(date.getTime())) return '—';
@@ -69,7 +95,12 @@ const formatDate = (value) => {
 
 const formatDateShort = (value) => {
   const normalized = normalizeDateString(value);
-  if (!normalized) return '—';
+  if (!normalized) {
+    if (value === 'No date') {
+      return formatUndatedLabel();
+    }
+    return '—';
+  }
   const [year, month, day] = normalized.split('-').map(Number);
   const date = new Date(year, month - 1, day);
   if (Number.isNaN(date.getTime())) return '—';
@@ -89,6 +120,17 @@ const formatMonthYear = (value) => {
     month: 'short',
     year: 'numeric'
   });
+};
+
+const getDateSortValue = (dateStr) => {
+  if (!dateStr) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  const timestamp = new Date(dateStr).getTime();
+  if (!Number.isFinite(timestamp)) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  return timestamp;
 };
 
 const deriveTags = (expense) => {
@@ -203,7 +245,7 @@ function ExpensesSummary({
   const parsedExpenses = useMemo(() => {
     return (expenses || []).map(expense => ({
       ...expense,
-      dateStr: normalizeDateString(expense.date),
+      dateStr: resolveExpenseDateString(expense),
       amount: Number(expense.totalAmount || expense.total_price || 0)
     }));
   }, [expenses]);
@@ -301,25 +343,35 @@ function ExpensesSummary({
       if (sortConfig.key === 'amount') {
         return (a.amount - b.amount) * direction;
       }
-      // Sort by date string (YYYY-MM-DD format sorts correctly as strings)
-      const dateA = a.dateStr || '';
-      const dateB = b.dateStr || '';
-      return dateA.localeCompare(dateB) * direction;
+      const dateA = getDateSortValue(a.dateStr);
+      const dateB = getDateSortValue(b.dateStr);
+      if (dateA === dateB) {
+        const createdA = a.createdAt || '';
+        const createdB = b.createdAt || '';
+        return createdA.localeCompare(createdB) * direction;
+      }
+      return (dateA - dateB) * direction;
     });
     return sorted;
   }, [filteredExpenses, sortConfig]);
 
-  // Group expenses by date for the new layout
-  const expensesByDate = useMemo(() => {
-    const grouped = {};
+  const dateGroups = useMemo(() => {
+    const groups = [];
+    const map = new Map();
     sortedExpenses.forEach(expense => {
-      const dateKey = expense.dateStr || 'No date';
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
+      const key = expense.dateStr || 'No date';
+      if (!map.has(key)) {
+        const group = {
+          key,
+          label: key === 'No date' ? formatUndatedLabel() : formatDate(key),
+          expenses: []
+        };
+        map.set(key, group);
+        groups.push(group);
       }
-      grouped[dateKey].push(expense);
+      map.get(key).expenses.push(expense);
     });
-    return grouped;
+    return groups;
   }, [sortedExpenses]);
 
   const totals = useMemo(() => {
@@ -451,7 +503,7 @@ function ExpensesSummary({
 
     sortedExpenses.forEach(expense => {
       rows.push([
-        formatDate(expense.dateStr || expense.date),
+        formatDate(expense.dateStr || expense.date || expense.createdAt || expense.uploadDate),
         expense.merchantName || 'Unknown',
         expense.category || 'Other',
         (expense.amount || 0).toFixed(2),
@@ -1178,21 +1230,19 @@ function ExpensesSummary({
       </div>
 
       <div className="expenses-grouped-view">
-        {Object.keys(expensesByDate).length > 0 ? (
-          Object.keys(expensesByDate)
-            .sort((a, b) => sortConfig.direction === 'desc' ? b.localeCompare(a) : a.localeCompare(b))
-            .map(dateKey => (
-              <div key={dateKey} className="date-group">
-                <div className="date-header">
-                  {formatDate(dateKey)}
-                </div>
-                <div className="date-expenses">
-                  {expensesByDate[dateKey].map(expense => (
-                    <div key={expense.id || `${expense.date}-${expense.merchantName}`} className="merchant-group">
-                      <div className="merchant-header">
-                        {expense.merchantName ? (
-                          <span className="merchant-name">{expense.merchantName}</span>
-                        ) : (
+        {dateGroups.length > 0 ? (
+          dateGroups.map(group => (
+            <div key={group.key} className="date-group">
+              <div className="date-header">
+                {group.label}
+              </div>
+              <div className="date-expenses">
+                {group.expenses.map(expense => (
+                  <div key={expense.id || `${expense.date}-${expense.merchantName}`} className="merchant-group">
+                    <div className="merchant-header">
+                      {expense.merchantName ? (
+                        <span className="merchant-name">{expense.merchantName}</span>
+                      ) : (
                           <span
                             className="merchant-name placeholder-link"
                             onClick={() => setSelectedExpense(expense)}
@@ -1283,10 +1333,10 @@ function ExpensesSummary({
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
+                ))}
               </div>
-            ))
+            </div>
+          ))
         ) : (
           <div className="empty-state-grouped">
             No expenses match your filters yet. Try broadening the range or add a new transaction.
@@ -1511,7 +1561,7 @@ function ExpensesSummary({
               <div className="modal-details">
                 <div className="modal-detail">
                   <span>Date</span>
-                  <strong>{formatDate(selectedExpense.date)}</strong>
+                  <strong>{formatDate(selectedExpense.date || selectedExpense.createdAt || selectedExpense.uploadDate)}</strong>
                 </div>
                 <div className="modal-detail">
                   <span>Total Amount</span>
@@ -1848,7 +1898,7 @@ function ExpensesSummary({
               {selectedExpense && (
                 <div style={{ padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px', marginBottom: '1rem' }}>
                   <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>{selectedExpense.merchantName}</div>
-                  <div style={{ color: '#666', fontSize: '0.9rem' }}>{formatDate(selectedExpense.date)}</div>
+                  <div style={{ color: '#666', fontSize: '0.9rem' }}>{formatDate(selectedExpense.date || selectedExpense.createdAt || selectedExpense.uploadDate)}</div>
                   <div style={{ fontSize: '1.2rem', fontWeight: '600', marginTop: '0.5rem', color: '#dc3545' }}>
                     {formatCurrency(selectedExpense.totalAmount || selectedExpense.amount, selectedExpense.currency)}
                   </div>
