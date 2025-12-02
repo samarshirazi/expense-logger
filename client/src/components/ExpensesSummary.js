@@ -1064,15 +1064,16 @@ function ExpensesSummary({
               <div style={{
                 position: 'absolute',
                 right: 0,
-                top: '100%',
-                marginTop: '8px',
-                backgroundColor: 'white',
-                border: '1px solid #e0e0e0',
-                borderRadius: '12px',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                minWidth: '200px',
-                zIndex: 1000,
-                overflow: 'hidden'
+                top: 'calc(100% + 10px)',
+                background: 'rgba(13, 17, 48, 0.96)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '14px',
+                boxShadow: '0 18px 40px rgba(5, 10, 24, 0.65)',
+                minWidth: '210px',
+                zIndex: 20,
+                overflow: 'hidden',
+                backdropFilter: 'blur(14px)',
+                color: '#f5f6ff'
               }}>
                 <button
                   onClick={() => handleExportOption('csv')}
@@ -1081,15 +1082,20 @@ function ExpensesSummary({
                     width: '100%',
                     padding: '12px 16px',
                     border: 'none',
-                    background: 'none',
+                    background: 'transparent',
                     textAlign: 'left',
                     cursor: 'pointer',
                     fontSize: '14px',
-                    borderBottom: '1px solid #f0f0f0',
-                    transition: 'background 0.2s ease'
+                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    transition: 'background 0.2s ease, color 0.2s ease',
+                    color: '#f5f6ff'
                   }}
-                  onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                  onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                  onMouseOver={(e) => {
+                    e.target.style.backgroundColor = 'rgba(255,255,255,0.08)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.backgroundColor = 'transparent';
+                  }}
                 >
                   📄 Export as CSV
                 </button>
@@ -1104,11 +1110,16 @@ function ExpensesSummary({
                     textAlign: 'left',
                     cursor: 'pointer',
                     fontSize: '14px',
-                    borderBottom: '1px solid #f0f0f0',
-                    transition: 'background 0.2s ease'
+                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    transition: 'background 0.2s ease, color 0.2s ease',
+                    color: '#f5f6ff'
                   }}
-                  onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                  onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                  onMouseOver={(e) => {
+                    e.target.style.backgroundColor = 'rgba(255,255,255,0.08)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.backgroundColor = 'transparent';
+                  }}
                 >
                   📊 Excel (Daily)
                 </button>
@@ -1119,14 +1130,19 @@ function ExpensesSummary({
                     width: '100%',
                     padding: '12px 16px',
                     border: 'none',
-                    background: 'none',
+                    background: 'transparent',
                     textAlign: 'left',
                     cursor: 'pointer',
                     fontSize: '14px',
-                    transition: 'background 0.2s ease'
+                    transition: 'background 0.2s ease, color 0.2s ease',
+                    color: '#f5f6ff'
                   }}
-                  onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                  onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                  onMouseOver={(e) => {
+                    e.target.style.backgroundColor = 'rgba(255,255,255,0.08)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.backgroundColor = 'transparent';
+                  }}
                 >
                   📈 Excel (Monthly)
                 </button>

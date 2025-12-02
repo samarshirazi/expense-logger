@@ -67,10 +67,12 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
   padding-bottom: 4px;
+  scrollbar-color: transparent transparent;
 }
 
 .expenses-header-actions::-webkit-scrollbar {
   display: none;
+  height: 0;
 }
 
 .expenses-header-actions > button,
@@ -1084,11 +1086,13 @@
   }
 
   .expenses-header-actions {
-    gap: 8px;
+    gap: 10px;
     padding-bottom: 8px;
-    margin: 0 -18px;
-    padding-left: 18px;
-    padding-right: 18px;
+    margin: 0;
+    padding-left: 0;
+    padding-right: 0;
+    flex-wrap: wrap;
+    overflow-x: visible;
   }
 
   .expenses-header-actions button {
