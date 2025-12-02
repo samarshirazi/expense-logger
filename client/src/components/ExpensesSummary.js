@@ -717,6 +717,7 @@ function ExpensesSummary({
 
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportButtonRef = useRef(null);
+  const exportMenuRef = useRef(null);
   const [exportMenuPlacement, setExportMenuPlacement] = useState(null);
   const [showFiltersModal, setShowFiltersModal] = useState(false);
 
@@ -775,6 +776,27 @@ function ExpensesSummary({
     return () => {
       window.removeEventListener('resize', updatePlacement);
       window.removeEventListener('scroll', updatePlacement, true);
+    };
+  }, [showExportMenu]);
+
+  useEffect(() => {
+    if (!showExportMenu) {
+      return;
+    }
+
+    const handleOutsideClick = (event) => {
+      if (exportButtonRef.current?.contains(event.target)) {
+        return;
+      }
+      if (exportMenuRef.current?.contains(event.target)) {
+        return;
+      }
+      setShowExportMenu(false);
+    };
+
+    document.addEventListener('pointerdown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsideClick);
     };
   }, [showExportMenu]);
 
@@ -1102,21 +1124,24 @@ function ExpensesSummary({
               📊 Export {showExportMenu ? '▲' : '▼'}
             </button>
             {showExportMenu && (
-              <div style={{
-                position: 'absolute',
-                right: 0,
-                top: 'calc(100% + 12px)',
-                background: 'rgba(8, 9, 28, 0.95)',
-                border: '1px solid rgba(255,255,255,0.15)',
+              <div
+                ref={exportMenuRef}
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: 'calc(100% + 12px)',
+                  background: 'rgba(8, 9, 28, 0.95)',
+                  border: '1px solid rgba(255,255,255,0.15)',
                 borderRadius: '14px',
                 boxShadow: '0 30px 65px rgba(0,0,0,0.55)',
                 minWidth: '220px',
                 zIndex: 2000,
                 overflow: 'hidden',
                 backdropFilter: 'blur(16px)',
-                color: '#f5f6ff',
-                ...(exportMenuPlacement || {})
-              }}>
+                  color: '#f5f6ff',
+                  ...(exportMenuPlacement || {})
+                }}
+              >
                 <button
                   onClick={() => handleExportOption('csv')}
                   style={{

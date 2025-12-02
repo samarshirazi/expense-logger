@@ -50,6 +50,10 @@ function TimeNavigator({
   const [showViewModeMenu, setShowViewModeMenu] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => initialDate || new Date());
   const isFirstRender = useRef(true);
+  const viewModeMenuRef = useRef(null);
+  const adjustButtonRef = useRef(null);
+  const calendarPopupRef = useRef(null);
+  const periodToggleRef = useRef(null);
 
   useEffect(() => {
     if (!adjustEnabled) {
@@ -59,6 +63,48 @@ function TimeNavigator({
       }
     }
   }, [adjustEnabled, setViewMode, timelineState?.viewMode]);
+
+  useEffect(() => {
+    if (!showViewModeMenu) {
+      return;
+    }
+
+    const handleOutside = (event) => {
+      if (viewModeMenuRef.current?.contains(event.target)) {
+        return;
+      }
+      if (adjustButtonRef.current?.contains(event.target)) {
+        return;
+      }
+      setShowViewModeMenu(false);
+    };
+
+    document.addEventListener('pointerdown', handleOutside);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutside);
+    };
+  }, [showViewModeMenu]);
+
+  useEffect(() => {
+    if (!showCalendar) {
+      return;
+    }
+
+    const handleOutside = (event) => {
+      if (calendarPopupRef.current?.contains(event.target)) {
+        return;
+      }
+      if (periodToggleRef.current?.contains(event.target)) {
+        return;
+      }
+      setShowCalendar(false);
+    };
+
+    document.addEventListener('pointerdown', handleOutside);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutside);
+    };
+  }, [showCalendar]);
 
   const effectiveViewMode = adjustEnabled ? viewMode : 'month';
 
@@ -218,7 +264,11 @@ function TimeNavigator({
             ◀
           </button>
 
-          <div className="current-period" onClick={() => setShowCalendar(!showCalendar)}>
+          <div
+            className="current-period"
+            onClick={() => setShowCalendar(!showCalendar)}
+            ref={periodToggleRef}
+          >
             <span className="period-icon">🗓️</span>
             <span className="period-text">{formatCurrentPeriod()}</span>
           </div>
@@ -231,12 +281,16 @@ function TimeNavigator({
         <div className="adjust-btn-container">
           {adjustEnabled && (
             <>
-              <button className="adjust-btn" onClick={() => setShowViewModeMenu(!showViewModeMenu)}>
+              <button
+                className="adjust-btn"
+                onClick={() => setShowViewModeMenu(!showViewModeMenu)}
+                ref={adjustButtonRef}
+              >
                 Adjust
               </button>
 
               {showViewModeMenu && (
-                <div className="view-mode-menu">
+                <div className="view-mode-menu" ref={viewModeMenuRef}>
                   <button
                     className={viewMode === 'month' ? 'active' : ''}
                     onClick={() => {
@@ -272,7 +326,7 @@ function TimeNavigator({
       </div>
 
       {showCalendar && (
-        <div className="calendar-popup">
+        <div className="calendar-popup" ref={calendarPopupRef}>
           <div className="calendar-header">
             <button className="cal-nav-btn" onClick={() => navigateCalendarMonth(-1)}>
               ◀
