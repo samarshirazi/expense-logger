@@ -1064,15 +1064,15 @@ function ExpensesSummary({
               <div style={{
                 position: 'absolute',
                 right: 0,
-                top: 'calc(100% + 10px)',
-                background: 'rgba(13, 17, 48, 0.96)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                top: 'calc(100% + 12px)',
+                background: 'rgba(8, 9, 28, 0.95)',
+                border: '1px solid rgba(255,255,255,0.15)',
                 borderRadius: '14px',
-                boxShadow: '0 18px 40px rgba(5, 10, 24, 0.65)',
-                minWidth: '210px',
-                zIndex: 20,
+                boxShadow: '0 30px 65px rgba(0,0,0,0.55)',
+                minWidth: '220px',
+                zIndex: 2000,
                 overflow: 'hidden',
-                backdropFilter: 'blur(14px)',
+                backdropFilter: 'blur(16px)',
                 color: '#f5f6ff'
               }}>
                 <button
@@ -1088,7 +1088,10 @@ function ExpensesSummary({
                     fontSize: '14px',
                     borderBottom: '1px solid rgba(255,255,255,0.08)',
                     transition: 'background 0.2s ease, color 0.2s ease',
-                    color: '#f5f6ff'
+                    color: '#f5f6ff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
                   }}
                   onMouseOver={(e) => {
                     e.target.style.backgroundColor = 'rgba(255,255,255,0.08)';
@@ -1097,7 +1100,8 @@ function ExpensesSummary({
                     e.target.style.backgroundColor = 'transparent';
                   }}
                 >
-                  📄 Export as CSV
+                  <span style={{ fontSize: '1rem' }}>📄</span>
+                  <span>Export as CSV</span>
                 </button>
                 <button
                   onClick={() => handleExportOption('excel-daily')}
@@ -1112,7 +1116,10 @@ function ExpensesSummary({
                     fontSize: '14px',
                     borderBottom: '1px solid rgba(255,255,255,0.08)',
                     transition: 'background 0.2s ease, color 0.2s ease',
-                    color: '#f5f6ff'
+                    color: '#f5f6ff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
                   }}
                   onMouseOver={(e) => {
                     e.target.style.backgroundColor = 'rgba(255,255,255,0.08)';
@@ -1121,7 +1128,8 @@ function ExpensesSummary({
                     e.target.style.backgroundColor = 'transparent';
                   }}
                 >
-                  📊 Excel (Daily)
+                  <span style={{ fontSize: '1rem' }}>📊</span>
+                  <span>Excel (Daily)</span>
                 </button>
                 <button
                   onClick={() => handleExportOption('excel-monthly')}
@@ -1135,7 +1143,10 @@ function ExpensesSummary({
                     cursor: 'pointer',
                     fontSize: '14px',
                     transition: 'background 0.2s ease, color 0.2s ease',
-                    color: '#f5f6ff'
+                    color: '#f5f6ff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
                   }}
                   onMouseOver={(e) => {
                     e.target.style.backgroundColor = 'rgba(255,255,255,0.08)';
@@ -1144,7 +1155,8 @@ function ExpensesSummary({
                     e.target.style.backgroundColor = 'transparent';
                   }}
                 >
-                  📈 Excel (Monthly)
+                  <span style={{ fontSize: '1rem' }}>📈</span>
+                  <span>Excel (Monthly)</span>
                 </button>
               </div>
             )}
