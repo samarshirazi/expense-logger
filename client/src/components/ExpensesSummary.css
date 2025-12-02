@@ -62,7 +62,34 @@
   gap: 10px;
   flex-wrap: nowrap;
   overflow: visible;
+  position: relative;
   padding-bottom: 4px;
+}
+
+.expenses-header-actions::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(9, 9, 26, 0), rgba(9, 9, 26, 0.65));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.expenses-header-actions::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 16px;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(9, 9, 26, 0.65), rgba(9, 9, 26, 0));
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .expenses-header-actions > button,
@@ -1077,12 +1104,55 @@
 
   .expenses-header-actions {
     gap: 10px;
-    padding-bottom: 8px;
-    margin: 0;
-    padding-left: 0;
-    padding-right: 0;
-    flex-wrap: wrap;
-    overflow-x: visible;
+    padding-bottom: 12px;
+    margin: 0 -12px;
+    padding-left: 12px;
+    padding-right: 12px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  }
+
+  .expenses-header-actions::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .expenses-header-actions::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .expenses-header-actions::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+  }
+
+  .expenses-header-actions::before,
+  .expenses-header-actions::after {
+    background: none;
+    opacity: 1;
+  }
+
+  .expenses-header-actions::before {
+    width: 36px;
+    content: '⇠';
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .expenses-header-actions::after {
+    width: 36px;
+    content: '⇢';
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .expenses-header-actions button {
