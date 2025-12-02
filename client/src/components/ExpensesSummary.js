@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import './ExpensesSummary.css';
 import { updateExpense, deleteExpense } from '../services/apiService';
@@ -716,6 +716,8 @@ function ExpensesSummary({
   };
 
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportButtonRef = useRef(null);
+  const [exportMenuPlacement, setExportMenuPlacement] = useState(null);
   const [showFiltersModal, setShowFiltersModal] = useState(false);
 
   const handleExport = () => {
@@ -736,6 +738,45 @@ function ExpensesSummary({
       exportToExcelMonthly();
     }
   };
+  
+  useEffect(() => {
+    if (!showExportMenu) {
+      setExportMenuPlacement(null);
+      return;
+    }
+
+    const updatePlacement = () => {
+      if (!exportButtonRef.current) {
+        return;
+      }
+      const rect = exportButtonRef.current.getBoundingClientRect();
+      const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+      const isMobile = viewportWidth <= 768;
+      if (isMobile) {
+        const menuWidth = 240;
+        const left = Math.min(rect.left, viewportWidth - menuWidth - 12);
+
+        setExportMenuPlacement({
+          position: 'fixed',
+          top: rect.bottom + 12,
+          left,
+          right: 'auto'
+        });
+      } else {
+        setExportMenuPlacement(null);
+      }
+    };
+
+    updatePlacement();
+
+    window.addEventListener('resize', updatePlacement);
+    window.addEventListener('scroll', updatePlacement, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePlacement);
+      window.removeEventListener('scroll', updatePlacement, true);
+    };
+  }, [showExportMenu]);
 
   const handleEditFieldChange = (field, value) => {
     setEditForm(prev => ({ ...prev, [field]: value }));
@@ -1030,7 +1071,7 @@ function ExpensesSummary({
             🔄 Recurring
           </button>
 
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative' }} ref={exportButtonRef}>
             <button
               type="button"
               onClick={handleExport}
@@ -1073,7 +1114,8 @@ function ExpensesSummary({
                 zIndex: 2000,
                 overflow: 'hidden',
                 backdropFilter: 'blur(16px)',
-                color: '#f5f6ff'
+                color: '#f5f6ff',
+                ...(exportMenuPlacement || {})
               }}>
                 <button
                   onClick={() => handleExportOption('csv')}
