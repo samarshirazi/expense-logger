@@ -1078,7 +1078,6 @@ function ExpensesSummary({
                 <button
                   onClick={() => handleExportOption('csv')}
                   style={{
-                    display: 'block',
                     width: '100%',
                     padding: '12px 16px',
                     border: 'none',
@@ -1106,11 +1105,10 @@ function ExpensesSummary({
                 <button
                   onClick={() => handleExportOption('excel-daily')}
                   style={{
-                    display: 'block',
                     width: '100%',
                     padding: '12px 16px',
                     border: 'none',
-                    background: 'none',
+                    background: 'transparent',
                     textAlign: 'left',
                     cursor: 'pointer',
                     fontSize: '14px',
@@ -1134,7 +1132,6 @@ function ExpensesSummary({
                 <button
                   onClick={() => handleExportOption('excel-monthly')}
                   style={{
-                    display: 'block',
                     width: '100%',
                     padding: '12px 16px',
                     border: 'none',
