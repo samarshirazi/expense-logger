@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useHousehold } from '../../contexts/HouseholdContext';
 import {
   listShoppingLists,
@@ -6,6 +6,10 @@ import {
   deleteShoppingList,
   updateShoppingList,
 } from '../../services/householdApi';
+import {
+  useShoppingItemsRealtime,
+  useShoppingListsRealtime,
+} from '../../hooks/useShoppingRealtime';
 
 const STORE_PRESETS = [
   { name: 'Walmart', icon: '🛒' },
@@ -42,6 +46,38 @@ export default function ShoppingListsHome({ onOpenList }) {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeHouseholdId]);
+
+  // Live: update card counts when items change anywhere in the household.
+  const onItemChange = useCallback((payload) => {
+    const newRow = payload.new;
+    const oldRow = payload.old;
+    setLists((prev) =>
+      prev.map((l) => {
+        const isInsertHere = payload.eventType === 'INSERT' && newRow?.list_id === l.id;
+        const isDeleteHere = payload.eventType === 'DELETE' && oldRow?.list_id === l.id;
+        const isUpdateHere = payload.eventType === 'UPDATE' && newRow?.list_id === l.id;
+        if (!isInsertHere && !isDeleteHere && !isUpdateHere) return l;
+        let total = l.item_count || 0;
+        let purchased = l.purchased_count || 0;
+        if (isInsertHere) {
+          total += 1;
+          if (newRow.purchased) purchased += 1;
+        } else if (isDeleteHere) {
+          total = Math.max(0, total - 1);
+          if (oldRow.purchased) purchased = Math.max(0, purchased - 1);
+        } else if (isUpdateHere && oldRow?.purchased !== newRow?.purchased) {
+          if (newRow.purchased) purchased += 1;
+          else purchased = Math.max(0, purchased - 1);
+        }
+        return { ...l, item_count: total, purchased_count: purchased };
+      })
+    );
+  }, []);
+  useShoppingItemsRealtime(activeHouseholdId, onItemChange);
+
+  // Live: a list created/archived/renamed elsewhere → re-fetch (rare; cheap).
+  const onListChange = useCallback(() => { refresh(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useShoppingListsRealtime(activeHouseholdId, onListChange);
 
   async function handleCreate(e) {
     e.preventDefault();

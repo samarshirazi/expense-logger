@@ -7,10 +7,17 @@ const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 let supabase = null;
 
 if (supabaseUrl && supabaseAnonKey) {
-  supabase = createClient(supabaseUrl, supabaseAnonKey);
+  supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: true, autoRefreshToken: true },
+    realtime: { params: { eventsPerSecond: 10 } },
+  });
 } else {
   console.warn('Supabase configuration missing. Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY');
 }
+
+// Re-export the shared client so realtime subscriptions inherit the same
+// auth session this service maintains.
+export { supabase };
 
 // Auth context and user management
 class AuthService {

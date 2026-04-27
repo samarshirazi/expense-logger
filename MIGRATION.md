@@ -68,15 +68,15 @@ For every existing user who isn't yet in a household, this:
 This is also idempotent — re-running only processes users still without a
 household.
 
-## Step 3 — (later) Generate VAPID keys for push notifications
+## Step 3 — Generate VAPID keys for push notifications
 
-When you're ready to test push, generate a keypair:
+Web Push (Phase 5) needs a VAPID keypair. Generate one:
 
 ```bash
 npx web-push generate-vapid-keys
 ```
 
-Paste the output into `.env`:
+Paste into `.env`:
 
 ```
 VAPID_PUBLIC_KEY=...
@@ -84,6 +84,25 @@ VAPID_PRIVATE_KEY=...
 VAPID_SUBJECT=mailto:you@yourdomain.com
 REACT_APP_VAPID_PUBLIC_KEY=<same as VAPID_PUBLIC_KEY>
 ```
+
+Without these, the "In-store mode" toggle is hidden and adds-by-other-members
+won't send pushes. The rest of the app keeps working.
+
+## Step 4 — Realtime sync
+
+The migration in Step 1 already adds `shopping_list_items` and
+`shopping_lists` to the `supabase_realtime` publication, so live updates
+work out of the box. No extra config needed beyond having
+`REACT_APP_SUPABASE_URL` and `REACT_APP_SUPABASE_ANON_KEY` set in your
+client `.env` (which you already have for auth).
+
+If you ever need to verify, run:
+```sql
+SELECT pubname, tablename FROM pg_publication_tables
+ WHERE pubname = 'supabase_realtime'
+   AND tablename IN ('shopping_list_items', 'shopping_lists');
+```
+You should see two rows.
 
 ## Verify
 

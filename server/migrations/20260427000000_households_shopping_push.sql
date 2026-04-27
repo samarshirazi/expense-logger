@@ -295,7 +295,26 @@ CREATE TRIGGER update_shopping_list_items_updated_at
   EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================
--- SECTION 6: COMMENTS
+-- SECTION 6: REALTIME (Supabase publication)
+-- ============================================================
+-- Enable Postgres logical replication for these tables so the client can
+-- subscribe to live changes. Wrapped in DO blocks for idempotency — adding
+-- a table that's already in the publication raises an error.
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE shopping_list_items;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE shopping_lists;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- ============================================================
+-- SECTION 7: COMMENTS
 -- ============================================================
 
 COMMENT ON TABLE households IS 'Top-level multi-user grouping (e.g., a family or business).';

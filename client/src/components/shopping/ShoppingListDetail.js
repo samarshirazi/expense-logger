@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   getShoppingList,
   addShoppingItems,
   updateShoppingItem,
   deleteShoppingItem,
 } from '../../services/householdApi';
+import { useShoppingItemsRealtime } from '../../hooks/useShoppingRealtime';
+import InStoreToggle from './InStoreToggle';
 
 export default function ShoppingListDetail({ listId, onBack, onOpenVoice }) {
   const [list, setList] = useState(null);
@@ -30,6 +32,34 @@ export default function ShoppingListDetail({ listId, onBack, onOpenVoice }) {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listId]);
+
+  // Live updates from other devices in this household.
+  const handleRealtime = useCallback(
+    (payload) => {
+      const row = payload.new || payload.old;
+      if (!row || row.list_id !== listId) return;
+      setList((prev) => {
+        if (!prev) return prev;
+        const items = prev.items || [];
+        if (payload.eventType === 'INSERT') {
+          if (items.some((it) => it.id === payload.new.id)) return prev;
+          return { ...prev, items: [...items, payload.new] };
+        }
+        if (payload.eventType === 'UPDATE') {
+          return {
+            ...prev,
+            items: items.map((it) => (it.id === payload.new.id ? payload.new : it)),
+          };
+        }
+        if (payload.eventType === 'DELETE') {
+          return { ...prev, items: items.filter((it) => it.id !== payload.old.id) };
+        }
+        return prev;
+      });
+    },
+    [listId]
+  );
+  useShoppingItemsRealtime(list?.household_id, handleRealtime);
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -96,11 +126,14 @@ export default function ShoppingListDetail({ listId, onBack, onOpenVoice }) {
         <h1>
           <span className="store-icon">{list.store_icon || '🛒'}</span> {list.name}
         </h1>
-        {onOpenVoice && (
-          <button type="button" className="primary voice-btn" onClick={() => onOpenVoice(list.id)}>
-            🎤 Voice add
-          </button>
-        )}
+        <div className="detail-header-actions">
+          <InStoreToggle listId={list.id} />
+          {onOpenVoice && (
+            <button type="button" className="primary voice-btn" onClick={() => onOpenVoice(list.id)}>
+              🎤 Voice add
+            </button>
+          )}
+        </div>
       </header>
 
       <form className="add-item-row" onSubmit={handleAdd}>
