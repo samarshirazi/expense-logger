@@ -482,9 +482,11 @@ export async function unsubscribeFromPushNotifications(registration) {
  */
 export async function sendSubscriptionToServer(subscription, token) {
   try {
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
-    const response = await fetch(`${apiUrl}/api/notifications/subscribe`, {
+    // Use relative '/api' so this works in both dev (CRA proxy) and prod
+    // (Vercel rewrites /api/* → api/index.js). Hardcoding localhost:5000
+    // broke push subscribe in production because REACT_APP_API_URL isn't
+    // set on Vercel.
+    const response = await fetch(`/api/notifications/subscribe`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

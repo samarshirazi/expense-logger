@@ -44,8 +44,7 @@ function NotificationDebug() {
         throw new Error('Not logged in. Please sign in first.');
       }
 
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-      const response = await fetch(`${apiUrl}/api/notifications/test`, {
+      const response = await fetch(`/api/notifications/test`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
