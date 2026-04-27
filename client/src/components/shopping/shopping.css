@@ -325,8 +325,25 @@ button.link-danger { background: transparent; border: none; color: #dc2626; curs
   border: 1px solid #d1d5db;
   border-radius: 8px;
   background: #fff;
+  color: #1f2937;
   cursor: pointer;
   font-size: 14px;
+}
+/* Restore primary styling that the rule above accidentally clobbers */
+.modal-actions button.primary {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+.modal-actions button.primary:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+.modal-actions button.primary:disabled {
+  opacity: 0.5;
+}
+.modal-actions button.danger {
+  color: #dc2626;
 }
 
 .preset-row { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -471,4 +488,159 @@ button.link-danger { background: transparent; border: none; color: #dc2626; curs
     grid-template-columns: 1fr 50px 60px auto;
   }
   .confirm-list { grid-column: 1 / -1; }
+}
+
+/* ============================================================
+   Dark-theme contrast overrides
+   The shopping module was originally styled for a light page
+   background, but the app's outer shell uses a dark gradient.
+   These rules lighten only the text that sits on the page bg
+   (NOT text inside white cards / inputs / modals — those keep
+   their dark colors and stay readable on white).
+   ============================================================ */
+
+/* Page-level (outside white cards) text uses light fg.
+   Don't set color on .shopping-hub itself — that would cascade into
+   the white .shopping-list-card content and make titles invisible. */
+
+/* Section headers + section subtitles on the page */
+.shopping-hub-header,
+.shopping-home-header h1,
+.shopping-home-header h2,
+.shopping-home-header p,
+.shopping-home > header,
+.shopping-home-header,
+.household-switcher,
+.household-switcher select {
+  color: #f3f4f6;
+}
+
+/* Household name text */
+.household-switcher .single,
+.household-switcher span:not(.muted) {
+  color: #f9fafb;
+  font-weight: 500;
+}
+
+/* Generic .muted utility — darker on light cards stays readable;
+   we only lighten when it lives at the page level (direct child of
+   .shopping-hub or .shopping-home, NOT inside .list-card / .modal). */
+.shopping-hub > .muted,
+.shopping-hub-header .muted,
+.shopping-home > .muted,
+.shopping-home-header .muted,
+.household-switcher .muted {
+  color: #d1d5db;
+}
+
+/* Inactive tab buttons (Lists / Members) */
+.shopping-hub-nav button {
+  color: #e5e7eb;
+}
+.shopping-hub-nav button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* HouseholdSwitcher select needs a darker fg on white bg — keep it dark */
+.household-switcher select {
+  color: #1f2937;
+}
+
+/* Empty-state text on page bg */
+.empty-state {
+  color: #d1d5db;
+}
+
+/* ShoppingListDetail page-level text (the wrapper sits on the dark bg).
+   Inputs and the items list itself are inside white surfaces and stay
+   dark — only the header / list title / "back" link / progress label
+   need to lighten. */
+.shopping-detail {
+  color: #f3f4f6;
+}
+.shopping-detail-header h1,
+.shopping-detail-header h2 {
+  color: #f9fafb;
+}
+.shopping-detail .progress-label,
+.shopping-detail > .muted,
+.shopping-detail-header .muted {
+  color: #d1d5db;
+}
+.shopping-detail .link-back {
+  color: #93c5fd;
+}
+.shopping-detail .link-back:hover {
+  color: #bfdbfe;
+}
+
+/* HouseholdMembers page-level text */
+.household-members { color: #f3f4f6; }
+.members-header h1,
+.members-header h2,
+.invite-section h2,
+.invite-section h3,
+.members-section h2,
+.members-section h3,
+.invites-section h2,
+.invites-section h3 {
+  color: #f9fafb;
+}
+.household-members > .muted,
+.members-header .muted,
+.invite-section > .muted,
+.members-section > .muted,
+.invites-section > .muted {
+  color: #d1d5db;
+}
+
+/* InStoreToggle text label */
+.in-store-toggle .toggle-label {
+  color: #e5e7eb;
+}
+
+/* Pin dark text inside white surfaces so a future cascading
+   page-level color change can't render them invisible. */
+.shopping-list-card,
+.shopping-list-card h3,
+.shopping-list-card .store-meta,
+.modal,
+.modal h2,
+.modal h3,
+.modal label,
+.add-item-row,
+.confirm-row {
+  color: #1f2937;
+}
+.shopping-list-card .muted,
+.modal .muted {
+  color: #6b7280;
+}
+
+/* ShoppingListDetail content area — items + section headers actually
+   sit directly on the dark page bg, NOT inside white cards. So they
+   need light text. (Inputs inside .add-item-row have their own
+   light/white styles already — leave those alone.) */
+.shopping-detail .items-section h3 {
+  color: #d1d5db;
+}
+.shopping-detail .item-name {
+  color: #f9fafb;
+}
+.shopping-detail .item-name.strikethrough {
+  color: #9ca3af; /* keep dim once purchased */
+}
+.shopping-detail .item-qty,
+.shopping-detail .item-notes {
+  color: #cbd5e1;
+}
+.shopping-detail .item-row {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.shopping-detail .empty-state {
+  color: #d1d5db;
+}
+/* "Hide" toggle link next to PURCHASED */
+.shopping-detail .section-header .link {
+  color: #93c5fd;
 }

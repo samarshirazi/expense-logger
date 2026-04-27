@@ -16,7 +16,8 @@ function getNetworkIP() {
 }
 
 const networkIP = getNetworkIP();
-const apiTarget = `http://${networkIP}:5000`;
+const apiPort = process.env.API_PROXY_PORT || '5001';
+const apiTarget = `http://${networkIP}:${apiPort}`;
 
 console.log('🌐 Proxy target:', apiTarget);
 
