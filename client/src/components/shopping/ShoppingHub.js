@@ -5,6 +5,7 @@ import HouseholdSwitcher from './HouseholdSwitcher';
 import ShoppingListsHome from './ShoppingListsHome';
 import ShoppingListDetail from './ShoppingListDetail';
 import HouseholdMembers from './HouseholdMembers';
+import VoiceAddModal from './VoiceAddModal';
 import './shopping.css';
 
 /**
@@ -12,9 +13,11 @@ import './shopping.css';
  * sub-view to render based on local state. App.js mounts this when
  * activeView === 'shopping'.
  */
-export default function ShoppingHub({ onOpenVoice }) {
+export default function ShoppingHub() {
   const { households, loading, activeHousehold } = useHousehold();
   const [view, setView] = useState({ name: 'lists' });
+  const [voiceListId, setVoiceListId] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   if (loading && households.length === 0) {
     return <p className="muted">Loading households…</p>;
@@ -50,19 +53,30 @@ export default function ShoppingHub({ onOpenVoice }) {
 
       {activeHousehold && view.name === 'lists' && (
         <ShoppingListsHome
+          key={refreshKey}
           onOpenList={(listId) => setView({ name: 'detail', listId })}
         />
       )}
 
       {activeHousehold && view.name === 'detail' && (
         <ShoppingListDetail
+          key={`${view.listId}-${refreshKey}`}
           listId={view.listId}
           onBack={() => setView({ name: 'lists' })}
-          onOpenVoice={onOpenVoice ? () => onOpenVoice(view.listId) : null}
+          onOpenVoice={(listId) => setVoiceListId(listId)}
         />
       )}
 
       {activeHousehold && view.name === 'members' && <HouseholdMembers />}
+
+      {voiceListId && (
+        <VoiceAddModal
+          initialListId={voiceListId}
+          onClose={() => setVoiceListId(null)}
+          onSaved={() => setRefreshKey((k) => k + 1)}
+        />
+      )}
     </div>
   );
 }
+
