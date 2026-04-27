@@ -11,6 +11,9 @@ import SpendingSummary from './components/SpendingSummary';
 import CategoryBudgets from './components/CategoryBudgets';
 import RecurringExpenses from './components/RecurringExpenses';
 import GroceryListPage from './components/GroceryListPage';
+import ShoppingHub from './components/shopping/ShoppingHub';
+import InviteAcceptHandler from './components/shopping/InviteAcceptHandler';
+import { HouseholdProvider } from './contexts/HouseholdContext';
 import Auth from './components/Auth';
 import NotificationPrompt from './components/NotificationPrompt';
 import TimeNavigator from './components/TimeNavigator';
@@ -62,7 +65,8 @@ function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
-  const [activeView, setActiveView] = useState('expenses'); // 'expenses', 'categories', 'overview', 'log', 'settings'
+  const [pendingInviteCode, setPendingInviteCode] = useState(null);
+  const [activeView, setActiveView] = useState('expenses'); // 'expenses', 'categories', 'overview', 'log', 'shopping', 'settings'
   const [showSummary, setShowSummary] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showOptionsButton, setShowOptionsButton] = useState(true);
@@ -144,6 +148,30 @@ function App() {
     }
     loadCategoryBudgets();
   }, [user, loadCategoryBudgets]);
+
+  // Detect ?invite=<code> in the URL once the user is signed in.
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get('invite');
+      if (code) setPendingInviteCode(code);
+    } catch {
+      /* ignore malformed URLs */
+    }
+  }, [user]);
+
+  const handleInviteDone = useCallback(() => {
+    setPendingInviteCode(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('invite');
+      window.history.replaceState({}, '', url.toString());
+    } catch {
+      /* ignore */
+    }
+    setActiveView('shopping');
+  }, []);
 
   useEffect(() => {
     const handleBudgetsUpdated = () => {
@@ -1052,6 +1080,10 @@ function App() {
   };
 
   return (
+    <HouseholdProvider user={user}>
+      {pendingInviteCode && (
+        <InviteAcceptHandler code={pendingInviteCode} onDone={handleInviteDone} />
+      )}
     <div className="app-layout">
       <Sidebar
         activeView={activeView}
@@ -1164,6 +1196,12 @@ function App() {
           </div>
         )}
 
+        {activeView === 'shopping' && (
+          <div className="view-container no-timeline">
+            <ShoppingHub />
+          </div>
+        )}
+
         {activeView === 'log' && (
           <div className="view-container no-timeline">
             {renderOptionsToggleButton('inline')}
@@ -1243,6 +1281,7 @@ function App() {
         </button>
       )}
     </div>
+    </HouseholdProvider>
   );
 }
 

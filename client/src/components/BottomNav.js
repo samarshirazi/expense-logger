@@ -4,6 +4,7 @@ import './BottomNav.css';
 function BottomNav({ activeView, onViewChange, showNav, onCoachToggle, coachHasUnread }) {
   const navItems = [
     { id: 'expenses', icon: '💰', label: 'Expenses' },
+    { id: 'shopping', icon: '🛒', label: 'Shopping' },
     { id: 'overview', icon: '📈', label: 'Overview' },
     { id: 'log', icon: '🧾', label: 'Log' },
     { id: 'coach', icon: '🤖', label: 'AI Coach', isCoach: true }
