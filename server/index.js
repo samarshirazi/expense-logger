@@ -22,7 +22,17 @@ const {
   saveRecurringExpense, getRecurringExpenses, updateRecurringExpense, deleteRecurringExpense, processRecurringExpenses
 } = require('./services/supabaseService');
 const { signUp, signIn, signOut, requireAuth } = require('./services/authService');
-const { saveSubscription, sendPushToUser, createPushSubscriptionsTable } = require('./services/notificationService');
+const {
+  saveSubscription,
+  sendPushToUser,
+  createPushSubscriptionsTable,
+  sendPushToHousehold,
+  setInStoreMode,
+} = require('./services/notificationService');
+const householdService = require('./services/householdService');
+const shoppingListService = require('./services/shoppingListService');
+const voiceInputService = require('./services/voiceInputService');
+const { sendInviteEmail } = require('./services/emailService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -1681,6 +1691,347 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch transactions', details: error.message });
   }
 });
+
+// ============================================================
+// Households + Multi-list Shopping + Push (Phase 2)
+// ============================================================
+
+// Audio uploads for the voice → shopping-list endpoint.
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (_, file, cb) => {
+    if (/^audio\//i.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Only audio uploads are allowed'));
+  },
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15 MB
+});
+
+// Wrap async handlers so thrown errors flow to the global error handler.
+const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
+// Resolves the household scope for a request:
+//   1. ?household_id=...   (query)
+//   2. X-Household-Id header
+function getRequestHouseholdId(req) {
+  const id = req.query.household_id || req.headers['x-household-id'];
+  if (!id) {
+    const e = new Error('Missing household context (X-Household-Id header)');
+    e.status = 400;
+    throw e;
+  }
+  return String(id);
+}
+
+// ---------- Households ----------
+
+app.get(
+  '/api/households',
+  requireAuth,
+  ah(async (req, res) => {
+    const list = await householdService.listHouseholdsForUser(req.user.id);
+    res.json(list);
+  })
+);
+
+app.post(
+  '/api/households',
+  requireAuth,
+  ah(async (req, res) => {
+    const created = await householdService.createHousehold(req.user.id, req.body?.name);
+    res.status(201).json(created);
+  })
+);
+
+app.patch(
+  '/api/households/:id',
+  requireAuth,
+  ah(async (req, res) => {
+    const updated = await householdService.updateHousehold(
+      req.user.id,
+      req.params.id,
+      req.body || {}
+    );
+    res.json(updated);
+  })
+);
+
+app.delete(
+  '/api/households/:id',
+  requireAuth,
+  ah(async (req, res) => {
+    await householdService.deleteHousehold(req.user.id, req.params.id);
+    res.json({ success: true });
+  })
+);
+
+// ---------- Members ----------
+
+app.get(
+  '/api/households/:id/members',
+  requireAuth,
+  ah(async (req, res) => {
+    const members = await householdService.listMembers(req.user.id, req.params.id);
+    res.json(members);
+  })
+);
+
+app.patch(
+  '/api/households/:id/members/:userId',
+  requireAuth,
+  ah(async (req, res) => {
+    const updated = await householdService.updateMemberRole(
+      req.user.id,
+      req.params.id,
+      req.params.userId,
+      req.body?.role
+    );
+    res.json(updated);
+  })
+);
+
+app.delete(
+  '/api/households/:id/members/:userId',
+  requireAuth,
+  ah(async (req, res) => {
+    await householdService.removeMember(req.user.id, req.params.id, req.params.userId);
+    res.json({ success: true });
+  })
+);
+
+// ---------- Invites (admin-side) ----------
+
+app.get(
+  '/api/households/:id/invites',
+  requireAuth,
+  ah(async (req, res) => {
+    const invites = await householdService.listInvites(req.user.id, req.params.id);
+    res.json(invites);
+  })
+);
+
+app.post(
+  '/api/households/:id/invites',
+  requireAuth,
+  ah(async (req, res) => {
+    const { email, role } = req.body || {};
+    const invite = await householdService.createInvite(
+      req.user.id,
+      req.params.id,
+      email,
+      role || 'member'
+    );
+
+    // Look up household + inviter email for nicer copy
+    const households = await householdService.listHouseholdsForUser(req.user.id);
+    const householdName =
+      households.find((h) => h.id === req.params.id)?.name || 'Your household';
+
+    const result = await sendInviteEmail({
+      to: invite.email,
+      householdName,
+      inviterEmail: req.user.email,
+      code: invite.code,
+      role: invite.role,
+    });
+
+    res.status(201).json({
+      invite,
+      url: result.url,
+      email_delivered: result.delivered,
+    });
+  })
+);
+
+app.delete(
+  '/api/households/:id/invites/:inviteId',
+  requireAuth,
+  ah(async (req, res) => {
+    await householdService.revokeInvite(req.user.id, req.params.id, req.params.inviteId);
+    res.json({ success: true });
+  })
+);
+
+// ---------- Invites (invitee-side) ----------
+
+app.get(
+  '/api/invites/:code',
+  ah(async (req, res) => {
+    const preview = await householdService.previewInvite(req.params.code);
+    res.json(preview);
+  })
+);
+
+app.post(
+  '/api/invites/:code/accept',
+  requireAuth,
+  ah(async (req, res) => {
+    const result = await householdService.acceptInvite(
+      req.user.id,
+      req.user.email,
+      req.params.code
+    );
+    res.json(result);
+  })
+);
+
+// ---------- Shopping lists ----------
+
+app.get(
+  '/api/shopping-lists',
+  requireAuth,
+  ah(async (req, res) => {
+    const householdId = getRequestHouseholdId(req);
+    const lists = await shoppingListService.listListsForHousehold(req.user.id, householdId, {
+      includeArchived: req.query.archived === 'true',
+    });
+    res.json(lists);
+  })
+);
+
+app.post(
+  '/api/shopping-lists',
+  requireAuth,
+  ah(async (req, res) => {
+    const householdId = getRequestHouseholdId(req);
+    const created = await shoppingListService.createList(
+      req.user.id,
+      householdId,
+      req.body || {}
+    );
+    res.status(201).json(created);
+  })
+);
+
+app.get(
+  '/api/shopping-lists/:id',
+  requireAuth,
+  ah(async (req, res) => {
+    const list = await shoppingListService.getListWithItems(req.user.id, req.params.id);
+    res.json(list);
+  })
+);
+
+app.patch(
+  '/api/shopping-lists/:id',
+  requireAuth,
+  ah(async (req, res) => {
+    const updated = await shoppingListService.updateList(
+      req.user.id,
+      req.params.id,
+      req.body || {}
+    );
+    res.json(updated);
+  })
+);
+
+app.delete(
+  '/api/shopping-lists/:id',
+  requireAuth,
+  ah(async (req, res) => {
+    await shoppingListService.deleteList(req.user.id, req.params.id);
+    res.json({ success: true });
+  })
+);
+
+// ---------- Shopping list items ----------
+
+app.post(
+  '/api/shopping-lists/:id/items',
+  requireAuth,
+  ah(async (req, res) => {
+    const { items, item } = req.body || {};
+    const rows = Array.isArray(items) ? items : item ? [item] : [];
+    const created = await shoppingListService.addItems(req.user.id, req.params.id, rows);
+
+    // Notify other household members (best-effort)
+    if (created.length > 0) {
+      const householdId = created[0].household_id;
+      const summary =
+        created.length === 1
+          ? `${req.user.email || 'Someone'} added ${created[0].name}`
+          : `${req.user.email || 'Someone'} added ${created.length} items`;
+      sendPushToHousehold(
+        householdId,
+        {
+          title: 'Shopping list updated',
+          body: summary,
+          tag: `shopping-list-${req.params.id}`,
+          data: { listId: req.params.id, itemIds: created.map((c) => c.id) },
+        },
+        { excludeUserId: req.user.id, listId: req.params.id }
+      ).catch((e) => console.error('Push dispatch failed:', e.message));
+    }
+    res.status(201).json({ items: created });
+  })
+);
+
+app.patch(
+  '/api/shopping-list-items/:id',
+  requireAuth,
+  ah(async (req, res) => {
+    const updated = await shoppingListService.updateItem(
+      req.user.id,
+      req.params.id,
+      req.body || {}
+    );
+    res.json(updated);
+  })
+);
+
+app.delete(
+  '/api/shopping-list-items/:id',
+  requireAuth,
+  ah(async (req, res) => {
+    await shoppingListService.deleteItem(req.user.id, req.params.id);
+    res.json({ success: true });
+  })
+);
+
+// ---------- Voice → parsed items (NO save; user confirms first) ----------
+
+app.post(
+  '/api/shopping-lists/voice',
+  requireAuth,
+  audioUpload.single('audio'),
+  ah(async (req, res) => {
+    if (!req.file) {
+      const e = new Error('Audio file is required (field name: "audio")');
+      e.status = 400;
+      throw e;
+    }
+    const householdId = getRequestHouseholdId(req);
+    await householdService.requireMember(householdId, req.user.id);
+
+    // Pass known list names so the AI can suggest a target list
+    const lists = await shoppingListService.listListsForHousehold(req.user.id, householdId);
+    const result = await voiceInputService.transcribeAndParse(
+      req.file.buffer,
+      req.file.originalname || 'audio.webm',
+      lists
+    );
+    res.json(result);
+  })
+);
+
+// ---------- Push: in-store mode toggle ----------
+
+app.post(
+  '/api/push/in-store-mode',
+  requireAuth,
+  ah(async (req, res) => {
+    const { endpoint, active, listId } = req.body || {};
+    if (!endpoint) {
+      const e = new Error('endpoint is required');
+      e.status = 400;
+      throw e;
+    }
+    const updated = await setInStoreMode(req.user.id, endpoint, {
+      active: !!active,
+      listId: listId || null,
+    });
+    res.json(updated);
+  })
+);
 
 app.get('/health', (_, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });

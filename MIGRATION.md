@@ -19,6 +19,15 @@ If `DATABASE_URL` is not yet in your `.env`, copy it from `.env.example` and
 fill it in. You'll also want to add the new entries `RESEND_API_KEY`,
 `INVITE_FROM_EMAIL`, and `APP_URL` for invite emails to work.
 
+## Step 0 — Install new dependencies
+
+Phase 2 adds `pg` (used by the migration scripts) and `resend` (invite
+emails). From `server/`:
+
+```bash
+cd server && npm install
+```
+
 ## Step 1 — Create the new tables
 
 ```bash

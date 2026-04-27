@@ -252,11 +252,85 @@ CREATE POLICY "Users can delete their own subscriptions"
   }
 }
 
+/**
+ * Set or clear "in-store mode" for a single push subscription (one device).
+ * When set, that device becomes a high-priority recipient for any new items
+ * added to the linked list by other household members.
+ */
+async function setInStoreMode(userId, endpoint, { active, listId }) {
+  const { getAdminClient } = require('./supabaseAdmin');
+  const sb = getAdminClient();
+  const { data, error } = await sb
+    .from('push_subscriptions')
+    .update({
+      in_store_mode: !!active,
+      in_store_list_id: active ? listId || null : null,
+      last_seen_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId)
+    .eq('endpoint', endpoint)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Send a push to every household member except the actor. If `listId` is
+ * supplied, devices flagged in_store_mode for that list get a higher
+ * priority payload. Best-effort — failures per-device are swallowed.
+ */
+async function sendPushToHousehold(householdId, payload, options = {}) {
+  const { excludeUserId = null, listId = null } = options;
+  const { getAdminClient } = require('./supabaseAdmin');
+  const sb = getAdminClient();
+
+  const { data: members, error: mErr } = await sb
+    .from('household_members')
+    .select('user_id')
+    .eq('household_id', householdId);
+  if (mErr) throw mErr;
+
+  const userIds = (members || [])
+    .map((m) => m.user_id)
+    .filter((id) => id !== excludeUserId);
+  if (userIds.length === 0) return { sent: 0, failed: 0 };
+
+  const { data: subs, error: sErr } = await sb
+    .from('push_subscriptions')
+    .select('user_id, subscription, in_store_mode, in_store_list_id')
+    .in('user_id', userIds);
+  if (sErr) throw sErr;
+
+  let sent = 0;
+  let failed = 0;
+  await Promise.allSettled(
+    (subs || []).map(async (row) => {
+      const isActiveShopper =
+        row.in_store_mode && (!listId || row.in_store_list_id === listId);
+      const finalPayload = {
+        ...payload,
+        priority: isActiveShopper ? 'high' : payload.priority || 'normal',
+        inStore: isActiveShopper,
+      };
+      try {
+        await sendPushNotification(row.subscription, finalPayload);
+        sent += 1;
+      } catch {
+        failed += 1;
+      }
+    })
+  );
+  return { sent, failed };
+}
+
 module.exports = {
   saveSubscription,
   getUserSubscriptions,
   deleteSubscription,
   sendPushNotification,
   sendPushToUser,
+  sendPushToHousehold,
+  setInStoreMode,
   createPushSubscriptionsTable
 };

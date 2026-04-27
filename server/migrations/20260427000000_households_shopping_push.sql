@@ -81,18 +81,29 @@ CREATE TABLE IF NOT EXISTS shopping_list_items (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Stores the full Web Push subscription JSON (so the existing
+-- notificationService can use it as-is) plus extra columns for in-store mode.
+-- `endpoint` is auto-generated from the JSONB so it stays unique per device.
 CREATE TABLE IF NOT EXISTS push_subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  endpoint TEXT NOT NULL UNIQUE,
-  p256dh TEXT NOT NULL,
-  auth TEXT NOT NULL,
+  subscription JSONB NOT NULL,
+  endpoint TEXT GENERATED ALWAYS AS (subscription->>'endpoint') STORED,
   user_agent TEXT,
   in_store_mode BOOLEAN DEFAULT false,
   in_store_list_id UUID REFERENCES shopping_lists(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  last_seen_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  last_seen_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, endpoint)
 );
+
+-- For installations that already have push_subscriptions from the legacy
+-- notificationService bootstrap SQL, add the new columns idempotently.
+ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS user_agent TEXT;
+ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS in_store_mode BOOLEAN DEFAULT false;
+ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS in_store_list_id UUID REFERENCES shopping_lists(id) ON DELETE SET NULL;
+ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
 -- ============================================================
 -- SECTION 2: INDEXES
