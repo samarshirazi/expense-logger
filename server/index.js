@@ -2087,4 +2087,12 @@ async function startServer() {
   }
 }
 
-startServer();
+// Export the Express app so Vercel's api/index.js can re-export it.
+// Only call startServer() (which binds to PORT) when this file is run
+// directly via `node server/index.js`. In serverless, Vercel imports it
+// and uses the exported app as its handler.
+module.exports = app;
+
+if (require.main === module) {
+  startServer();
+}
